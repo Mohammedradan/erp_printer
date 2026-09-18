@@ -240,5 +240,17 @@ flutter build apk --release
 
 ---
 
+## 15. مستودع الكود المصدري (GitHub Repository)
+
+تم ربط ومزامنة المشروع بالكامل مع مستودع GitHub خاص (Private Repository):
+
+- **رابط المستودع:** [https://github.com/Mohammedradan/erp_printer](https://github.com/Mohammedradan/erp_printer)
+- **مستوى الخصوصية:** `Private` (خاص ومحمي بالكامل)
+- **الفرع الافتراضي:** `main`
+- **الحساب المالك:** `Mohammedradan`
+
+---
+
 > **ملاحظة للمطورين والإدارة:**  
 > يُحفظ هذا الملف في المستودع كمرجع رئيسي لكل التحديثات المستقبلية، ويتم تحديثه دورياً مع كل تعديل على بنية أو واجهات النظام.
+
