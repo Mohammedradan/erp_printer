@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:erp_printer/main.dart';
+import 'package:erp_printer/providers/erp_provider.dart';
+import 'package:erp_printer/services/storage_service.dart';
+import 'package:erp_printer/views/main_layout.dart';
+
+Future<void> _testAllTabs(WidgetTester tester, Size size) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  SharedPreferences.setMockInitialValues({});
+  final storage = await StorageService.init();
+  final provider = ErpProvider(storage);
+
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: provider),
+      ],
+      child: const MatbaaErpApp(),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final views = [
+    ('لوحة المؤشرات', 0),
+    ('محرك التسعير الحي', 1),
+    ('عروض الأسعار', 2),
+    ('أوامر الإنتاج', 3),
+    ('قاعدة الورق والمخزون', 4),
+    ('مخزون الأحبار', 5),
+    ('العملاء وحسابات الذمم', 6),
+    ('المدفوعات وسندات القبض', 7),
+    ('الماكينات والقوالب والتشطيب', 8),
+    ('تقارير الربحية والتحليل', 9),
+    ('إعدادات النظام', 10),
+    ('إدارة الأسعار والتكاليف', 11),
+  ];
+
+  for (final (title, index) in views) {
+    debugPrint('Testing tab ($size): $title (index $index)');
+    final state = tester.state<MainLayoutState>(find.byType(MainLayout));
+    state.setTab(index);
+    await tester.pumpAndSettle();
+  }
+}
+
+void main() {
+  testWidgets('Test all views for overflow issues on mobile portrait (390x844)', (WidgetTester tester) async {
+    await _testAllTabs(tester, const Size(390, 844));
+  });
+
+  testWidgets('Test all views for overflow issues on tablet portrait (768x1024)', (WidgetTester tester) async {
+    await _testAllTabs(tester, const Size(768, 1024));
+  });
+
+  testWidgets('Test all views for overflow issues at standard desktop size (1024x768)', (WidgetTester tester) async {
+    await _testAllTabs(tester, const Size(1024, 768));
+  });
+
+  testWidgets('Test all views for overflow issues at laptop size (1366x768)', (WidgetTester tester) async {
+    await _testAllTabs(tester, const Size(1366, 768));
+  });
+
+  testWidgets('Test all views for overflow issues at Full HD (1920x1080)', (WidgetTester tester) async {
+    await _testAllTabs(tester, const Size(1920, 1080));
+  });
+}
