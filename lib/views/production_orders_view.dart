@@ -305,17 +305,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   ),
                                   PopupMenuButton<String>(
                                     icon: const Icon(Icons.more_vert, size: 18),
-                                    onSelected: (st) async {
-                                      final result = await erp.updateProductionOrderStatus(o.id, st);
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(result.message),
-                                            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
-                                          ),
-                                        );
-                                      }
-                                    },
+                                    onSelected: (st) => _handleOrderMenuSelection(o, st, erp),
                                     itemBuilder: (ctx) {
                                       switch (o.status) {
                                         case 'مسودة':
@@ -324,12 +314,15 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                             PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                           ];
                                         case 'معتمد':
-                                          return const [
-                                            PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
-                                            PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                          return [
+                                            const PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
+                                            if (o.issuedMaterialsCount > 0)
+                                              const PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
+                                            const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                           ];
                                         case 'قيد الإنتاج':
                                           return const [
+                                            PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
                                             PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
                                           ];
                                         default:
@@ -619,17 +612,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         ),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.blueGrey),
-                          onSelected: (val) async {
-                            final result = await erp.updateProductionOrderStatus(o.id, val);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(result.message),
-                                  backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
-                                ),
-                              );
-                            }
-                          },
+                          onSelected: (val) => _handleOrderMenuSelection(o, val, erp),
                           itemBuilder: (ctx) {
                             switch (o.status) {
                               case 'مسودة':
@@ -638,12 +621,15 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                 ];
                               case 'معتمد':
-                                return const [
-                                  PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
-                                  PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                return [
+                                  const PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
+                                  if (o.issuedMaterialsCount > 0)
+                                    const PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
+                                  const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                 ];
                               case 'قيد الإنتاج':
                                 return const [
+                                  PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
                                   PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
                                 ];
                               default:
@@ -665,6 +651,154 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _handleOrderMenuSelection(
+    ProductionOrder order,
+    String value,
+    ErpProvider erp,
+  ) async {
+    if (value == '_return_materials') {
+      _showReturnMaterialsDialog(order, erp);
+      return;
+    }
+    final result = await erp.updateProductionOrderStatus(order.id, value);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+        ),
+      );
+    }
+  }
+
+  void _showReturnMaterialsDialog(ProductionOrder order, ErpProvider erp) {
+    final issuedMaterials = order.materialRequirements
+        .where((material) => material.materialType == 'paper' && material.quantityIssued > 0)
+        .toList();
+    if (issuedMaterials.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا توجد مواد مصروفة يمكن إرجاعها لهذا الأمر')),
+      );
+      return;
+    }
+
+    ProductionMaterialRequirement selectedMaterial = issuedMaterials.first;
+    final quantityCtrl = TextEditingController(
+      text: selectedMaterial.quantityIssued.toStringAsFixed(0),
+    );
+    final notesCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.assignment_return_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Expanded(child: Text('إرجاع مواد إلى المخزون', style: TextStyle(fontSize: 17))),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('أمر الإنتاج: ${order.number}', style: const TextStyle(color: AppTheme.textMuted)),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<ProductionMaterialRequirement>(
+                    isExpanded: true,
+                    initialValue: selectedMaterial,
+                    decoration: const InputDecoration(
+                      labelText: 'المادة المصروفة',
+                      prefixIcon: Icon(Icons.inventory_2_outlined),
+                    ),
+                    items: issuedMaterials
+                        .map(
+                          (material) => DropdownMenuItem(
+                            value: material,
+                            child: Text(
+                              '${material.materialName} — المصروف ${material.quantityIssued.toStringAsFixed(0)} ${material.unit}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (material) {
+                      if (material == null) return;
+                      setDialogState(() {
+                        selectedMaterial = material;
+                        quantityCtrl.text = material.quantityIssued.toStringAsFixed(0);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: quantityCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'كمية الإرجاع',
+                      suffixText: selectedMaterial.unit,
+                      helperText: 'الحد الأقصى: ${selectedMaterial.quantityIssued.toStringAsFixed(0)} ${selectedMaterial.unit}',
+                      prefixIcon: const Icon(Icons.undo_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'سبب الإرجاع / ملاحظات *',
+                      prefixIcon: Icon(Icons.note_alt_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'سيُنشئ النظام حركة دخول موثقة ويحافظ على حركة الصرف الأصلية.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await erp.returnProductionMaterial(
+                  orderId: order.id,
+                  materialRequirementId: selectedMaterial.id,
+                  quantity: double.tryParse(quantityCtrl.text) ?? 0,
+                  notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                );
+                if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result.message),
+                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.assignment_return_rounded),
+              label: const Text('تسجيل الإرجاع'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

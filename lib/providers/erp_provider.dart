@@ -811,6 +811,88 @@ class ErpProvider with ChangeNotifier {
     return DomainOperationResult.success('تم صرف جميع المواد المطلوبة لأمر الإنتاج');
   }
 
+  /// يعيد مادة سبق صرفها إلى المخزون ويخفض الكمية المصروفة في أمر الإنتاج.
+  /// يُستخدم قبل الإلغاء أو لتصحيح صرف قبل اكتمال الأمر، ولا يحذف حركة الصرف الأصلية.
+  Future<DomainOperationResult> returnProductionMaterial({
+    required String orderId,
+    required String materialRequirementId,
+    required double quantity,
+    String? notes,
+  }) async {
+    if (quantity <= 0) {
+      return DomainOperationResult.failure('يجب أن تكون كمية الإرجاع أكبر من صفر');
+    }
+    final returnNotes = notes?.trim();
+    if (returnNotes == null || returnNotes.isEmpty) {
+      return DomainOperationResult.failure('يجب إدخال سبب أو ملاحظة لإرجاع المواد');
+    }
+    final orderIndex = _productionOrders.indexWhere((order) => order.id == orderId);
+    if (orderIndex == -1) {
+      return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
+    }
+    final order = _productionOrders[orderIndex];
+    if (order.status == 'مكتمل' || order.status == 'ملغي') {
+      return DomainOperationResult.failure(
+        'لا يمكن إرجاع مواد من أمر مكتمل أو ملغي؛ أنشئ تسوية تصحيحية موثقة',
+      );
+    }
+    final materialMatches = order.materialRequirements
+        .where((material) => material.id == materialRequirementId)
+        .toList();
+    if (materialMatches.isEmpty) {
+      return DomainOperationResult.failure('المادة المطلوبة غير مرتبطة بأمر الإنتاج');
+    }
+    final material = materialMatches.first;
+    if (material.materialType != 'paper') {
+      return DomainOperationResult.failure('إرجاع هذه المادة غير مدعوم في المخزون الحالي');
+    }
+    if (material.quantityIssued + 0.0001 < quantity) {
+      return DomainOperationResult.failure(
+        'لا يمكن إرجاع كمية أكبر من المصروف. المصروف ${material.quantityIssued.toStringAsFixed(0)} ${material.unit}',
+      );
+    }
+    final papers = _papers.where((paper) => paper.id == material.materialId).toList();
+    if (papers.isEmpty) {
+      return DomainOperationResult.failure('صنف ${material.materialName} غير موجود في المخزون');
+    }
+
+    final paper = papers.first;
+    final unitPrice = material.unitCostAtApproval > 0
+        ? material.unitCostAtApproval
+        : paper.sheetPrice;
+    paper.balance += quantity;
+    material.quantityIssued = (material.quantityIssued - quantity).clamp(0.0, double.infinity).toDouble();
+    order.isPaperDeducted = order.areAllMaterialsIssued;
+    // لا يمكن بقاء أمر تحت الإنتاج عندما تعاد إحدى مواده؛ يعود إلى حالة معتمد.
+    if (order.status == 'قيد الإنتاج' && !order.areAllMaterialsIssued) {
+      order.status = 'معتمد';
+    }
+    _stockMoves.insert(
+      0,
+      StockMove(
+        id: 'SM_RETURN_${DateTime.now().microsecondsSinceEpoch}_${material.id}',
+        number: generateNextStockMoveNumber(),
+        date: DateTime.now(),
+        moveType: 'دخول',
+        paperId: paper.id,
+        paperCategory: paper.category,
+        paperType: paper.paperType,
+        gsm: paper.gsm,
+        qtySheets: quantity,
+        unitPrice: unitPrice,
+        totalValue: quantity * unitPrice,
+        reference: 'أمر إنتاج ${order.number} - إرجاع مواد',
+        supplier: paper.supplier,
+        notes: 'إرجاع ${material.materialName} من أمر الإنتاج ${order.number}: $returnNotes',
+      ),
+    );
+    await _storage.savePapers(_papers);
+    await _storage.saveStockMoves(_stockMoves);
+    await _storage.saveProductionOrders(_productionOrders);
+    notifyListeners();
+    return DomainOperationResult.success('تم إرجاع ${quantity.toStringAsFixed(0)} ${material.unit} من ${material.materialName}');
+  }
+
   // --- PAPERS & STOCK MOVES ACTIONS ---
   String generateNextStockMoveNumber() {
     final count = _stockMoves.length + 1;
@@ -893,7 +975,7 @@ class ErpProvider with ChangeNotifier {
     if (_stockMoves.any((item) => item.reversalOfId == move.id)) {
       return DomainOperationResult.failure('سبق إنشاء حركة عكسية لهذه الحركة');
     }
-    if (move.reference?.startsWith('أمر إنتاج') == true) {
+    if (move.reference?.contains('أمر إنتاج') == true) {
       return DomainOperationResult.failure(
         'لا يمكن عكس صرف مرتبط بأمر إنتاج من هنا؛ استخدم إجراء إرجاع مواد موثقاً',
       );

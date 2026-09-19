@@ -71,6 +71,86 @@ void main() {
       expect(coverPaper.balance, lessThan(coverBefore));
     });
 
+    test('إرجاع مواد أمر الإنتاج يعيد الرصيد ويسمح بإلغاء العرض بعد التصفير', () async {
+      final innerPaper = erp.papers.firstWhere((paper) => paper.id == 'P01');
+      final coverPaper = erp.papers.firstWhere((paper) => paper.id == 'P06');
+      final machine = erp.machines.first;
+      final customer = erp.customers.last;
+      final customerBalanceBefore = customer.currentBalance;
+      final balancesBefore = <String, double>{
+        innerPaper.id: innerPaper.balance,
+        coverPaper.id: coverPaper.balance,
+      };
+      final pricing = erp.calculateBookPrice(
+        productName: 'كتاب اختبار إرجاع المواد',
+        pages: 16,
+        pagesPerSignature: 8,
+        qty: 10,
+        innerPaper: innerPaper,
+        machine: machine,
+        innerColors: 1,
+        coverPaper: coverPaper,
+        coverFitsPerSheet: 4,
+        coverColors: 4,
+        coverLamination: false,
+        bindingType: 'دبوس',
+        selectedFinishingIds: const [],
+      );
+      final quote = await erp.addQuotation(
+        customerId: customer.id,
+        customerCode: customer.code,
+        customerName: customer.name,
+        product: pricing.productName,
+        qty: pricing.qty,
+        pages: pricing.pages,
+        paper: '${innerPaper.displayName} + ${coverPaper.displayName}',
+        machine: machine.name,
+        unitPrice: pricing.unitPrice,
+        totalCost: pricing.lineTotalCost,
+        quoteAmount: pricing.lineAmount,
+        profit: pricing.profit,
+        pricingDetails: pricing,
+      );
+      expect((await erp.updateQuotationStatus(quote.id, 'معتمد')).isSuccess, isTrue);
+      final order = erp.productionOrders.first;
+      expect((await erp.deductPaperForOrder(order.id)).isSuccess, isTrue);
+      expect(order.status, 'قيد الإنتاج');
+      expect(
+        (await erp.returnProductionMaterial(
+          orderId: order.id,
+          materialRequirementId: order.materialRequirements.first.id,
+          quantity: 1,
+        ))
+            .isSuccess,
+        isFalse,
+      );
+
+      for (final material in List<ProductionMaterialRequirement>.from(order.materialRequirements)) {
+        expect(
+          (await erp.returnProductionMaterial(
+            orderId: order.id,
+            materialRequirementId: material.id,
+            quantity: material.quantityIssued,
+            notes: 'إلغاء تشغيل قبل الطباعة',
+          ))
+              .isSuccess,
+          isTrue,
+        );
+      }
+
+      expect(order.status, 'معتمد');
+      expect(order.isPaperDeducted, isFalse);
+      expect(order.materialRequirements.every((item) => item.quantityIssued == 0), isTrue);
+      expect(innerPaper.balance, balancesBefore[innerPaper.id]);
+      expect(coverPaper.balance, balancesBefore[coverPaper.id]);
+      expect(
+        erp.stockMoves.where((move) => move.reference?.contains('إرجاع مواد') ?? false),
+        hasLength(2),
+      );
+      expect((await erp.updateQuotationStatus(quote.id, 'ملغي')).isSuccess, isTrue);
+      expect(customer.currentBalance, customerBalanceBefore);
+    });
+
     test('فشل صرف خامة واحدة لا يخصم أي خامة أخرى من الأمر متعدد المواد', () async {
       final innerPaper = erp.papers.firstWhere((paper) => paper.id == 'P01');
       final coverPaper = erp.papers.firstWhere((paper) => paper.id == 'P06');
