@@ -378,6 +378,8 @@ class StockMove {
   double unitPrice;
   double totalValue;
   String? reference; // رقم أمر الإنتاج أو فاتورة المشتريات
+  /// معرّف الحركة الأصلية عند إنشاء قيد عكسي؛ يبقى الأصل محفوظاً للتدقيق.
+  String? reversalOfId;
   String? supplier;
   String? notes;
 
@@ -394,6 +396,7 @@ class StockMove {
     this.unitPrice = 0.0,
     required this.totalValue,
     this.reference,
+    this.reversalOfId,
     this.supplier,
     this.notes,
   });
@@ -411,6 +414,7 @@ class StockMove {
         'unitPrice': unitPrice,
         'totalValue': totalValue,
         'reference': reference,
+        'reversalOfId': reversalOfId,
         'supplier': supplier,
         'notes': notes,
       };
@@ -428,6 +432,7 @@ class StockMove {
         unitPrice: (json['unitPrice'] ?? 0).toDouble(),
         totalValue: (json['totalValue'] ?? 0).toDouble(),
         reference: json['reference'],
+        reversalOfId: json['reversalOfId'],
         supplier: json['supplier'],
         notes: json['notes'],
       );
@@ -478,6 +483,58 @@ class Customer {
         openingBalance: (json['openingBalance'] ?? 0).toDouble(),
         totalSales: (json['totalSales'] ?? 0).toDouble(),
         paid: (json['paid'] ?? 0).toDouble(),
+      );
+}
+
+/// قيد دفتر حساب العميل. لا يحذف الأثر المالي؛ يتم إنشاء قيد عكسي عند الإلغاء.
+class CustomerLedgerEntry {
+  final String id;
+  final String customerId;
+  final DateTime date;
+  final String type; // opening_balance / opening_adjustment / sale / sale_reversal / payment / legacy_sale / legacy_payment
+  final double debit;
+  final double credit;
+  final String? referenceId;
+  final String? referenceNumber;
+  final String? notes;
+
+  CustomerLedgerEntry({
+    required this.id,
+    required this.customerId,
+    required this.date,
+    required this.type,
+    this.debit = 0.0,
+    this.credit = 0.0,
+    this.referenceId,
+    this.referenceNumber,
+    this.notes,
+  });
+
+  double get balanceEffect => debit - credit;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'customerId': customerId,
+        'date': date.toIso8601String(),
+        'type': type,
+        'debit': debit,
+        'credit': credit,
+        'referenceId': referenceId,
+        'referenceNumber': referenceNumber,
+        'notes': notes,
+      };
+
+  factory CustomerLedgerEntry.fromJson(Map<String, dynamic> json) =>
+      CustomerLedgerEntry(
+        id: json['id'],
+        customerId: json['customerId'],
+        date: DateTime.parse(json['date']),
+        type: json['type'],
+        debit: (json['debit'] ?? 0).toDouble(),
+        credit: (json['credit'] ?? 0).toDouble(),
+        referenceId: json['referenceId'],
+        referenceNumber: json['referenceNumber'],
+        notes: json['notes'],
       );
 }
 
@@ -571,6 +628,44 @@ class PricingStepDetail {
       );
 }
 
+/// مادة مخططة في نتيجة التسعير. الكمية تكون بوحدة صنف المخزون (فرخ للورق).
+class PricingMaterialRequirement {
+  final String materialId;
+  final String materialName;
+  final String materialType;
+  final double quantity;
+  final String unit;
+  final double unitCost;
+
+  PricingMaterialRequirement({
+    required this.materialId,
+    required this.materialName,
+    this.materialType = 'paper',
+    required this.quantity,
+    this.unit = 'فرخ',
+    this.unitCost = 0.0,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'materialId': materialId,
+        'materialName': materialName,
+        'materialType': materialType,
+        'quantity': quantity,
+        'unit': unit,
+        'unitCost': unitCost,
+      };
+
+  factory PricingMaterialRequirement.fromJson(Map<String, dynamic> json) =>
+      PricingMaterialRequirement(
+        materialId: json['materialId'] ?? '',
+        materialName: json['materialName'] ?? '',
+        materialType: json['materialType'] ?? 'paper',
+        quantity: (json['quantity'] ?? 0).toDouble(),
+        unit: json['unit'] ?? 'فرخ',
+        unitCost: (json['unitCost'] ?? 0).toDouble(),
+      );
+}
+
 /// نتيجة وتفاصيل محرك التسعير (محرك_التسعير - 26 عمود + قوالب المنتجات المتخصصة)
 class PricingResult {
   String productName;
@@ -620,6 +715,7 @@ class PricingResult {
   double grandTotalAmount;
   List<PricingStepDetail> stepDetails;
   Map<String, dynamic> extraMetrics;
+  List<PricingMaterialRequirement> materialRequirements;
 
   PricingResult({
     required this.productName,
@@ -662,6 +758,7 @@ class PricingResult {
     this.grandTotalAmount = 0.0,
     this.stepDetails = const [],
     this.extraMetrics = const {},
+    this.materialRequirements = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -705,6 +802,7 @@ class PricingResult {
         'grandTotalAmount': grandTotalAmount,
         'stepDetails': stepDetails.map((s) => s.toJson()).toList(),
         'extraMetrics': extraMetrics,
+        'materialRequirements': materialRequirements.map((m) => m.toJson()).toList(),
       };
 
   factory PricingResult.fromJson(Map<String, dynamic> json) => PricingResult(
@@ -752,6 +850,11 @@ class PricingResult {
                 .toList()
             : [],
         extraMetrics: Map<String, dynamic>.from(json['extraMetrics'] ?? {}),
+        materialRequirements: json['materialRequirements'] != null
+            ? (json['materialRequirements'] as List)
+                .map((x) => PricingMaterialRequirement.fromJson(Map<String, dynamic>.from(x)))
+                .toList()
+            : [],
       );
 }
 
@@ -848,6 +951,56 @@ class Quotation {
       );
 }
 
+/// مادة لازمة لأمر إنتاج. تستخدم للصرف الفعلي من كل صنف على حدة.
+class ProductionMaterialRequirement {
+  String id;
+  String materialId;
+  String materialName;
+  String materialType;
+  double quantityRequired;
+  double quantityIssued;
+  String unit;
+  double unitCostAtApproval;
+
+  ProductionMaterialRequirement({
+    required this.id,
+    required this.materialId,
+    required this.materialName,
+    this.materialType = 'paper',
+    required this.quantityRequired,
+    this.quantityIssued = 0.0,
+    this.unit = 'فرخ',
+    this.unitCostAtApproval = 0.0,
+  });
+
+  bool get isFullyIssued => quantityIssued >= quantityRequired;
+  double get remainingQuantity =>
+      (quantityRequired - quantityIssued).clamp(0.0, double.infinity).toDouble();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'materialId': materialId,
+        'materialName': materialName,
+        'materialType': materialType,
+        'quantityRequired': quantityRequired,
+        'quantityIssued': quantityIssued,
+        'unit': unit,
+        'unitCostAtApproval': unitCostAtApproval,
+      };
+
+  factory ProductionMaterialRequirement.fromJson(Map<String, dynamic> json) =>
+      ProductionMaterialRequirement(
+        id: json['id'] ?? '',
+        materialId: json['materialId'] ?? '',
+        materialName: json['materialName'] ?? '',
+        materialType: json['materialType'] ?? 'paper',
+        quantityRequired: (json['quantityRequired'] ?? 0).toDouble(),
+        quantityIssued: (json['quantityIssued'] ?? 0).toDouble(),
+        unit: json['unit'] ?? 'فرخ',
+        unitCostAtApproval: (json['unitCostAtApproval'] ?? 0).toDouble(),
+      );
+}
+
 /// أمر إنتاج (أوامر_الإنتاج)
 class ProductionOrder {
   String id;
@@ -869,7 +1022,8 @@ class ProductionOrder {
   String status; // مسودة / معتمد / قيد الإنتاج / مكتمل / ملغي
   DateTime? dueDate; // موعد التسليم
   String? notes;
-  bool isPaperDeducted; // هل تم صرف وخصم الورق من المخزون بحركة خروج
+  bool isPaperDeducted; // توافق مع الأوامر القديمة؛ يعكس صرف جميع المواد في الأوامر الجديدة
+  List<ProductionMaterialRequirement> materialRequirements;
 
   ProductionOrder({
     required this.id,
@@ -892,10 +1046,15 @@ class ProductionOrder {
     this.dueDate,
     this.notes,
     this.isPaperDeducted = false,
+    this.materialRequirements = const [],
   });
 
   bool get isCompleted => status == 'مكتمل';
   bool get isInProgress => status == 'قيد الإنتاج';
+  bool get areAllMaterialsIssued => materialRequirements.isEmpty
+      ? isPaperDeducted
+      : materialRequirements.every((material) => material.isFullyIssued);
+  int get issuedMaterialsCount => materialRequirements.where((material) => material.quantityIssued > 0).length;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -918,6 +1077,7 @@ class ProductionOrder {
         'dueDate': dueDate?.toIso8601String(),
         'notes': notes,
         'isPaperDeducted': isPaperDeducted,
+        'materialRequirements': materialRequirements.map((material) => material.toJson()).toList(),
       };
 
   factory ProductionOrder.fromJson(Map<String, dynamic> json) => ProductionOrder(
@@ -941,6 +1101,11 @@ class ProductionOrder {
         dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
         notes: json['notes'],
         isPaperDeducted: json['isPaperDeducted'] ?? false,
+        materialRequirements: json['materialRequirements'] != null
+            ? (json['materialRequirements'] as List)
+                .map((x) => ProductionMaterialRequirement.fromJson(Map<String, dynamic>.from(x)))
+                .toList()
+            : [],
       );
 }
 

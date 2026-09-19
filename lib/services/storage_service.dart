@@ -15,6 +15,7 @@ class StorageService {
   static const String _kProductionOrders = 'erp_production_orders';
   static const String _kStockMoves = 'erp_stock_moves';
   static const String _kPayments = 'erp_payments';
+  static const String _kCustomerLedger = 'erp_customer_ledger';
   static const String _kInitialized = 'erp_initialized_v1';
   static const String _kUsers = 'erp_users';
   static const String _kActiveUserId = 'erp_active_user_id';
@@ -32,6 +33,7 @@ class StorageService {
       await service.seedInitialData();
       await prefs.setBool(_kInitialized, true);
     }
+    await service.ensureCustomerLedgerFromLegacy();
     return service;
   }
 
@@ -202,10 +204,121 @@ class StorageService {
     await _prefs.setStringList(_kPayments, list);
   }
 
+  // --- CUSTOMER LEDGER ---
+  List<CustomerLedgerEntry> loadCustomerLedger() {
+    final list = _prefs.getStringList(_kCustomerLedger);
+    if (list == null) return [];
+    return list
+        .map((entry) => CustomerLedgerEntry.fromJson(jsonDecode(entry)))
+        .toList();
+  }
+
+  Future<void> saveCustomerLedger(List<CustomerLedgerEntry> entries) async {
+    await _prefs.setStringList(
+      _kCustomerLedger,
+      entries.map((entry) => jsonEncode(entry.toJson())).toList(),
+    );
+  }
+
+  /// ترحيل محافظ للبيانات القديمة: يبني دفتر القيود من العروض والمدفوعات
+  /// ثم يضيف قيوداً تاريخية للفرق حتى يظل رصيد العميل السابق كما هو.
+  Future<void> ensureCustomerLedgerFromLegacy({bool force = false}) async {
+    if (!force && _prefs.containsKey(_kCustomerLedger)) return;
+
+    final customers = loadCustomers();
+    final quotations = loadQuotations();
+    final payments = loadPayments();
+    final entries = <CustomerLedgerEntry>[];
+
+    for (final customer in customers) {
+      if (customer.openingBalance != 0) {
+        entries.add(CustomerLedgerEntry(
+          id: 'LED_OPEN_${customer.id}',
+          customerId: customer.id,
+          date: DateTime.now(),
+          type: 'opening_balance',
+          debit: customer.openingBalance > 0 ? customer.openingBalance : 0,
+          credit: customer.openingBalance < 0 ? customer.openingBalance.abs() : 0,
+          referenceId: customer.id,
+          referenceNumber: 'OPEN-${customer.code}',
+          notes: 'رصيد افتتاحي تم ترحيله من بيانات الإصدار السابق',
+        ));
+      }
+
+      final customerQuotes = quotations
+          .where((quote) => quote.customerId == customer.id && quote.status == 'معتمد')
+          .toList();
+      final quotedSales = customerQuotes.fold<double>(
+        0,
+        (sum, quote) => sum + quote.quoteAmount,
+      );
+      for (final quote in customerQuotes) {
+        entries.add(CustomerLedgerEntry(
+          id: 'LED_SALE_${quote.id}',
+          customerId: customer.id,
+          date: quote.date,
+          type: 'sale',
+          debit: quote.quoteAmount,
+          referenceId: quote.id,
+          referenceNumber: quote.number,
+          notes: 'ترحيل عرض سعر معتمد',
+        ));
+      }
+      final legacySalesDifference = customer.totalSales - quotedSales;
+      if (legacySalesDifference > 0.0001) {
+        entries.add(CustomerLedgerEntry(
+          id: 'LED_LEGACY_SALE_${customer.id}',
+          customerId: customer.id,
+          date: DateTime.now(),
+          type: 'legacy_sale',
+          debit: legacySalesDifference,
+          referenceId: customer.id,
+          referenceNumber: 'LEGACY-SALES-${customer.code}',
+          notes: 'رصيد مبيعات تاريخي غير مرتبط بعرض محفوظ',
+        ));
+      }
+
+      final customerPayments = payments
+          .where((payment) => payment.customerId == customer.id)
+          .toList();
+      final recordedPayments = customerPayments.fold<double>(
+        0,
+        (sum, payment) => sum + payment.amount,
+      );
+      for (final payment in customerPayments) {
+        entries.add(CustomerLedgerEntry(
+          id: 'LED_PAY_${payment.id}',
+          customerId: customer.id,
+          date: payment.date,
+          type: 'payment',
+          credit: payment.amount,
+          referenceId: payment.id,
+          referenceNumber: payment.number,
+          notes: 'ترحيل سند قبض',
+        ));
+      }
+      final legacyPaymentDifference = customer.paid - recordedPayments;
+      if (legacyPaymentDifference > 0.0001) {
+        entries.add(CustomerLedgerEntry(
+          id: 'LED_LEGACY_PAY_${customer.id}',
+          customerId: customer.id,
+          date: DateTime.now(),
+          type: 'legacy_payment',
+          credit: legacyPaymentDifference,
+          referenceId: customer.id,
+          referenceNumber: 'LEGACY-PAY-${customer.code}',
+          notes: 'دفعة تاريخية غير مرتبطة بسند محفوظ',
+        ));
+      }
+    }
+
+    await saveCustomerLedger(entries);
+  }
+
   /// تصدير نسخة احتياطية شاملة لكافة بيانات ومحتويات النظام كـ JSON
   String exportBackupJson() {
     final data = <String, dynamic>{
-      'version': '1.0',
+      'version': '1.1',
       'exportDate': DateTime.now().toIso8601String(),
       'settings': _prefs.getString(_kSettings),
       'papers': _prefs.getStringList(_kPapers),
@@ -219,6 +332,7 @@ class StorageService {
       'productionOrders': _prefs.getStringList(_kProductionOrders),
       'stockMoves': _prefs.getStringList(_kStockMoves),
       'payments': _prefs.getStringList(_kPayments),
+      'customerLedger': _prefs.getStringList(_kCustomerLedger),
     };
     return jsonEncode(data);
   }
@@ -239,6 +353,12 @@ class StorageService {
       if (data['productionOrders'] != null) await _prefs.setStringList(_kProductionOrders, List<String>.from(data['productionOrders']));
       if (data['stockMoves'] != null) await _prefs.setStringList(_kStockMoves, List<String>.from(data['stockMoves']));
       if (data['payments'] != null) await _prefs.setStringList(_kPayments, List<String>.from(data['payments']));
+      if (data['customerLedger'] != null) {
+        await _prefs.setStringList(_kCustomerLedger, List<String>.from(data['customerLedger']));
+      } else {
+        await _prefs.remove(_kCustomerLedger);
+        await ensureCustomerLedgerFromLegacy(force: true);
+      }
       return true;
     } catch (e) {
       return false;
@@ -247,6 +367,7 @@ class StorageService {
 
   /// تهيئة البيانات الافتراضية الأولية المستخرجة حرفياً من ملف الإكسل ERP_مطبعة_متكامل.xls
   Future<void> seedInitialData() async {
+    await _prefs.remove(_kCustomerLedger);
     final settings = AppSettings(
       sheetSize: '100x70',
       unitSize: '50x35',
@@ -491,6 +612,7 @@ class StorageService {
       ),
     ];
     await savePayments(payments);
+    await ensureCustomerLedgerFromLegacy(force: true);
   }
 
   // ─────────────────────────────────────────────────────────

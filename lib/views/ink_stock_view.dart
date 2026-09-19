@@ -339,7 +339,7 @@ class _InkStockViewState extends State<InkStockView> {
                 final qty = double.tryParse(qtyCtrl.text) ?? 0;
                 final price = double.tryParse(priceCtrl.text) ?? selectedInk!.unitPrice;
 
-                await erp.addInkMove(
+                final result = await erp.addInkMove(
                   moveType: moveType,
                   inkId: selectedInk!.id,
                   qty: qty,
@@ -348,7 +348,15 @@ class _InkStockViewState extends State<InkStockView> {
                   notes: notesCtrl.text,
                 );
 
-                if (ctx.mounted) Navigator.pop(ctx);
+                if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result.message),
+                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                    ),
+                  );
+                }
               },
               child: const Text('حفظ الحركة'),
             ),

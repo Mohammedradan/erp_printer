@@ -674,7 +674,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('المورد / الجهة', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('إلغاء الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('عكس الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
                   rows: filteredMoves.map((m) {
                     return DataRow(cells: [
@@ -696,9 +696,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       DataCell(Text(m.notes ?? '—')),
                       DataCell(
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                          tooltip: 'إلغاء هذه الحركة وعكس الرصيد',
-                          onPressed: () => _confirmDeleteStockMove(m, erp),
+                          icon: const Icon(Icons.undo_rounded, size: 18, color: Colors.orange),
+                          tooltip: 'إنشاء حركة عكسية',
+                          onPressed: () => _confirmReverseStockMove(m, erp),
                         ),
                       ),
                     ]);
@@ -1103,23 +1103,35 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               final sheetPrice = double.tryParse(priceCtrl.text) ?? 0.0;
                               final reorderLevel = int.tryParse(reorderCtrl.text) ?? 200;
                               final balance = double.tryParse(initialBalanceCtrl.text) ?? 0.0;
+                              if (balance < 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('لا يمكن إدخال رصيد ورق سالب؛ استخدم تسوية موثقة عند الحاجة'),
+                                    backgroundColor: Colors.red.shade700,
+                                  ),
+                                );
+                                return;
+                              }
 
+                              final PaperItem paper;
                               if (isEditing) {
-                                paperToEdit.category = selectedCategory;
-                                paperToEdit.paperType = typeCtrl.text.trim();
-                                paperToEdit.gsm = gsm;
-                                paperToEdit.sheetSize = sheetSizeCtrl.text.trim();
-                                paperToEdit.sheetsPerUnit = sheetsPerUnit;
-                                paperToEdit.sheetPrice = sheetPrice;
-                                paperToEdit.reorderLevel = reorderLevel;
-                                paperToEdit.balance = balance;
-                                paperToEdit.supplier = supplierCtrl.text.trim().isEmpty ? null : supplierCtrl.text.trim();
-
-                                await erp.updatePaper(paperToEdit);
+                                // أنشئ نسخة كي لا تتغير بيانات المخزون المعروضة قبل قبول طبقة الأعمال للتعديل.
+                                paper = PaperItem(
+                                  id: paperToEdit.id,
+                                  category: selectedCategory,
+                                  paperType: typeCtrl.text.trim(),
+                                  gsm: gsm,
+                                  sheetSize: sheetSizeCtrl.text.trim(),
+                                  sheetsPerUnit: sheetsPerUnit,
+                                  sheetPrice: sheetPrice,
+                                  reorderLevel: reorderLevel,
+                                  balance: balance,
+                                  supplier: supplierCtrl.text.trim().isEmpty ? null : supplierCtrl.text.trim(),
+                                  isActive: paperToEdit.isActive,
+                                );
                               } else {
-                                final newId = 'P_${DateTime.now().millisecondsSinceEpoch}';
-                                final newPaper = PaperItem(
-                                  id: newId,
+                                paper = PaperItem(
+                                  id: 'P_${DateTime.now().millisecondsSinceEpoch}',
                                   category: selectedCategory,
                                   paperType: typeCtrl.text.trim(),
                                   gsm: gsm,
@@ -1130,13 +1142,18 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                   balance: balance,
                                   supplier: supplierCtrl.text.trim().isEmpty ? null : supplierCtrl.text.trim(),
                                 );
-                                await erp.addPaper(newPaper);
                               }
 
-                              if (ctx.mounted) Navigator.pop(ctx);
+                              final result = isEditing
+                                  ? await erp.updatePaper(paper)
+                                  : await erp.addPaper(paper);
+                              if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(isEditing ? 'تم تحديث بيانات الصنف بنجاح!' : 'تم إضافة صنف الورق الجديد بنجاح!')),
+                                  SnackBar(
+                                    content: Text(result.message),
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                  ),
                                 );
                               }
                             },
@@ -1212,7 +1229,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'الرصيد الحالي للصنف: ${paper.balance.toInt()} فرخ.\n(ملاحظة: لن يتم حذف حركات المخزون السابقة المسجلة عليه)',
+                  'لا يمكن حذف صنف له رصيد أو حركات مخزون أو أوامر إنتاج مرتبطة.\nاحتفظ به لحماية السجل التاريخي.',
                   style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.4),
                 ),
                 const SizedBox(height: 22),
@@ -1234,11 +1251,14 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          await erp.deletePaper(paper.id);
-                          if (ctx.mounted) Navigator.pop(ctx);
+                          final result = await erp.deletePaper(paper.id);
+                          if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('تم حذف الصنف ${paper.displayName} بنجاح')),
+                              SnackBar(
+                                content: Text(result.message),
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                              ),
                             );
                           }
                         },
@@ -1442,7 +1462,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               final qty = double.tryParse(qtyCtrl.text) ?? 0;
                               final price = double.tryParse(priceCtrl.text) ?? selectedPaper!.sheetPrice;
 
-                              await erp.addStockMove(
+                              final result = await erp.addStockMove(
                                 moveType: moveType,
                                 paperId: selectedPaper!.id,
                                 qtySheets: qty,
@@ -1452,10 +1472,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                               );
 
-                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('تم تسجيل حركة المخزون وتحديث رصيد الورق بنجاح!')),
+                                  SnackBar(
+                                    content: Text(result.message),
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                  ),
                                 );
                               }
                             },
@@ -1482,9 +1505,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   }
 
   // ==========================================
-  // تأكيد إلغاء حركة مخزون
+  // تأكيد إنشاء حركة مخزون عكسية
   // ==========================================
-  void _confirmDeleteStockMove(StockMove move, ErpProvider erp) {
+  void _confirmReverseStockMove(StockMove move, ErpProvider erp) {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -1507,12 +1530,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         color: Colors.red.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 24),
+                      child: const Icon(Icons.undo_rounded, color: Colors.orange, size: 24),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
-                        'تأكيد إلغاء حركة المخزون',
+                        'تأكيد إنشاء حركة عكسية',
                         style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
                       ),
                     ),
@@ -1526,12 +1549,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 const Divider(),
                 const SizedBox(height: 12),
                 Text(
-                  'هل أنت متأكد من رغبتك في إلغاء الحركة رقم "${move.number}"؟',
+                  'هل تريد إنشاء حركة عكسية للحركة رقم "${move.number}"؟',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'النوع: ${move.moveType} | الكمية: ${move.qtySheets.toInt()} فرخ.\n(سيتم عكس أثر الحركة على رصيد المخزون تلقائياً)',
+                  'النوع: ${move.moveType} | الكمية: ${move.qtySheets.toInt()} فرخ.\nسيبقى السجل الأصلي محفوظاً وسيُنشئ النظام حركة مقابلة موثقة.',
                   style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.4),
                 ),
                 const SizedBox(height: 22),
@@ -1553,18 +1576,21 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          await erp.deleteStockMove(move.id);
-                          if (ctx.mounted) Navigator.pop(ctx);
+                          final result = await erp.reverseStockMove(move.id);
+                          if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('تم إلغاء الحركة ${move.number} وعكس أثر الرصيد بنجاح')),
+                              SnackBar(
+                                content: Text(result.message),
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                              ),
                             );
                           }
                         },
-                        icon: const Icon(Icons.delete_forever_rounded, size: 18),
-                        label: const Text('نعم، إلغاء الحركة'),
+                        icon: const Icon(Icons.undo_rounded, size: 18),
+                        label: const Text('نعم، إنشاء حركة عكسية'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700,
+                          backgroundColor: Colors.orange.shade700,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1861,9 +1887,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () => _confirmDeleteStockMove(m, erp),
-                  icon: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
-                  label: const Text('إلغاء الحركة', style: TextStyle(color: Colors.red, fontSize: 11)),
+                  onPressed: () => _confirmReverseStockMove(m, erp),
+                  icon: const Icon(Icons.undo_rounded, size: 14, color: Colors.orange),
+                  label: const Text('عكس الحركة', style: TextStyle(color: Colors.orange, fontSize: 11)),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
                 ),
               ),

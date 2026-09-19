@@ -324,7 +324,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                               final amt = double.tryParse(amountCtrl.text) ?? 0;
                               if (amt <= 0) return;
 
-                              await erp.recordPayment(
+                              final result = await erp.recordPayment(
                                 customerId: selectedCustomer!.id,
                                 amount: amt,
                                 paymentMethod: method,
@@ -332,10 +332,13 @@ class _PaymentsViewState extends State<PaymentsView> {
                                 notes: notesCtrl.text,
                               );
 
-                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('تم حفظ السند وتحديث رصيد العميل بنجاح!')),
+                                  SnackBar(
+                                    content: Text(result.message),
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                  ),
                                 );
                               }
                             },

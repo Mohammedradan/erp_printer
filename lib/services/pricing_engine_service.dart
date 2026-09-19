@@ -344,6 +344,20 @@ class PricingEngineService {
       taxAmount: taxAmount,
       grandTotalAmount: grandTotal,
       stepDetails: stepDetails,
+      materialRequirements: [
+        PricingMaterialRequirement(
+          materialId: innerPaper.id,
+          materialName: innerPaper.displayName,
+          quantity: totalInnerSheetsWithWaste,
+          unitCost: innerPaper.sheetPrice,
+        ),
+        PricingMaterialRequirement(
+          materialId: coverPaper.id,
+          materialName: coverPaper.displayName,
+          quantity: totalCoverSheets,
+          unitCost: coverPaper.sheetPrice,
+        ),
+      ],
       extraMetrics: {
         'signaturesPerBook': signaturesPerBook,
         'coverPaper': coverPaper.displayName,
@@ -407,6 +421,7 @@ class PricingEngineService {
 
     double totalNcrPaperCost = 0.0;
     final colorBreakdownMetrics = <String, String>{};
+    final materialRequirements = <PricingMaterialRequirement>[];
 
     for (int i = 0; i < validCopies; i++) {
       final paper = i < papersPerColor.length ? papersPerColor[i] : (papersPerColor.isNotEmpty ? papersPerColor.first : null);
@@ -415,6 +430,14 @@ class PricingEngineService {
       totalNcrPaperCost += colorCost;
       final colorLabel = paper != null ? paper.paperType : 'نسخة ${i + 1}';
       colorBreakdownMetrics['لون $colorLabel'] = '${grossSheetsPerColor.toInt()} فرخ (${colorCost.toStringAsFixed(1)})';
+      if (paper != null) {
+        materialRequirements.add(PricingMaterialRequirement(
+          materialId: paper.id,
+          materialName: paper.displayName,
+          quantity: grossSheetsPerColor,
+          unitCost: paper.sheetPrice,
+        ));
+      }
     }
 
     final totalAllColorsSheetsWithWaste = grossSheetsPerColor * validCopies;
@@ -594,6 +617,7 @@ class PricingEngineService {
       taxAmount: taxAmount,
       grandTotalAmount: grandTotal,
       stepDetails: stepDetails,
+      materialRequirements: materialRequirements,
       extraMetrics: {
         'totalSets': totalSets,
         'numberingCost': numberingCost,
@@ -834,6 +858,14 @@ class PricingEngineService {
       taxAmount: taxAmount,
       grandTotalAmount: grandTotal,
       stepDetails: stepDetails,
+      materialRequirements: [
+        PricingMaterialRequirement(
+          materialId: paper.id,
+          materialName: paper.displayName,
+          quantity: grossSheets,
+          unitCost: paper.sheetPrice,
+        ),
+      ],
       extraMetrics: {
         'cardsPerSheet': cardsPerSheet,
         'cardSize': '${cardWidthCm}x$cardHeightCm سم',
@@ -1021,6 +1053,14 @@ class PricingEngineService {
       taxAmount: taxAmount,
       grandTotalAmount: grandTotal,
       stepDetails: stepDetails,
+      materialRequirements: [
+        PricingMaterialRequirement(
+          materialId: paper.id,
+          materialName: paper.displayName,
+          quantity: fullSheetsToBuy,
+          unitCost: paper.sheetPrice,
+        ),
+      ],
     );
   }
 }

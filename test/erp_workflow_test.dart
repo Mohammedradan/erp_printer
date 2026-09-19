@@ -25,13 +25,13 @@ void main() {
       final initialDebt = customer.currentBalance;
       final initialPaperBalance = erp.papers.first.balance;
 
-      // 2. إنشاء عرض سعر جديد لطباعة 500 كتاب A5
+      // 2. إنشاء عرض سعر جديد لطباعة 100 كتاب A5
       final quote = await erp.addQuotation(
         customerId: customer.id,
         customerCode: customer.code,
         customerName: customer.name,
         product: 'كتاب A5',
-        qty: 500,
+        qty: 100,
         pages: 64,
         paper: 'أوفست أبيض 70جم',
         machine: 'أوفست 50x35',
@@ -47,8 +47,9 @@ void main() {
 
       // 3. اعتماد العرض -> يجب أن يولد أمر إنتاج ويحدث مبيعات العميل
       final initialOrdersCount = erp.productionOrders.length;
-      await erp.updateQuotationStatus(quote.id, 'معتمد');
+      final approval = await erp.updateQuotationStatus(quote.id, 'معتمد');
 
+      expect(approval.isSuccess, true);
       expect(erp.quotations.first.status, 'معتمد');
       expect(erp.productionOrders.length, initialOrdersCount + 1);
       final newOrder = erp.productionOrders.first;
@@ -61,8 +62,8 @@ void main() {
 
       // 4. صرف الورق لأمر الإنتاج -> يجب تسجيل حركة خروج وخصم رصيد الورق
       final initialMovesCount = erp.stockMoves.length;
-      final successDeduct = await erp.deductPaperForOrder(newOrder.id);
-      expect(successDeduct, true);
+      final deduction = await erp.deductPaperForOrder(newOrder.id);
+      expect(deduction.isSuccess, true);
 
       // التأكد من تسجيل حركة المخزون
       expect(erp.stockMoves.length, initialMovesCount + 1);
