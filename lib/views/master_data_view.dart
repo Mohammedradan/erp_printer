@@ -38,54 +38,32 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
         final isMobile = constraints.maxWidth < 650;
 
         return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 14 : 20),
+          padding: EdgeInsets.fromLTRB(
+            isMobile ? 12 : 20,
+            isMobile ? 12 : 20,
+            isMobile ? 12 : 20,
+            isMobile ? 95 : 30,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // شريط العنوان
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isMobile ? 8 : 10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.settings_suggest_rounded, color: AppTheme.primaryGreen, size: isMobile ? 22 : 26),
-                  ),
-                  SizedBox(width: isMobile ? 10 : 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'البيانات المرجعية وقوالب المنتجات',
-                          style: TextStyle(
-                            fontSize: isMobile ? 18 : 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.darkSlate,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'الماكينات، قوالب المنتجات الافتراضية، وخدمات التشطيب (تطابق شيتات الإكسل)',
-                          style: TextStyle(fontSize: isMobile ? 11.5 : 13, color: AppTheme.textMuted),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: isMobile ? 12 : 18),
+              // 1. ترويسة تنفيذية فخمة (Executive Hero Header)
+              _buildHeroHeader(erp, isMobile),
+              SizedBox(height: isMobile ? 14 : 20),
 
-              // شريط التبويبات المتجاوب
+              // 2. شريط التبويبات المتجاوب الفاخر
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: TabBar(
                   controller: _tabController,
@@ -100,22 +78,73 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                   tabs: [
                     Tab(
                       icon: const Icon(Icons.precision_manufacturing_rounded, size: 19),
-                      text: 'الماكينات (${erp.machines.length})',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('الماكينات'),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${erp.machines.length}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Tab(
                       icon: const Icon(Icons.auto_stories_rounded, size: 19),
-                      text: 'قوالب المنتجات (${erp.products.length})',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('قوالب المنتجات'),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${erp.products.length}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Tab(
                       icon: const Icon(Icons.content_cut_rounded, size: 19),
-                      text: 'خدمات التشطيب (${erp.finishings.length})',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('خدمات التشطيب'),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${erp.finishings.length}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
               SizedBox(height: isMobile ? 12 : 16),
 
-              // محتوى التبويب النشط (يتمدد طبيعياً بدون هدر للمساحة)
+              // محتوى التبويب النشط
               if (_tabController.index == 0)
                 _buildMachinesTab(erp, isMobile)
               else if (_tabController.index == 1)
@@ -126,6 +155,160 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
           ),
         );
       },
+    );
+  }
+
+  // --- ترويسة تنفيذية فخمة ---
+  Widget _buildHeroHeader(ErpProvider erp, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF064E3B), // Dark emerald
+            Color(0xFF047857), // Emerald
+            Color(0xFF0F766E), // Teal accent
+          ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF064E3B).withValues(alpha: 0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: -25,
+            bottom: -35,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(isMobile ? 14 : 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(isMobile ? 8 : 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Icon(Icons.settings_suggest_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'المعايير المرجعية والتشغيلية • ERP المطبعة',
+                              style: TextStyle(
+                                color: Color(0xFFD1FAE5),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'الماكينات وقوالب المنتجات والتشطيب',
+                            style: TextStyle(
+                              fontSize: isMobile ? 17 : 21,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'معايير الطاقة الإنتاجية، الهالك، وأسعار الخدمات وتكلفة الساعة',
+                            style: TextStyle(
+                              fontSize: isMobile ? 11 : 12.5,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildHeroBadge(
+                        icon: Icons.precision_manufacturing_rounded,
+                        label: '${erp.machines.length} ماكينات نشطة',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeroBadge(
+                        icon: Icons.auto_stories_rounded,
+                        label: '${erp.products.length} قوالب منتجات',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHeroBadge(
+                        icon: Icons.content_cut_rounded,
+                        label: '${erp.finishings.length} خدمة تشطيب',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroBadge({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFFD1FAE5)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -185,92 +368,121 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
   Widget _buildMachineMobileCard(MachineItem m) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F766E).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF0F766E), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        m.name,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF0F766E), size: 21),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    m.name,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AppTheme.statusBadge(m.status),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 12),
+
+            // شبكة كبسولات مواصفات الماكينة التنفيذية
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.category_outlined,
+                    label: 'نوع الماكينة',
+                    value: m.kind,
+                    bgColor: const Color(0xFFF8FAFC),
+                    textColor: AppTheme.darkSlate,
+                    iconColor: const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.warning_amber_rounded,
+                    label: 'نسبة الهالك',
+                    value: '%${m.wastePct}',
+                    bgColor: const Color(0xFFFFFBEB),
+                    textColor: const Color(0xFFB45309),
+                    iconColor: const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.monetization_on_outlined,
+                    label: 'تكلفة الساعة',
+                    value: AppTheme.formatCurrency(m.hourlyCost),
+                    bgColor: const Color(0xFFECFDF5),
+                    textColor: const Color(0xFF047857),
+                    iconColor: const Color(0xFF10B981),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.speed_rounded,
+                    label: 'السرعة الإنتاجية',
+                    value: '${m.speedPerHour} فرخ/س',
+                    bgColor: const Color(0xFFECFEFF),
+                    textColor: const Color(0xFF0E7490),
+                    iconColor: const Color(0xFF06B6D4),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showEditMachineDialog(m),
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('تعديل معايير الماكينة'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0FDF4),
+                  foregroundColor: AppTheme.primaryGreen,
+                  elevation: 0,
+                  side: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
-              AppTheme.statusBadge(m.status),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
-
-          // شبكة مواصفات الماكينة
-          Row(
-            children: [
-              Expanded(
-                child: _buildParamItem('النوع:', m.kind),
-              ),
-              Expanded(
-                child: _buildParamItem('الهالك:', '${m.wastePct}%', isHighlight: true),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildParamItem('تكلفة الساعة:', AppTheme.formatCurrency(m.hourlyCost)),
-              ),
-              Expanded(
-                child: _buildParamItem('السرعة الإنتاجية:', '${m.speedPerHour} فرخ/س'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showEditMachineDialog(m),
-              icon: const Icon(Icons.edit_rounded, size: 16),
-              label: const Text('تعديل معايير الماكينة'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryGreen,
-                side: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -331,102 +543,131 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
   Widget _buildProductMobileCard(ProductTemplate p) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        p.name,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 21),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.blue.shade200),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    p.name,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                child: Text(
-                  p.category,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Text(
+                    p.category,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 12),
 
-          Row(
-            children: [
-              Expanded(
-                child: _buildParamItem('صفحات/فرخ:', '${p.pagesPerSheet} صفحة', isHighlight: true),
-              ),
-              Expanded(
-                child: _buildParamItem('التجليد:', p.binding),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildParamItem('الماكينة:', p.defaultMachine),
-              ),
-              Expanded(
-                child: _buildParamItem('الخامة:', '${p.defaultPaperCategory} ${p.defaultPaperType}'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showEditProductDialog(p),
-              icon: const Icon(Icons.edit_rounded, size: 16),
-              label: const Text('تعديل قالب المنتج'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF0284C7),
-                side: BorderSide(color: const Color(0xFF0284C7).withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.layers_outlined,
+                    label: 'صفحات الفرخ (50x35)',
+                    value: '${p.pagesPerSheet} صفحة',
+                    bgColor: const Color(0xFFEFF6FF),
+                    textColor: const Color(0xFF1D4ED8),
+                    iconColor: const Color(0xFF3B82F6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.menu_book_outlined,
+                    label: 'نوع التجليد',
+                    value: p.binding.isEmpty ? 'بدون تجليد' : p.binding,
+                    bgColor: const Color(0xFFF8FAFC),
+                    textColor: AppTheme.darkSlate,
+                    iconColor: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.precision_manufacturing_outlined,
+                    label: 'الماكينة الافتراضية',
+                    value: p.defaultMachine,
+                    bgColor: const Color(0xFFF0FDFA),
+                    textColor: const Color(0xFF0F766E),
+                    iconColor: const Color(0xFF14B8A6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSpecPill(
+                    icon: Icons.description_outlined,
+                    label: 'الخامة الافتراضية',
+                    value: '${p.defaultPaperCategory} ${p.defaultPaperType}',
+                    bgColor: const Color(0xFFFAF5FF),
+                    textColor: const Color(0xFF7E22CE),
+                    iconColor: const Color(0xFFA855F7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showEditProductDialog(p),
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('تعديل قالب المنتج'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0F9FF),
+                  foregroundColor: const Color(0xFF0284C7),
+                  elevation: 0,
+                  side: BorderSide(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -481,84 +722,151 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
   Widget _buildFinishingMobileCard(FinishingItem f) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD97706).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 22),
             ),
-            child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    f.name,
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.darkSlate,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'وحدة الاحتساب: ${f.unit}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  f.name,
-                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Text(
+                    AppTheme.formatCurrency(f.price),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF047857),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'وحدة الحساب: ${f.unit}',
-                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 32,
+                  child: TextButton.icon(
+                    onPressed: () => _showEditFinishingDialog(f),
+                    icon: const Icon(Icons.edit_rounded, size: 15),
+                    label: const Text('تعديل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0284C7),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                AppTheme.formatCurrency(f.price),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
-              ),
-              const SizedBox(height: 4),
-              IconButton(
-                icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _showEditFinishingDialog(f),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildParamItem(String label, String value, {bool isHighlight = false}) {
-    return Text.rich(
-      TextSpan(
-        text: '$label ',
-        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+  Widget _buildSpecPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color bgColor,
+    required Color textColor,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: textColor.withValues(alpha: 0.12)),
+      ),
+      child: Row(
         children: [
-          TextSpan(
-            text: value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
-              color: isHighlight ? AppTheme.primaryGreen : AppTheme.darkSlate,
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: textColor.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
       ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -573,33 +881,64 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('تعديل ماكينة: ${m.name}'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryGreen, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تعديل ماكينة: ${m.name}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
           content: SizedBox(
-            width: 400,
+            width: 420,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
                   controller: costCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'تكلفة الساعة (ريال/ساعة)'),
+                  decoration: const InputDecoration(
+                    labelText: 'تكلفة الساعة (ريال/ساعة)',
+                    prefixIcon: Icon(Icons.monetization_on_outlined, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: wasteCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'الهالك %'),
+                  decoration: const InputDecoration(
+                    labelText: 'نسبة الهالك %',
+                    prefixIcon: Icon(Icons.warning_amber_rounded, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: speedCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'السرعة (فرخ/ساعة)'),
+                  decoration: const InputDecoration(
+                    labelText: 'السرعة الإنتاجية (فرخ/ساعة)',
+                    prefixIcon: Icon(Icons.speed_rounded, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: status,
-                  decoration: const InputDecoration(labelText: 'الحالة'),
+                  decoration: const InputDecoration(
+                    labelText: 'حالة التشغيل',
+                    prefixIcon: Icon(Icons.toggle_on_outlined, size: 20),
+                  ),
                   items: const [
                     DropdownMenuItem(value: 'نشطة', child: Text('نشطة')),
                     DropdownMenuItem(value: 'موقوفة', child: Text('موقوفة')),
@@ -610,7 +949,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء', style: TextStyle(color: AppTheme.textMuted)),
+            ),
             ElevatedButton(
               onPressed: () async {
                 m.hourlyCost = double.tryParse(costCtrl.text) ?? m.hourlyCost;
@@ -620,7 +962,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 await erp.updateMachine(m);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('حفظ التعديل'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('حفظ التعديل', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -636,27 +983,55 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('تعديل قالب: ${p.name}'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'تعديل قالب: ${p.name}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         content: SizedBox(
-          width: 400,
+          width: 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: ppsCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'صفحات الفرخ 50x35'),
+                decoration: const InputDecoration(
+                  labelText: 'صفحات الفرخ 50x35',
+                  prefixIcon: Icon(Icons.layers_outlined, size: 20),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: bindingCtrl,
-                decoration: const InputDecoration(labelText: 'نوع التجليد الافتراضي'),
+                decoration: const InputDecoration(
+                  labelText: 'نوع التجليد الافتراضي',
+                  prefixIcon: Icon(Icons.menu_book_outlined, size: 20),
+                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(color: AppTheme.textMuted)),
+          ),
           ElevatedButton(
             onPressed: () async {
               p.pagesPerSheet = int.tryParse(ppsCtrl.text) ?? p.pagesPerSheet;
@@ -664,7 +1039,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               await erp.updateProduct(p);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('حفظ التعديل'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('حفظ التعديل', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -680,21 +1060,46 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('تعديل سعر خدمة: ${f.name}'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD97706).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تعديل سعر خدمة: ${f.name}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
           content: SizedBox(
-            width: 400,
+            width: 420,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'السعر (ريال)'),
+                  decoration: const InputDecoration(
+                    labelText: 'السعر المحدد (ريال)',
+                    prefixIcon: Icon(Icons.monetization_on_outlined, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: unit,
-                  decoration: const InputDecoration(labelText: 'الوحدة'),
+                  decoration: const InputDecoration(
+                    labelText: 'وحدة الاحتساب',
+                    prefixIcon: Icon(Icons.tune_rounded, size: 20),
+                  ),
                   items: const [
                     DropdownMenuItem(value: 'للعملية', child: Text('للعملية (مقطوع)')),
                     DropdownMenuItem(value: 'للألف', child: Text('للألف فرخ / صفحة')),
@@ -706,7 +1111,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء', style: TextStyle(color: AppTheme.textMuted)),
+            ),
             ElevatedButton(
               onPressed: () async {
                 f.price = double.tryParse(priceCtrl.text) ?? f.price;
@@ -714,7 +1122,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 await erp.updateFinishing(f);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('حفظ التعديل'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD97706),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('حفظ التعديل', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
