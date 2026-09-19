@@ -205,15 +205,18 @@ class _QuotationsViewState extends State<QuotationsView> {
                                     settings: erp.settings,
                                   ),
                                 ),
-                                if (q.status != 'معتمد')
+                                if (q.status == 'مسودة' || q.status == 'مرسل')
                                   IconButton(
                                     icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
                                     tooltip: 'اعتماد العرض وتوليد أمر إنتاج',
                                     onPressed: () async {
-                                      await erp.updateQuotationStatus(q.id, 'معتمد');
+                                      final result = await erp.updateQuotationStatus(q.id, 'معتمد');
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('تم اعتماد العرض ${q.number} وتوليد أمر إنتاج بنجاح!')),
+                                          SnackBar(
+                                            content: Text(result.message),
+                                            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                          ),
                                         );
                                       }
                                     },
@@ -221,14 +224,39 @@ class _QuotationsViewState extends State<QuotationsView> {
                                 PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert, size: 18),
                                   onSelected: (val) async {
-                                    await erp.updateQuotationStatus(q.id, val);
+                                    final result = await erp.updateQuotationStatus(q.id, val);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(result.message),
+                                          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                        ),
+                                      );
+                                    }
                                   },
-                                  itemBuilder: (ctx) => [
-                                    const PopupMenuItem(value: 'مسودة', child: Text('تعيين كمسودة')),
-                                    const PopupMenuItem(value: 'معتمد', child: Text('اعتماد العرض')),
-                                    const PopupMenuItem(value: 'مرفوض', child: Text('رفض العرض')),
-                                    const PopupMenuItem(value: 'ملغي', child: Text('إلغاء العرض')),
-                                  ],
+                                  itemBuilder: (ctx) {
+                                    switch (q.status) {
+                                      case 'مسودة':
+                                        return const [
+                                          PopupMenuItem(value: 'مرسل', child: Text('إرسال العرض')),
+                                          PopupMenuItem(value: 'معتمد', child: Text('اعتماد العرض')),
+                                          PopupMenuItem(value: 'ملغي', child: Text('إلغاء العرض')),
+                                        ];
+                                      case 'مرسل':
+                                        return const [
+                                          PopupMenuItem(value: 'مسودة', child: Text('إعادة إلى مسودة')),
+                                          PopupMenuItem(value: 'معتمد', child: Text('اعتماد العرض')),
+                                          PopupMenuItem(value: 'مرفوض', child: Text('رفض العرض')),
+                                          PopupMenuItem(value: 'ملغي', child: Text('إلغاء العرض')),
+                                        ];
+                                      case 'معتمد':
+                                        return const [
+                                          PopupMenuItem(value: 'ملغي', child: Text('إلغاء اعتماد العرض')),
+                                        ];
+                                      default:
+                                        return const <PopupMenuEntry<String>>[];
+                                    }
+                                  },
                                 ),
                               ],
                             )),

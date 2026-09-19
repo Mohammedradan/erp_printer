@@ -3,6 +3,19 @@ import '../models/app_models.dart';
 import '../services/storage_service.dart';
 import '../services/pricing_engine_service.dart';
 
+/// نتيجة عملية أعمال يمكن عرض رسالتها في الواجهة دون الاعتماد على الاستثناءات.
+class DomainOperationResult {
+  final bool isSuccess;
+  final String message;
+
+  const DomainOperationResult._(this.isSuccess, this.message);
+
+  factory DomainOperationResult.success(String message) =>
+      DomainOperationResult._(true, message);
+  factory DomainOperationResult.failure(String message) =>
+      DomainOperationResult._(false, message);
+}
+
 class ErpProvider with ChangeNotifier {
   final StorageService _storage;
 
@@ -18,6 +31,7 @@ class ErpProvider with ChangeNotifier {
   List<ProductionOrder> _productionOrders = [];
   List<StockMove> _stockMoves = [];
   List<PaymentRecord> _payments = [];
+  List<CustomerLedgerEntry> _customerLedger = [];
 
   ErpProvider(this._storage) {
     _loadAll();
@@ -36,6 +50,8 @@ class ErpProvider with ChangeNotifier {
     _productionOrders = _storage.loadProductionOrders();
     _stockMoves = _storage.loadStockMoves();
     _payments = _storage.loadPayments();
+    _customerLedger = _storage.loadCustomerLedger();
+    _syncAllCustomerSummariesFromLedger();
   }
 
   // --- GETTERS ---
@@ -51,6 +67,13 @@ class ErpProvider with ChangeNotifier {
   List<ProductionOrder> get productionOrders => List.unmodifiable(_productionOrders);
   List<StockMove> get stockMoves => List.unmodifiable(_stockMoves);
   List<PaymentRecord> get payments => List.unmodifiable(_payments);
+  List<CustomerLedgerEntry> get customerLedger => List.unmodifiable(_customerLedger);
+
+  List<CustomerLedgerEntry> ledgerForCustomer(String customerId) =>
+      List.unmodifiable(_customerLedger
+          .where((entry) => entry.customerId == customerId)
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date)));
 
   // --- KPI & STATS CALCULATIONS (محاكاة تقارير_الربحية ولوحة_المؤشرات) ---
   /// إجمالي المبيعات (قيمة العروض المعتمدة)
@@ -353,8 +376,9 @@ class ErpProvider with ChangeNotifier {
     PricingResult? pricingDetails,
     String status = 'مسودة',
   }) async {
+    final approveImmediately = status == 'معتمد';
     final quote = Quotation(
-      id: 'Q_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'Q_${DateTime.now().microsecondsSinceEpoch}',
       number: generateNextQuotationNumber(),
       date: DateTime.now(),
       customerId: customerId,
@@ -372,37 +396,130 @@ class ErpProvider with ChangeNotifier {
       profit: profit,
       notes: notes,
       pricingDetails: pricingDetails,
-      status: status,
+      status: approveImmediately ? 'مسودة' : status,
     );
 
     _quotations.insert(0, quote);
     await _storage.saveQuotations(_quotations);
 
-    // إذا تم إنشاؤه معتمداً، نحدث مبيعات العميل ونولد أمر إنتاج فوراً
-    if (status == 'معتمد') {
-      _applyCustomerSale(customerId, quoteAmount);
-      await createProductionOrderFromQuote(quote);
+    if (approveImmediately) {
+      await updateQuotationStatus(quote.id, 'معتمد');
     }
 
     notifyListeners();
     return quote;
   }
 
-  Future<void> updateQuotationStatus(String quoteId, String newStatus) async {
-    final index = _quotations.indexWhere((q) => q.id == quoteId);
-    if (index != -1) {
-      final oldStatus = _quotations[index].status;
-      _quotations[index].status = newStatus;
+  Future<DomainOperationResult> updateQuotationStatus(
+    String quoteId,
+    String newStatus,
+  ) async {
+    const allowedStatuses = {'مسودة', 'مرسل', 'معتمد', 'مرفوض', 'ملغي'};
+    if (!allowedStatuses.contains(newStatus)) {
+      return DomainOperationResult.failure('حالة عرض السعر غير معروفة');
+    }
 
-      // إذا تحول لمعتمد
-      if (oldStatus != 'معتمد' && newStatus == 'معتمد') {
-        _applyCustomerSale(_quotations[index].customerId, _quotations[index].quoteAmount);
-        await createProductionOrderFromQuote(_quotations[index]);
+    final index = _quotations.indexWhere((quote) => quote.id == quoteId);
+    if (index == -1) {
+      return DomainOperationResult.failure('تعذر العثور على عرض السعر');
+    }
+
+    final quote = _quotations[index];
+    final oldStatus = quote.status;
+    if (oldStatus == newStatus) {
+      return DomainOperationResult.success('عرض السعر في الحالة المطلوبة مسبقاً');
+    }
+    if (oldStatus == 'ملغي' || oldStatus == 'مرفوض') {
+      return DomainOperationResult.failure(
+        'العرض $oldStatus نهائي ولا يمكن إعادة فتحه؛ أنشئ نسخة جديدة منه',
+      );
+    }
+
+    const allowedTransitions = <String, Set<String>>{
+      'مسودة': {'مرسل', 'معتمد', 'ملغي'},
+      'مرسل': {'مسودة', 'معتمد', 'مرفوض', 'ملغي'},
+      'معتمد': {'ملغي'},
+    };
+    if (!(allowedTransitions[oldStatus]?.contains(newStatus) ?? false)) {
+      return DomainOperationResult.failure(
+        'لا يسمح بالانتقال من حالة $oldStatus إلى $newStatus',
+      );
+    }
+
+    if (newStatus == 'معتمد') {
+      // لا تسجل أثراً مالياً لأمر لن يستطيع النظام صرف خاماته لاحقاً بسبب حذف
+      // صنف مشار إليه في تسعير محفوظ.
+      final plannedMaterials = quote.pricingDetails?.materialRequirements ??
+          const <PricingMaterialRequirement>[];
+      for (final material in plannedMaterials.where((item) => item.quantity > 0)) {
+        if (material.materialType == 'paper' &&
+            !_papers.any((paper) => paper.id == material.materialId)) {
+          return DomainOperationResult.failure(
+            'لا يمكن اعتماد العرض: صنف الورق ${material.materialName} لم يعد موجوداً في المخزون',
+          );
+        }
       }
 
+      final hasOrder = _productionOrders.any(
+        (order) => order.quotationId == quote.id,
+      );
+      final hasSaleEntry = _customerLedger.any(
+        (entry) => entry.type == 'sale' && entry.referenceId == quote.id,
+      );
+      if (hasOrder || hasSaleEntry) {
+        return DomainOperationResult.failure(
+          'لا يمكن اعتماد العرض مرة أخرى لأن له أثراً مالياً أو أمر إنتاج سابقاً',
+        );
+      }
+      if (oldStatus == 'ملغي' || oldStatus == 'مرفوض') {
+        return DomainOperationResult.failure(
+          'العرض الملغي أو المرفوض لا يعاد اعتماده؛ أنشئ نسخة جديدة منه',
+        );
+      }
+
+      quote.status = 'معتمد';
+      await _recordCustomerSale(quote);
+      await createProductionOrderFromQuote(quote);
       await _storage.saveQuotations(_quotations);
       notifyListeners();
+      return DomainOperationResult.success(
+        'تم اعتماد العرض وتسجيل القيد وإنشاء أمر الإنتاج',
+      );
     }
+
+    if (oldStatus == 'معتمد') {
+      if (newStatus != 'ملغي') {
+        return DomainOperationResult.failure(
+          'العرض المعتمد لا يعود لمسودة أو رفض؛ استخدم إلغاء الاعتماد فقط',
+        );
+      }
+
+      final relatedOrders = _productionOrders
+          .where((order) => order.quotationId == quote.id)
+          .toList();
+      if (relatedOrders.any((order) => order.isPaperDeducted || order.issuedMaterialsCount > 0)) {
+        return DomainOperationResult.failure(
+          'لا يمكن إلغاء العرض بعد صرف مواد الإنتاج. أعد المواد أو أنشئ تسوية معتمدة أولاً',
+        );
+      }
+
+      quote.status = 'ملغي';
+      for (final order in relatedOrders) {
+        order.status = 'ملغي';
+      }
+      await _reverseCustomerSale(quote);
+      await _storage.saveProductionOrders(_productionOrders);
+      await _storage.saveQuotations(_quotations);
+      notifyListeners();
+      return DomainOperationResult.success(
+        'تم إلغاء اعتماد العرض وعكس أثره المالي وإلغاء أمر الإنتاج غير المصروف',
+      );
+    }
+
+    quote.status = newStatus;
+    await _storage.saveQuotations(_quotations);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث حالة عرض السعر');
   }
 
   // --- PRODUCTION ORDERS ACTIONS ---
@@ -412,16 +529,84 @@ class ErpProvider with ChangeNotifier {
     return 'PO-$year-${count.toString().padLeft(4, '0')}';
   }
 
+  List<ProductionMaterialRequirement> _buildMaterialRequirements(
+    Quotation quote,
+  ) {
+    final pricing = quote.pricingDetails;
+    final planned = pricing?.materialRequirements ?? const <PricingMaterialRequirement>[];
+    final requirements = <ProductionMaterialRequirement>[];
+
+    if (planned.isNotEmpty) {
+      final grouped = <String, ProductionMaterialRequirement>{};
+      for (final material in planned.where((item) => item.quantity > 0)) {
+        final key = '${material.materialType}:${material.materialId}';
+        final existing = grouped[key];
+        if (existing != null) {
+          existing.quantityRequired += material.quantity;
+        } else {
+          grouped[key] = ProductionMaterialRequirement(
+            id: 'MAT_${DateTime.now().microsecondsSinceEpoch}_${grouped.length}',
+            materialId: material.materialId,
+            materialName: material.materialName,
+            materialType: material.materialType,
+            quantityRequired: material.quantity,
+            unit: material.unit,
+            unitCostAtApproval: material.unitCost,
+          );
+        }
+      }
+      requirements.addAll(grouped.values);
+    }
+
+    // توافق محافظ مع عروض التسعير القديمة التي لا تحتوي متطلبات مواد مفصلة.
+    if (requirements.isEmpty) {
+      PaperItem? paper;
+      if (pricing?.paperId.isNotEmpty == true) {
+        final matches = _papers.where((item) => item.id == pricing!.paperId);
+        if (matches.isNotEmpty) paper = matches.first;
+      }
+      paper ??= _findPaperForDescription(quote.paper);
+      if (paper != null) {
+        final detailedQty = pricing?.sheetsWithWaste ?? (quote.qty * 10.0 * 1.05);
+        final fullSheets = (detailedQty /
+                (paper.sheetsPerUnit > 0 ? paper.sheetsPerUnit : 4))
+            .ceilToDouble();
+        requirements.add(ProductionMaterialRequirement(
+          id: 'MAT_${DateTime.now().microsecondsSinceEpoch}_0',
+          materialId: paper.id,
+          materialName: paper.displayName,
+          quantityRequired: fullSheets,
+          unitCostAtApproval: paper.sheetPrice,
+        ));
+      }
+    }
+
+    return requirements;
+  }
+
+  PaperItem? _findPaperForDescription(String description) {
+    final exact = _papers.where((paper) => description.contains(paper.category));
+    if (exact.isNotEmpty) return exact.first;
+    return _papers.isNotEmpty ? _papers.first : null;
+  }
+
   Future<ProductionOrder> createProductionOrderFromQuote(Quotation quote) async {
-    // جلب معلومات الورق والماكينة من تفاصيل التسعير إن وجدت
-    final pDetails = quote.pricingDetails;
-    final sheetsReq = pDetails != null ? pDetails.totalSheets : (quote.qty * 10.0);
-    final sheetsWaste = pDetails != null ? pDetails.sheetsWithWaste : (sheetsReq * 1.05);
-    final runHrs = pDetails != null ? pDetails.runHours : 1.5;
-    final paperId = pDetails != null ? pDetails.paperId : (_papers.isNotEmpty ? _papers.first.id : '');
+    final existing = _productionOrders.where((order) => order.quotationId == quote.id);
+    if (existing.isNotEmpty) return existing.first;
+
+    final pricing = quote.pricingDetails;
+    final materials = _buildMaterialRequirements(quote);
+    final sheetsRequired = materials.fold<double>(
+      0,
+      (sum, material) => sum + material.quantityRequired,
+    );
+    final paperId = materials.isNotEmpty ? materials.first.materialId : '';
+    final paperName = materials.isNotEmpty
+        ? materials.map((material) => material.materialName).join(' + ')
+        : quote.paper;
 
     final order = ProductionOrder(
-      id: 'PO_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'PO_${DateTime.now().microsecondsSinceEpoch}',
       number: generateNextOrderNumber(),
       date: DateTime.now(),
       quotationId: quote.id,
@@ -431,15 +616,16 @@ class ErpProvider with ChangeNotifier {
       product: quote.product,
       qty: quote.qty,
       machine: quote.machine,
-      paperName: quote.paper,
+      paperName: paperName,
       paperId: paperId,
-      sheetsRequired: sheetsReq,
-      sheetsWithWaste: sheetsWaste,
-      runHours: runHrs,
+      sheetsRequired: sheetsRequired,
+      sheetsWithWaste: sheetsRequired,
+      runHours: pricing?.runHours ?? 1.5,
       cost: quote.totalCost,
       status: 'معتمد',
       dueDate: DateTime.now().add(const Duration(days: 3)),
       notes: 'تم إنشاؤه تلقائياً من عرض السعر ${quote.number}',
+      materialRequirements: materials,
     );
 
     _productionOrders.insert(0, order);
@@ -448,62 +634,181 @@ class ErpProvider with ChangeNotifier {
     return order;
   }
 
-  Future<void> updateProductionOrderStatus(String orderId, String newStatus) async {
-    final index = _productionOrders.indexWhere((o) => o.id == orderId);
-    if (index != -1) {
-      _productionOrders[index].status = newStatus;
-      await _storage.saveProductionOrders(_productionOrders);
-      notifyListeners();
+  Future<DomainOperationResult> addManualProductionOrder(
+    ProductionOrder order,
+  ) async {
+    if (order.materialRequirements.isEmpty) {
+      final paper = _papers.where((item) => item.id == order.paperId).toList();
+      if (paper.isNotEmpty) {
+        order.materialRequirements = [
+          ProductionMaterialRequirement(
+            id: 'MAT_${DateTime.now().microsecondsSinceEpoch}_0',
+            materialId: paper.first.id,
+            materialName: paper.first.displayName,
+            quantityRequired: order.sheetsWithWaste,
+            unitCostAtApproval: paper.first.sheetPrice,
+          ),
+        ];
+      }
     }
-  }
-
-  Future<void> deleteProductionOrder(String orderId) async {
-    _productionOrders.removeWhere((o) => o.id == orderId);
+    _productionOrders.insert(0, order);
     await _storage.saveProductionOrders(_productionOrders);
     notifyListeners();
+    return DomainOperationResult.success('تم إنشاء أمر الإنتاج اليدوي');
   }
 
-  /// صرف الورق لأمر الإنتاج وخصم الرصيد تلقائياً من المخزون
-  Future<bool> deductPaperForOrder(String orderId) async {
-    final index = _productionOrders.indexWhere((o) => o.id == orderId);
-    if (index == -1) return false;
+  Future<DomainOperationResult> updateProductionOrderStatus(
+    String orderId,
+    String newStatus,
+  ) async {
+    final index = _productionOrders.indexWhere((order) => order.id == orderId);
+    if (index == -1) {
+      return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
+    }
     final order = _productionOrders[index];
-    if (order.isPaperDeducted) return true; // مصروف مسبقاً
-
-    // العثور على صنف الورق
-    PaperItem? paper;
-    if (order.paperId.isNotEmpty) {
-      final matches = _papers.where((p) => p.id == order.paperId);
-      if (matches.isNotEmpty) paper = matches.first;
+    if (order.status == newStatus) {
+      return DomainOperationResult.success('أمر الإنتاج في الحالة المطلوبة مسبقاً');
     }
-    if (paper == null) {
-      final matches = _papers.where((p) => order.paperName.contains(p.category));
-      if (matches.isNotEmpty) paper = matches.first;
+    const allowedTransitions = <String, Set<String>>{
+      'مسودة': {'معتمد', 'ملغي'},
+      'معتمد': {'قيد الإنتاج', 'ملغي'},
+      'قيد الإنتاج': {'مكتمل'},
+    };
+    if (!(allowedTransitions[order.status]?.contains(newStatus) ?? false)) {
+      return DomainOperationResult.failure(
+        'لا يسمح بالانتقال من حالة ${order.status} إلى $newStatus',
+      );
     }
-    if (paper == null && _papers.isNotEmpty) paper = _papers.first;
-
-    if (paper == null) return false;
-
-    // حساب كمية أفرخ 100x70 المطلوبة (sheetsWithWaste مقسومة على 4 ملازم)
-    final sheetsToDeduct = (order.sheetsWithWaste / (paper.sheetsPerUnit > 0 ? paper.sheetsPerUnit : 4)).ceilToDouble();
-
-    // تسجيل حركة خروج
-    await addStockMove(
-      moveType: 'خروج',
-      paperId: paper.id,
-      qtySheets: sheetsToDeduct,
-      unitPrice: paper.sheetPrice,
-      reference: 'أمر إنتاج ${order.number}',
-      notes: 'صرف ورق تلقائي لأمر الإنتاج ${order.number} (${order.product})',
-    );
-
-    _productionOrders[index].isPaperDeducted = true;
-    if (_productionOrders[index].status == 'معتمد') {
-      _productionOrders[index].status = 'قيد الإنتاج';
+    if ((newStatus == 'قيد الإنتاج' || newStatus == 'مكتمل') &&
+        !order.areAllMaterialsIssued) {
+      return DomainOperationResult.failure(
+        'لا يمكن بدء أو إكمال الإنتاج قبل صرف جميع المواد المطلوبة',
+      );
     }
+    if (newStatus == 'ملغي' && order.issuedMaterialsCount > 0) {
+      return DomainOperationResult.failure(
+        'لا يمكن إلغاء أمر صُرفت له مواد. نفّذ إرجاع المواد أو تسوية أولاً',
+      );
+    }
+
+    order.status = newStatus;
     await _storage.saveProductionOrders(_productionOrders);
     notifyListeners();
-    return true;
+    return DomainOperationResult.success('تم تحديث حالة أمر الإنتاج');
+  }
+
+  Future<DomainOperationResult> deleteProductionOrder(String orderId) async {
+    final order = _productionOrders.where((item) => item.id == orderId).toList();
+    if (order.isEmpty) {
+      return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
+    }
+    if (order.first.issuedMaterialsCount > 0 || order.first.isPaperDeducted) {
+      return DomainOperationResult.failure(
+        'لا يمكن حذف أمر صُرفت له مواد؛ استخدم الإلغاء أو التسوية بدلاً من الحذف',
+      );
+    }
+    if (order.first.quotationId != null) {
+      return DomainOperationResult.failure(
+        'لا يمكن حذف أمر ناتج عن عرض معتمد؛ ألغِ اعتماد العرض لعكس أثره المالي والتشغيلي',
+      );
+    }
+    _productionOrders.removeWhere((item) => item.id == orderId);
+    await _storage.saveProductionOrders(_productionOrders);
+    notifyListeners();
+    return DomainOperationResult.success('تم حذف أمر الإنتاج غير المصروف');
+  }
+
+  /// صرف كل المواد الورقية المتبقية لأمر الإنتاج بعد التحقق من توفرها بالكامل.
+  Future<DomainOperationResult> deductPaperForOrder(String orderId) async {
+    final index = _productionOrders.indexWhere((order) => order.id == orderId);
+    if (index == -1) return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
+    final order = _productionOrders[index];
+    if (order.areAllMaterialsIssued) {
+      return DomainOperationResult.success('جميع مواد هذا الأمر مصروفة مسبقاً');
+    }
+
+    // ترحيل محافظ للأوامر القديمة التي كانت تحفظ صنف ورق واحد فقط.
+    if (order.materialRequirements.isEmpty) {
+      final paper = _papers.where((item) => item.id == order.paperId).toList();
+      final selectedPaper = paper.isNotEmpty ? paper.first : _findPaperForDescription(order.paperName);
+      if (selectedPaper == null) {
+        return DomainOperationResult.failure('لا يوجد صنف ورق صالح لأمر الإنتاج');
+      }
+      final quantity = (order.sheetsWithWaste /
+              (selectedPaper.sheetsPerUnit > 0 ? selectedPaper.sheetsPerUnit : 4))
+          .ceilToDouble();
+      order.materialRequirements = [
+        ProductionMaterialRequirement(
+          id: 'MAT_LEGACY_${order.id}',
+          materialId: selectedPaper.id,
+          materialName: selectedPaper.displayName,
+          quantityRequired: quantity,
+          unitCostAtApproval: selectedPaper.sheetPrice,
+        ),
+      ];
+    }
+
+    final remainingMaterials = order.materialRequirements
+        .where((material) =>
+            material.materialType == 'paper' && material.remainingQuantity > 0)
+        .toList();
+    if (remainingMaterials.isEmpty) {
+      order.isPaperDeducted = order.areAllMaterialsIssued;
+      await _storage.saveProductionOrders(_productionOrders);
+      return DomainOperationResult.success('لا توجد مواد ورقية متبقية للصرف');
+    }
+
+    // تحقق مسبق من جميع الأصناف حتى لا ينفذ صرف جزئي.
+    for (final material in remainingMaterials) {
+      final papers = _papers.where((paper) => paper.id == material.materialId).toList();
+      if (papers.isEmpty) {
+        return DomainOperationResult.failure('صنف المادة ${material.materialName} غير موجود في المخزون');
+      }
+      if (papers.first.balance + 0.0001 < material.remainingQuantity) {
+        return DomainOperationResult.failure(
+          'رصيد ${papers.first.displayName} غير كافٍ. المتاح ${papers.first.balance.toStringAsFixed(0)}، والمطلوب ${material.remainingQuantity.toStringAsFixed(0)}',
+        );
+      }
+    }
+
+    // تنفيذ الدفعة بعد اكتمال التحقق؛ لا تستدعي addStockMove هنا حتى لا تحفظ
+    // حركةً واحدةً في منتصف الصرف متعدد الخامات.
+    for (final material in remainingMaterials) {
+      final paper = _papers.firstWhere((item) => item.id == material.materialId);
+      final quantity = material.remainingQuantity;
+      final unitPrice = material.unitCostAtApproval > 0
+          ? material.unitCostAtApproval
+          : paper.sheetPrice;
+      paper.balance -= quantity;
+      _stockMoves.insert(
+        0,
+        StockMove(
+          id: 'SM_${DateTime.now().microsecondsSinceEpoch}_${material.id}',
+          number: generateNextStockMoveNumber(),
+          date: DateTime.now(),
+          moveType: 'خروج',
+          paperId: paper.id,
+          paperCategory: paper.category,
+          paperType: paper.paperType,
+          gsm: paper.gsm,
+          qtySheets: quantity,
+          unitPrice: unitPrice,
+          totalValue: quantity * unitPrice,
+          reference: 'أمر إنتاج ${order.number}',
+          supplier: paper.supplier,
+          notes: 'صرف تلقائي لمادة ${material.materialName} لأمر الإنتاج ${order.number}',
+        ),
+      );
+      material.quantityIssued += quantity;
+    }
+
+    order.isPaperDeducted = order.areAllMaterialsIssued;
+    if (order.status == 'معتمد') order.status = 'قيد الإنتاج';
+    await _storage.savePapers(_papers);
+    await _storage.saveStockMoves(_stockMoves);
+    await _storage.saveProductionOrders(_productionOrders);
+    notifyListeners();
+    return DomainOperationResult.success('تم صرف جميع المواد المطلوبة لأمر الإنتاج');
   }
 
   // --- PAPERS & STOCK MOVES ACTIONS ---
@@ -512,31 +817,46 @@ class ErpProvider with ChangeNotifier {
     return 'SM-${count.toString().padLeft(4, '0')}';
   }
 
-  Future<void> addStockMove({
+  Future<DomainOperationResult> addStockMove({
     required String moveType, // دخول / خروج / تسوية
     required String paperId,
     required double qtySheets,
     required double unitPrice,
     String? reference,
+    String? reversalOfId,
     String? supplier,
     String? notes,
   }) async {
-    final pIndex = _papers.indexWhere((p) => p.id == paperId);
-    if (pIndex == -1) return;
-    final paper = _papers[pIndex];
+    const allowedMoves = {'دخول', 'خروج', 'تسوية'};
+    if (!allowedMoves.contains(moveType)) {
+      return DomainOperationResult.failure('نوع حركة المخزون غير صالح');
+    }
+    if (qtySheets <= 0) {
+      return DomainOperationResult.failure('يجب أن تكون كمية حركة المخزون أكبر من صفر');
+    }
 
-    // تحديث رصيد الورق
+    final pIndex = _papers.indexWhere((paper) => paper.id == paperId);
+    if (pIndex == -1) {
+      return DomainOperationResult.failure('صنف الورق غير موجود');
+    }
+    final paper = _papers[pIndex];
+    if (moveType == 'خروج' && paper.balance + 0.0001 < qtySheets) {
+      return DomainOperationResult.failure(
+        'رصيد ${paper.displayName} غير كافٍ. المتاح ${paper.balance.toStringAsFixed(0)} فرخ فقط',
+      );
+    }
+
     if (moveType == 'دخول') {
       paper.balance += qtySheets;
       if (unitPrice > 0) paper.sheetPrice = unitPrice;
     } else if (moveType == 'خروج') {
       paper.balance -= qtySheets;
-    } else if (moveType == 'تسوية') {
-      paper.balance = qtySheets; // ضبط مباشر للرصيد
+    } else {
+      paper.balance = qtySheets;
     }
 
     final move = StockMove(
-      id: 'SM_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'SM_${DateTime.now().microsecondsSinceEpoch}',
       number: generateNextStockMoveNumber(),
       date: DateTime.now(),
       moveType: moveType,
@@ -548,6 +868,7 @@ class ErpProvider with ChangeNotifier {
       unitPrice: unitPrice,
       totalValue: qtySheets * unitPrice,
       reference: reference,
+      reversalOfId: reversalOfId,
       supplier: supplier ?? paper.supplier,
       notes: notes,
     );
@@ -556,51 +877,108 @@ class ErpProvider with ChangeNotifier {
     await _storage.savePapers(_papers);
     await _storage.saveStockMoves(_stockMoves);
     notifyListeners();
+    return DomainOperationResult.success('تم تسجيل حركة المخزون');
   }
 
-  Future<void> deleteStockMove(String id) async {
-    final index = _stockMoves.indexWhere((m) => m.id == id);
-    if (index != -1) {
-      final move = _stockMoves[index];
-      // عكس أثر الحركة على الرصيد
-      final pIndex = _papers.indexWhere((p) => p.id == move.paperId);
-      if (pIndex != -1) {
-        if (move.moveType == 'دخول') {
-          _papers[pIndex].balance -= move.qtySheets;
-        } else if (move.moveType == 'خروج') {
-          _papers[pIndex].balance += move.qtySheets;
-        }
-        await _storage.savePapers(_papers);
-      }
-      _stockMoves.removeAt(index);
-      await _storage.saveStockMoves(_stockMoves);
-      notifyListeners();
+  /// ينشئ حركة معاكسة بدلاً من حذف السجل الأصلي، حتى يبقى سجل المخزون قابلاً للتدقيق.
+  Future<DomainOperationResult> reverseStockMove(String id) async {
+    final moves = _stockMoves.where((move) => move.id == id).toList();
+    if (moves.isEmpty) {
+      return DomainOperationResult.failure('تعذر العثور على حركة المخزون');
     }
+    final move = moves.first;
+    if (move.reversalOfId != null) {
+      return DomainOperationResult.failure('لا يمكن عكس حركة عكسية؛ راجع الحركة الأصلية أو أنشئ تصحيحاً جديداً');
+    }
+    if (_stockMoves.any((item) => item.reversalOfId == move.id)) {
+      return DomainOperationResult.failure('سبق إنشاء حركة عكسية لهذه الحركة');
+    }
+    if (move.reference?.startsWith('أمر إنتاج') == true) {
+      return DomainOperationResult.failure(
+        'لا يمكن عكس صرف مرتبط بأمر إنتاج من هنا؛ استخدم إجراء إرجاع مواد موثقاً',
+      );
+    }
+    if (move.moveType == 'تسوية') {
+      return DomainOperationResult.failure(
+        'لا يمكن عكس حركة تسوية تلقائياً؛ أنشئ تسوية تصحيحية للحفاظ على أثر الجرد',
+      );
+    }
+
+    final reverseType = move.moveType == 'دخول' ? 'خروج' : 'دخول';
+    final result = await addStockMove(
+      moveType: reverseType,
+      paperId: move.paperId,
+      qtySheets: move.qtySheets,
+      unitPrice: move.unitPrice,
+      reference: 'عكس الحركة ${move.number}',
+      reversalOfId: move.id,
+      supplier: move.supplier,
+      notes: 'قيد عكسي لحركة ${move.number}${move.notes == null ? '' : ': ${move.notes}'}',
+    );
+    if (!result.isSuccess) return result;
+    return DomainOperationResult.success('تم إنشاء حركة عكسية للحركة ${move.number}');
   }
 
-  Future<void> addPaper(PaperItem paper) async {
+  /// التوافق مع واجهات/استدعاءات قديمة: الحذف محظور حفاظاً على سجل المخزون.
+  Future<DomainOperationResult> deleteStockMove(String _) async {
+    return DomainOperationResult.failure(
+      'لا يمكن حذف حركة المخزون؛ استخدم إنشاء حركة عكسية بدلاً من الحذف',
+    );
+  }
+
+  Future<DomainOperationResult> addPaper(PaperItem paper) async {
+    if (paper.balance < 0) {
+      return DomainOperationResult.failure('لا يمكن إنشاء صنف ورق برصيد سالب');
+    }
     _papers.add(paper);
     await _storage.savePapers(_papers);
     notifyListeners();
+    return DomainOperationResult.success('تمت إضافة صنف الورق');
   }
 
-  Future<void> updatePaper(PaperItem paper) async {
-    final index = _papers.indexWhere((p) => p.id == paper.id);
-    if (index != -1) {
-      _papers[index] = paper;
-      await _storage.savePapers(_papers);
-      notifyListeners();
+  Future<DomainOperationResult> updatePaper(PaperItem paper) async {
+    if (paper.balance < 0) {
+      return DomainOperationResult.failure('لا يمكن حفظ رصيد ورق سالب');
     }
-  }
-
-  Future<void> deletePaper(String id) async {
-    _papers.removeWhere((p) => p.id == id);
+    final index = _papers.indexWhere((p) => p.id == paper.id);
+    if (index == -1) {
+      return DomainOperationResult.failure('صنف الورق غير موجود');
+    }
+    final currentPaper = _papers[index];
+    if ((currentPaper.balance - paper.balance).abs() > 0.0001 &&
+        _stockMoves.any((move) => move.paperId == paper.id)) {
+      return DomainOperationResult.failure(
+        'لا تعدّل الرصيد مباشرة بعد تسجيل الحركات؛ استخدم حركة تسوية موثقة',
+      );
+    }
+    _papers[index] = paper;
     await _storage.savePapers(_papers);
     notifyListeners();
+    return DomainOperationResult.success('تم تحديث صنف الورق');
+  }
+
+  Future<DomainOperationResult> deletePaper(String id) async {
+    final paper = _papers.where((item) => item.id == id).toList();
+    if (paper.isEmpty) return DomainOperationResult.failure('صنف الورق غير موجود');
+    final isReferencedByMove = _stockMoves.any((move) => move.paperId == id);
+    final isReferencedByOrder = _productionOrders.any(
+      (order) =>
+          order.paperId == id ||
+          order.materialRequirements.any((material) => material.materialId == id),
+    );
+    if (isReferencedByMove || isReferencedByOrder || paper.first.balance.abs() > 0.0001) {
+      return DomainOperationResult.failure(
+        'لا يمكن حذف صنف له رصيد أو حركات أو أوامر إنتاج مرتبطة؛ احتفظ به لحماية السجل',
+      );
+    }
+    _papers.removeWhere((item) => item.id == id);
+    await _storage.savePapers(_papers);
+    notifyListeners();
+    return DomainOperationResult.success('تم حذف صنف الورق');
   }
 
   // --- INKS & INK MOVES ACTIONS ---
-  Future<void> addInkMove({
+  Future<DomainOperationResult> addInkMove({
     required String moveType,
     required String inkId,
     required double qty,
@@ -608,21 +986,34 @@ class ErpProvider with ChangeNotifier {
     String? reference,
     String? notes,
   }) async {
-    final iIndex = _inks.indexWhere((i) => i.id == inkId);
-    if (iIndex == -1) return;
+    const allowedMoves = {'دخول', 'خروج', 'تسوية'};
+    if (!allowedMoves.contains(moveType)) {
+      return DomainOperationResult.failure('نوع حركة الحبر غير صالح');
+    }
+    if (qty <= 0) {
+      return DomainOperationResult.failure('يجب أن تكون كمية الحبر أكبر من صفر');
+    }
+
+    final iIndex = _inks.indexWhere((ink) => ink.id == inkId);
+    if (iIndex == -1) return DomainOperationResult.failure('صنف الحبر غير موجود');
     final ink = _inks[iIndex];
+    if (moveType == 'خروج' && ink.balance + 0.0001 < qty) {
+      return DomainOperationResult.failure(
+        'رصيد ${ink.name} غير كافٍ. المتاح ${ink.balance.toStringAsFixed(2)} فقط',
+      );
+    }
 
     if (moveType == 'دخول') {
       ink.balance += qty;
       if (unitPrice > 0) ink.unitPrice = unitPrice;
     } else if (moveType == 'خروج') {
       ink.balance -= qty;
-    } else if (moveType == 'تسوية') {
+    } else {
       ink.balance = qty;
     }
 
     final move = InkMove(
-      id: 'INKM_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'INKM_${DateTime.now().microsecondsSinceEpoch}',
       number: 'IM-${(_inkMoves.length + 1).toString().padLeft(4, '0')}',
       date: DateTime.now(),
       moveType: moveType,
@@ -639,10 +1030,11 @@ class ErpProvider with ChangeNotifier {
     await _storage.saveInks(_inks);
     await _storage.saveInkMoves(_inkMoves);
     notifyListeners();
+    return DomainOperationResult.success('تم تسجيل حركة الحبر');
   }
 
   Future<void> updateInk(InkItem ink) async {
-    final idx = _inks.indexWhere((i) => i.id == ink.id);
+    final idx = _inks.indexWhere((item) => item.id == ink.id);
     if (idx != -1) {
       _inks[idx] = ink;
       await _storage.saveInks(_inks);
@@ -650,59 +1042,158 @@ class ErpProvider with ChangeNotifier {
     }
   }
 
-  // --- CUSTOMERS & PAYMENTS ACTIONS ---
+  // --- CUSTOMERS & PAYMENTS / CUSTOMER LEDGER ACTIONS ---
   String generateNextCustomerCode() {
     return 'C-${(_customers.length + 1).toString().padLeft(4, '0')}';
   }
 
+  void _syncAllCustomerSummariesFromLedger() {
+    for (final customer in _customers) {
+      final entries = _customerLedger
+          .where((entry) => entry.customerId == customer.id)
+          .toList();
+      final sales = entries
+          .where((entry) => entry.type == 'sale' || entry.type == 'legacy_sale')
+          .fold<double>(0, (sum, entry) => sum + entry.debit);
+      final reversedSales = entries
+          .where((entry) => entry.type == 'sale_reversal')
+          .fold<double>(0, (sum, entry) => sum + entry.credit);
+      final payments = entries
+          .where((entry) => entry.type == 'payment' || entry.type == 'legacy_payment')
+          .fold<double>(0, (sum, entry) => sum + entry.credit);
+      customer.totalSales = sales - reversedSales;
+      customer.paid = payments;
+    }
+  }
+
+  Future<void> _saveCustomerLedgerAndSummaries() async {
+    _syncAllCustomerSummariesFromLedger();
+    await _storage.saveCustomerLedger(_customerLedger);
+    await _storage.saveCustomers(_customers);
+  }
+
+  Future<void> _recordCustomerSale(Quotation quote) async {
+    final alreadyRecorded = _customerLedger.any(
+      (entry) => entry.type == 'sale' && entry.referenceId == quote.id,
+    );
+    if (alreadyRecorded) return;
+    _customerLedger.add(CustomerLedgerEntry(
+      id: 'LED_SALE_${quote.id}',
+      customerId: quote.customerId,
+      date: DateTime.now(),
+      type: 'sale',
+      debit: quote.quoteAmount,
+      referenceId: quote.id,
+      referenceNumber: quote.number,
+      notes: 'اعتماد عرض السعر ${quote.number}',
+    ));
+    await _saveCustomerLedgerAndSummaries();
+  }
+
+  Future<void> _reverseCustomerSale(Quotation quote) async {
+    final alreadyReversed = _customerLedger.any(
+      (entry) => entry.type == 'sale_reversal' && entry.referenceId == quote.id,
+    );
+    if (alreadyReversed) return;
+    _customerLedger.add(CustomerLedgerEntry(
+      id: 'LED_REV_${quote.id}',
+      customerId: quote.customerId,
+      date: DateTime.now(),
+      type: 'sale_reversal',
+      credit: quote.quoteAmount,
+      referenceId: quote.id,
+      referenceNumber: quote.number,
+      notes: 'إلغاء اعتماد عرض السعر ${quote.number}',
+    ));
+    await _saveCustomerLedgerAndSummaries();
+  }
+
   Future<void> addCustomer(Customer customer) async {
     _customers.add(customer);
-    await _storage.saveCustomers(_customers);
+    if (customer.openingBalance != 0) {
+      _customerLedger.add(CustomerLedgerEntry(
+        id: 'LED_OPEN_${customer.id}',
+        customerId: customer.id,
+        date: DateTime.now(),
+        type: 'opening_balance',
+        debit: customer.openingBalance > 0 ? customer.openingBalance : 0,
+        credit: customer.openingBalance < 0 ? customer.openingBalance.abs() : 0,
+        referenceId: customer.id,
+        referenceNumber: 'OPEN-${customer.code}',
+        notes: 'رصيد افتتاحي للعميل',
+      ));
+    }
+    await _saveCustomerLedgerAndSummaries();
     notifyListeners();
   }
 
   Future<void> updateCustomer(Customer customer) async {
-    final idx = _customers.indexWhere((c) => c.id == customer.id);
+    final idx = _customers.indexWhere((item) => item.id == customer.id);
     if (idx != -1) {
+      // المبيعات والمدفوعات تلخص من دفتر القيود ولا تقبل تعديلاً مباشراً.
+      customer.totalSales = _customers[idx].totalSales;
+      customer.paid = _customers[idx].paid;
+
+      final ledgerOpeningBalance = _customerLedger
+          .where((entry) =>
+              entry.customerId == customer.id &&
+              (entry.type == 'opening_balance' || entry.type == 'opening_adjustment'))
+          .fold<double>(0, (sum, entry) => sum + entry.balanceEffect);
+      final openingDifference = customer.openingBalance - ledgerOpeningBalance;
+      if (openingDifference.abs() > 0.0001) {
+        _customerLedger.add(CustomerLedgerEntry(
+          id: 'LED_OPEN_ADJ_${customer.id}_${DateTime.now().microsecondsSinceEpoch}',
+          customerId: customer.id,
+          date: DateTime.now(),
+          type: 'opening_adjustment',
+          debit: openingDifference > 0 ? openingDifference : 0,
+          credit: openingDifference < 0 ? openingDifference.abs() : 0,
+          referenceId: customer.id,
+          referenceNumber: 'OPEN-ADJ-${customer.code}',
+          notes: 'تسوية تعديل الرصيد الافتتاحي',
+        ));
+      }
+
       _customers[idx] = customer;
-      await _storage.saveCustomers(_customers);
+      await _saveCustomerLedgerAndSummaries();
       notifyListeners();
     }
   }
 
-  Future<void> deleteCustomer(String id) async {
-    _customers.removeWhere((c) => c.id == id);
+  Future<DomainOperationResult> deleteCustomer(String id) async {
+    if (_customerLedger.any((entry) => entry.customerId == id) ||
+        _quotations.any((quote) => quote.customerId == id) ||
+        _payments.any((payment) => payment.customerId == id)) {
+      return DomainOperationResult.failure(
+        'لا يمكن حذف عميل له قيود أو عروض أو مدفوعات؛ عطل الحساب أو احتفظ بسجله',
+      );
+    }
+    _customers.removeWhere((customer) => customer.id == id);
     await _storage.saveCustomers(_customers);
     notifyListeners();
-  }
-
-  void _applyCustomerSale(String customerId, double amount) {
-    final idx = _customers.indexWhere((c) => c.id == customerId);
-    if (idx != -1) {
-      _customers[idx].totalSales += amount;
-      _storage.saveCustomers(_customers);
-    }
+    return DomainOperationResult.success('تم حذف العميل');
   }
 
   String generateNextPaymentNumber() {
     return 'PAY-${(_payments.length + 1).toString().padLeft(4, '0')}';
   }
 
-  Future<void> recordPayment({
+  Future<DomainOperationResult> recordPayment({
     required String customerId,
     required double amount,
     String paymentMethod = 'نقدي',
     String? reference,
     String? notes,
   }) async {
-    final idx = _customers.indexWhere((c) => c.id == customerId);
-    if (idx == -1) return;
+    if (amount <= 0) {
+      return DomainOperationResult.failure('يجب أن يكون مبلغ القبض أكبر من صفر');
+    }
+    final idx = _customers.indexWhere((customer) => customer.id == customerId);
+    if (idx == -1) return DomainOperationResult.failure('العميل غير موجود');
     final customer = _customers[idx];
 
-    customer.paid += amount;
-
     final pay = PaymentRecord(
-      id: 'PAY_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'PAY_${DateTime.now().microsecondsSinceEpoch}',
       number: generateNextPaymentNumber(),
       date: DateTime.now(),
       customerId: customer.id,
@@ -714,9 +1205,20 @@ class ErpProvider with ChangeNotifier {
     );
 
     _payments.insert(0, pay);
-    await _storage.saveCustomers(_customers);
+    _customerLedger.add(CustomerLedgerEntry(
+      id: 'LED_PAY_${pay.id}',
+      customerId: customer.id,
+      date: pay.date,
+      type: 'payment',
+      credit: amount,
+      referenceId: pay.id,
+      referenceNumber: pay.number,
+      notes: notes ?? 'سند قبض ${pay.number} عبر $paymentMethod',
+    ));
     await _storage.savePayments(_payments);
+    await _saveCustomerLedgerAndSummaries();
     notifyListeners();
+    return DomainOperationResult.success('تم تسجيل سند القبض وتحديث دفتر العميل');
   }
 
   // --- MACHINES, PRODUCTS, FINISHINGS ACTIONS ---

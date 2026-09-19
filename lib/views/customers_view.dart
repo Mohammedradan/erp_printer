@@ -1029,16 +1029,22 @@ class _CustomersViewState extends State<CustomersView> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               if (!formKey.currentState!.validate()) return;
-                              customer.name = nameCtrl.text.trim();
-                              customer.phone = phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim();
-                              customer.address = addrCtrl.text.trim().isEmpty ? null : addrCtrl.text.trim();
-                              customer.openingBalance = double.tryParse(balanceCtrl.text) ?? customer.openingBalance;
+                              final updatedCustomer = Customer(
+                                id: customer.id,
+                                code: customer.code,
+                                name: nameCtrl.text.trim(),
+                                phone: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+                                address: addrCtrl.text.trim().isEmpty ? null : addrCtrl.text.trim(),
+                                openingBalance: double.tryParse(balanceCtrl.text) ?? customer.openingBalance,
+                                totalSales: customer.totalSales,
+                                paid: customer.paid,
+                              );
 
-                              await erp.updateCustomer(customer);
+                              await erp.updateCustomer(updatedCustomer);
                               if (ctx.mounted) Navigator.pop(ctx);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('تم تحديث بيانات العميل: ${customer.name}')),
+                                  SnackBar(content: Text('تم تحديث بيانات العميل: ${updatedCustomer.name}')),
                                 );
                               }
                             },
@@ -1135,11 +1141,14 @@ class _CustomersViewState extends State<CustomersView> {
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          await erp.deleteCustomer(customer.id);
-                          if (ctx.mounted) Navigator.pop(ctx);
+                          final result = await erp.deleteCustomer(customer.id);
+                          if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('تم حذف العميل: ${customer.name}')),
+                              SnackBar(
+                                content: Text(result.message),
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                              ),
                             );
                           }
                         },
@@ -1322,19 +1331,19 @@ class _CustomersViewState extends State<CustomersView> {
                   );
                   return;
                 }
-                await erp.recordPayment(
+                final result = await erp.recordPayment(
                   customerId: customer.id,
                   amount: amt,
                   paymentMethod: method,
                   reference: refCtrl.text.trim().isEmpty ? null : refCtrl.text.trim(),
                   notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                 );
-                if (ctx.mounted) Navigator.pop(ctx);
+                if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('تم تسجيل سند القبض بمبلغ ${AppTheme.formatCurrency(amt)} وتحديث ذمة ${customer.name} بنجاح!'),
-                      backgroundColor: Colors.green.shade800,
+                      content: Text(result.message),
+                      backgroundColor: result.isSuccess ? Colors.green.shade800 : Colors.red.shade700,
                     ),
                   );
                 }
@@ -1349,53 +1358,29 @@ class _CustomersViewState extends State<CustomersView> {
 
   void _showStatementDialog(Customer customer) {
     final erp = context.read<ErpProvider>();
-    final customerQuotes = erp.quotations.where((q) => q.customerId == customer.id).toList();
-    final customerPayments = erp.payments.where((p) => p.customerId == customer.id).toList();
+    final ledgerEntries = erp.ledgerForCustomer(customer.id);
 
-    // بناء سجل الحركات المحاسبي بالترتيب الزمني مع الرصيد التراكمي
-    final List<StatementRow> statementRows = [];
-
-    // 1. الرصيد الافتتاحي
-    if (customer.openingBalance != 0) {
-      statementRows.add(
-        StatementRow(
-          date: DateTime(2026, 1, 1),
-          type: 'افتتاحي',
-          number: 'OB-001',
-          description: 'رصيد افتتاحي سابق',
-          debit: customer.openingBalance > 0 ? customer.openingBalance : 0,
-          credit: customer.openingBalance < 0 ? customer.openingBalance.abs() : 0,
-        ),
+    // دفتر القيود هو المصدر الوحيد لكشف الحساب، ويُظهر الاعتماد والإلغاء والسداد بوضوح.
+    final List<StatementRow> statementRows = ledgerEntries.map((entry) {
+      final typeLabel = switch (entry.type) {
+        'opening_balance' => 'افتتاحي',
+        'opening_adjustment' => 'تسوية افتتاحية',
+        'sale' => 'عرض معتمد',
+        'sale_reversal' => 'إلغاء اعتماد',
+        'payment' => 'سند قبض',
+        'legacy_sale' => 'مبيعات مرحّلة',
+        'legacy_payment' => 'دفعة مرحّلة',
+        _ => entry.type,
+      };
+      return StatementRow(
+        date: entry.date,
+        type: typeLabel,
+        number: entry.referenceNumber ?? '—',
+        description: entry.notes ?? typeLabel,
+        debit: entry.debit,
+        credit: entry.credit,
       );
-    }
-
-    // 2. الفواتير وعروض الأسعار المعتمدة (مدين +)
-    for (final q in customerQuotes) {
-      statementRows.add(
-        StatementRow(
-          date: q.date,
-          type: 'فاتورة / عرض',
-          number: q.number,
-          description: '${q.product} (كمية: ${q.qty})',
-          debit: q.quoteAmount,
-          credit: 0,
-        ),
-      );
-    }
-
-    // 3. سندات القبض والتحصيلات (دائن -)
-    for (final p in customerPayments) {
-      statementRows.add(
-        StatementRow(
-          date: p.date,
-          type: 'سند قبض',
-          number: p.number,
-          description: '${p.paymentMethod} ${p.reference != null ? '(${p.reference})' : ''}',
-          debit: 0,
-          credit: p.amount,
-        ),
-      );
-    }
+    }).toList();
 
     // ترتيب السطور زمنياً
     statementRows.sort((a, b) => a.date.compareTo(b.date));

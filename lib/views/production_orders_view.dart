@@ -230,7 +230,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           DataColumn(label: Text('الخامة المطلوبة', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('الأوراق (مع الهالك)', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('ساعات التشغيل', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('صرف الورق', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('صرف المواد', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('موعد التسليم', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -247,7 +247,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                             DataCell(Text('${o.sheetsWithWaste.toInt()} فرخ')),
                             DataCell(Text('${o.runHours.toStringAsFixed(1)} س')),
                             DataCell(
-                              o.isPaperDeducted
+                              o.areAllMaterialsIssued
                                   ? const Row(
                                       children: [
                                         Icon(Icons.check_circle, color: Colors.green, size: 16),
@@ -257,15 +257,23 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                     )
                                   : ElevatedButton.icon(
                                       onPressed: () async {
-                                        final ok = await erp.deductPaperForOrder(o.id);
+                                        final result = await erp.deductPaperForOrder(o.id);
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text(ok ? 'تم صرف وخصم الورق بنجاح من المخزون' : 'تعذر صرف الورق')),
+                                            SnackBar(
+                                              content: Text(result.message),
+                                              backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                            ),
                                           );
                                         }
                                       },
                                       icon: const Icon(Icons.outbox, size: 14),
-                                      label: const Text('صرف الآن', style: TextStyle(fontSize: 11)),
+                                      label: Text(
+                                        o.materialRequirements.isEmpty
+                                            ? 'صرف الآن'
+                                            : 'صرف ${o.issuedMaterialsCount}/${o.materialRequirements.length}',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue.shade700,
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -281,13 +289,16 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   IconButton(
                                     icon: const Icon(Icons.assignment_turned_in_outlined, size: 18, color: Colors.green),
                                     tooltip: 'إتمام الأمر',
-                                    onPressed: o.status == 'مكتمل'
+                                    onPressed: o.status != 'قيد الإنتاج'
                                         ? null
                                         : () async {
-                                            await erp.updateProductionOrderStatus(o.id, 'مكتمل');
+                                            final result = await erp.updateProductionOrderStatus(o.id, 'مكتمل');
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('تم إكمال أمر الإنتاج ${o.number} بنجاح!')),
+                                                SnackBar(
+                                                  content: Text(result.message),
+                                                  backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                                ),
                                               );
                                             }
                                           },
@@ -295,15 +306,36 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   PopupMenuButton<String>(
                                     icon: const Icon(Icons.more_vert, size: 18),
                                     onSelected: (st) async {
-                                      await erp.updateProductionOrderStatus(o.id, st);
+                                      final result = await erp.updateProductionOrderStatus(o.id, st);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(result.message),
+                                            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                          ),
+                                        );
+                                      }
                                     },
-                                    itemBuilder: (ctx) => [
-                                      const PopupMenuItem(value: 'مسودة', child: Text('مسودة')),
-                                      const PopupMenuItem(value: 'معتمد', child: Text('معتمد')),
-                                      const PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج (قيد التشغيل)')),
-                                      const PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
-                                      const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
-                                    ],
+                                    itemBuilder: (ctx) {
+                                      switch (o.status) {
+                                        case 'مسودة':
+                                          return const [
+                                            PopupMenuItem(value: 'معتمد', child: Text('اعتماد أمر التشغيل')),
+                                            PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                          ];
+                                        case 'معتمد':
+                                          return const [
+                                            PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
+                                            PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                          ];
+                                        case 'قيد الإنتاج':
+                                          return const [
+                                            PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                          ];
+                                        default:
+                                          return const <PopupMenuEntry<String>>[];
+                                      }
+                                    },
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
@@ -524,30 +556,38 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // شريط الإجراءات وصرف الورق
+                // شريط الإجراءات وصرف المواد
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // حالة صرف الورق
-                    o.isPaperDeducted
+                    // حالة صرف المواد
+                    o.areAllMaterialsIssued
                         ? const Row(
                             children: [
                               Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
                               SizedBox(width: 4),
-                              Text('تم صرف الورق', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                              Text('تم صرف المواد', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
                             ],
                           )
                         : OutlinedButton.icon(
                             onPressed: () async {
-                              final ok = await erp.deductPaperForOrder(o.id);
+                              final result = await erp.deductPaperForOrder(o.id);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(ok ? 'تم صرف وخصم الورق بنجاح من المخزون' : 'تعذر صرف الورق')),
+                                  SnackBar(
+                                    content: Text(result.message),
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                  ),
                                 );
                               }
                             },
                             icon: const Icon(Icons.outbox_rounded, size: 15),
-                            label: const Text('صرف الورق', style: TextStyle(fontSize: 11.5)),
+                            label: Text(
+                              o.materialRequirements.isEmpty
+                                  ? 'صرف المواد'
+                                  : 'صرف ${o.issuedMaterialsCount}/${o.materialRequirements.length}',
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.blue.shade700,
                               side: BorderSide(color: Colors.blue.shade300),
@@ -563,13 +603,16 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         IconButton(
                           icon: const Icon(Icons.assignment_turned_in_outlined, size: 20, color: Colors.green),
                           tooltip: 'إتمام الأمر',
-                          onPressed: o.status == 'مكتمل'
+                          onPressed: o.status != 'قيد الإنتاج'
                               ? null
                               : () async {
-                                  await erp.updateProductionOrderStatus(o.id, 'مكتمل');
+                                  final result = await erp.updateProductionOrderStatus(o.id, 'مكتمل');
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('تم إكمال أمر الإنتاج ${o.number} بنجاح!')),
+                                      SnackBar(
+                                        content: Text(result.message),
+                                        backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                      ),
                                     );
                                   }
                                 },
@@ -577,15 +620,36 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.blueGrey),
                           onSelected: (val) async {
-                            await erp.updateProductionOrderStatus(o.id, val);
+                            final result = await erp.updateProductionOrderStatus(o.id, val);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result.message),
+                                  backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                ),
+                              );
+                            }
                           },
-                          itemBuilder: (ctx) => [
-                            const PopupMenuItem(value: 'مسودة', child: Text('تعيين كمسودة')),
-                            const PopupMenuItem(value: 'معتمد', child: Text('اعتماد أمر التشغيل')),
-                            const PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج (قيد التشغيل)')),
-                            const PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
-                            const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
-                          ],
+                          itemBuilder: (ctx) {
+                            switch (o.status) {
+                              case 'مسودة':
+                                return const [
+                                  PopupMenuItem(value: 'معتمد', child: Text('اعتماد أمر التشغيل')),
+                                  PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                ];
+                              case 'معتمد':
+                                return const [
+                                  PopupMenuItem(value: 'قيد الإنتاج', child: Text('بدء الإنتاج')),
+                                  PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
+                                ];
+                              case 'قيد الإنتاج':
+                                return const [
+                                  PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                ];
+                              default:
+                                return const <PopupMenuEntry<String>>[];
+                            }
+                          },
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
@@ -632,10 +696,13 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
       ),
     );
     if (confirm == true) {
-      await erp.deleteProductionOrder(o.id);
+      final result = await erp.deleteProductionOrder(o.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم حذف أمر الإنتاج ${o.number} بنجاح')),
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+          ),
         );
       }
     }
@@ -941,27 +1008,16 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   notes: notesCtrl.text,
                                 );
 
-                                await erp.createProductionOrderFromQuote(
-                                  Quotation(
-                                    id: '',
-                                    number: '',
-                                    date: DateTime.now(),
-                                    customerId: selectedCustomer!.id,
-                                    customerCode: selectedCustomer!.code,
-                                    customerName: selectedCustomer!.name,
-                                    product: selectedProduct!.name,
-                                    qty: qty,
-                                    pages: 16,
-                                    paper: selectedPaper!.displayName,
-                                    machine: selectedMachine!.name,
-                                    unitPrice: 0,
-                                    totalCost: order.cost,
-                                    quoteAmount: order.cost * 1.3,
-                                    profit: order.cost * 0.3,
-                                  ),
-                                );
-
-                                if (ctx.mounted) Navigator.pop(ctx);
+                                final result = await erp.addManualProductionOrder(order);
+                                if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result.message),
+                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                    ),
+                                  );
+                                }
                               },
                             ),
                           ),
