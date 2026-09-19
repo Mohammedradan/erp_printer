@@ -124,48 +124,53 @@ class ProfitabilityView extends StatelessWidget {
   Widget _buildKpiGrid(ErpProvider erp) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 950 ? 4 : (constraints.maxWidth > 550 ? 2 : 1);
-        final aspect = constraints.maxWidth > 1200 ? 2.3 : (constraints.maxWidth > 950 ? 2.0 : 2.2);
+        final isMobile = constraints.maxWidth < 650;
+        final crossAxisCount = constraints.maxWidth > 950 ? 4 : 2;
+        final aspect = constraints.maxWidth > 1200 ? 2.3 : (constraints.maxWidth > 950 ? 2.0 : (isMobile ? 1.38 : 2.0));
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
+          crossAxisSpacing: isMobile ? 10 : 14,
+          mainAxisSpacing: isMobile ? 10 : 14,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: aspect,
           children: [
             _buildKpiCard(
-              title: 'إجمالي المبيعات المعتمدة',
+              title: 'المبيعات المعتمدة',
               value: AppTheme.formatCurrency(erp.totalApprovedSales, erp.settings.currency),
-              subtitle: '${erp.approvedQuotationsCount} عروض أسعار مؤكدة',
+              subtitle: '${erp.approvedQuotationsCount} عروض مؤكدة',
               icon: Icons.payments_outlined,
               badgeColor: const Color(0xFF059669),
               gradientColors: [Colors.white, const Color(0xFFF0FDF4)],
+              isCompact: isMobile,
             ),
             _buildKpiCard(
-              title: 'التكلفة التشغيلية الكلية',
+              title: 'التكلفة التشغيلية',
               value: AppTheme.formatCurrency(erp.totalApprovedCost, erp.settings.currency),
-              subtitle: 'خامات + تشغيل ماكينات + هالك',
+              subtitle: 'خامات + تشغيل + هالك',
               icon: Icons.receipt_long_outlined,
               badgeColor: const Color(0xFFD97706),
               gradientColors: [Colors.white, const Color(0xFFFFFBEB)],
+              isCompact: isMobile,
             ),
             _buildKpiCard(
               title: 'صافي الربح المحقق',
               value: AppTheme.formatCurrency(erp.totalProfit, erp.settings.currency),
-              subtitle: 'هامش ربح إجمالي ${erp.overallMarginPct.toStringAsFixed(1)}%',
+              subtitle: 'هامش ${erp.overallMarginPct.toStringAsFixed(1)}%',
               icon: Icons.trending_up_rounded,
               badgeColor: AppTheme.primaryGreen,
               gradientColors: [Colors.white, const Color(0xFFECFDF5)],
+              isCompact: isMobile,
             ),
             _buildKpiCard(
-              title: 'إجمالي قيمة المخزون',
+              title: 'قيمة المخزون',
               value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
-              subtitle: 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)} | أحبار: ${AppTheme.formatCurrency(erp.totalInkInventoryValue)}',
+              subtitle: '${erp.papers.length + erp.inks.length} صنف مسجل',
               icon: Icons.inventory_2_outlined,
               badgeColor: const Color(0xFF0284C7),
               gradientColors: [Colors.white, const Color(0xFFF0F9FF)],
+              isCompact: isMobile,
             ),
           ],
         );
@@ -180,6 +185,7 @@ class ProfitabilityView extends StatelessWidget {
     required IconData icon,
     required Color badgeColor,
     required List<Color> gradientColors,
+    bool isCompact = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -188,58 +194,104 @@ class ProfitabilityView extends StatelessWidget {
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: badgeColor.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: badgeColor, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      padding: EdgeInsets.all(isCompact ? 10 : 14),
+      child: isCompact
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: badgeColor, size: 18),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          value,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 10, color: AppTheme.textMuted.withValues(alpha: 0.8)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11, color: badgeColor, fontWeight: FontWeight.w500),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: badgeColor, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 11, color: AppTheme.textMuted.withValues(alpha: 0.8)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -417,7 +469,14 @@ class ProfitabilityView extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('صافي الربح: ${AppTheme.formatCurrency(profit)}', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                            Expanded(
+                              child: Text(
+                                'صافي الربح: ${AppTheme.formatCurrency(profit)}',
+                                style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
@@ -486,13 +545,16 @@ class ProfitabilityView extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('النوع: ${m.kind} | السرعة: ${m.speedPerHour.toInt()} طبعة/س', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+                              Text('النوع: ${m.kind} | السرعة: ${m.speedPerHour.toInt()} طبعة/س', style: TextStyle(fontSize: 11, color: AppTheme.textMuted), overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [

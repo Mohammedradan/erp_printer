@@ -62,6 +62,11 @@ Future<void> _testAllTabs(WidgetTester tester, Size size) async {
     final state = tester.state<MainLayoutState>(find.byType(MainLayout));
     state.setTab(index);
     await tester.pumpAndSettle();
+    final error = tester.takeException();
+    if (error != null) {
+      debugPrint('>>> OVERFLOW DETECTED ON TAB: $title (index $index) <<<');
+      throw error;
+    }
   }
 }
 

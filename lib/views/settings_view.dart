@@ -854,12 +854,15 @@ class _SettingsViewState extends State<SettingsView> {
               children: [
                 const Icon(Icons.code_rounded, size: 14, color: AppTheme.primaryGreen),
                 const SizedBox(width: 6),
-                Text(
-                  'تطوير: م/محمد رعدان • $developerPhone',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF475569),
+                Flexible(
+                  child: Text(
+                    'تطوير: م/محمد رعدان • $developerPhone',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 6),

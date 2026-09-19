@@ -138,140 +138,63 @@ class _CustomersViewState extends State<CustomersView> {
           ),
           const SizedBox(height: 20),
 
-          // كروت إجمالية للعملاء والذمم (متجاوبة تماماً)
+          // كروت إجمالية للعملاء والذمم (متجاوبة تماماً بنظام 2x2 على الجوال)
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 900;
-              final isMedium = constraints.maxWidth >= 600 && !isWide;
+              final isWide = constraints.maxWidth >= 950;
+              final isMobile = constraints.maxWidth < 650;
+              final crossAxisCount = isWide ? 4 : 2;
+              final aspect = constraints.maxWidth > 1200
+                  ? 1.9
+                  : (constraints.maxWidth > 950
+                      ? 1.6
+                      : (isMobile ? 1.38 : 1.75));
 
-              if (isWide) {
-                return Row(
-                  children: [
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'إجمالي الذمم المستحقة',
-                        AppTheme.formatCurrency(totalReceivables, erp.settings.currency),
-                        '$debtorsCount عميل عليهم مديونية',
-                        Icons.account_balance_wallet_rounded,
-                        AppTheme.accentGold,
-                        badgeText: debtorsCount > 0 ? 'مستحق' : 'خالص',
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'إجمالي مبيعات العملاء',
-                        AppTheme.formatCurrency(totalSales, erp.settings.currency),
-                        'فواتير وعروض معتمدة',
-                        Icons.point_of_sale_rounded,
-                        AppTheme.primaryGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'إجمالي التحصيلات والمسدد',
-                        AppTheme.formatCurrency(totalPaid, erp.settings.currency),
-                        'سندات قبض مسجلة',
-                        Icons.payments_rounded,
-                        const Color(0xFF0284C7),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'نسبة التحصيل الكلية',
-                        '${collectionPct.clamp(0, 100).toStringAsFixed(1)}%',
-                        'من إجمالي المستحقات',
-                        Icons.pie_chart_rounded,
-                        const Color(0xFF16A34A),
-                        isPercentage: true,
-                        pctValue: (collectionPct / 100).clamp(0.0, 1.0),
-                      ),
-                    ),
-                  ],
-                );
-              } else if (isMedium) {
-                return Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSummaryCard(
-                            'إجمالي الذمم المستحقة',
-                            AppTheme.formatCurrency(totalReceivables, erp.settings.currency),
-                            '$debtorsCount عميل عليهم مديونية',
-                            Icons.account_balance_wallet_rounded,
-                            AppTheme.accentGold,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            'إجمالي مبيعات العملاء',
-                            AppTheme.formatCurrency(totalSales, erp.settings.currency),
-                            'فواتير وعروض معتمدة',
-                            Icons.point_of_sale_rounded,
-                            AppTheme.primaryGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSummaryCard(
-                            'إجمالي التحصيلات والمسدد',
-                            AppTheme.formatCurrency(totalPaid, erp.settings.currency),
-                            'سندات قبض مسجلة',
-                            Icons.payments_rounded,
-                            const Color(0xFF0284C7),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            'نسبة التحصيل الكلية',
-                            '${collectionPct.clamp(0, 100).toStringAsFixed(1)}%',
-                            'من إجمالي المستحقات',
-                            Icons.pie_chart_rounded,
-                            const Color(0xFF16A34A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              } else {
-                return Column(
-                  children: [
-                    _buildSummaryCard(
-                      'إجمالي الذمم المستحقة',
-                      AppTheme.formatCurrency(totalReceivables, erp.settings.currency),
-                      '$debtorsCount عميل عليهم مديونية',
-                      Icons.account_balance_wallet_rounded,
-                      AppTheme.accentGold,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSummaryCard(
-                      'إجمالي مبيعات العملاء',
-                      AppTheme.formatCurrency(totalSales, erp.settings.currency),
-                      'فواتير وعروض معتمدة',
-                      Icons.point_of_sale_rounded,
-                      AppTheme.primaryGreen,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSummaryCard(
-                      'إجمالي التحصيلات والمسدد',
-                      AppTheme.formatCurrency(totalPaid, erp.settings.currency),
-                      'سندات قبض مسجلة',
-                      Icons.payments_rounded,
-                      const Color(0xFF0284C7),
-                    ),
-                  ],
-                );
-              }
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: isMobile ? 10 : 14,
+                mainAxisSpacing: isMobile ? 10 : 14,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: aspect,
+                children: [
+                  _buildSummaryCard(
+                    'إجمالي الذمم المستحقة',
+                    AppTheme.formatCurrency(totalReceivables, erp.settings.currency),
+                    '$debtorsCount عميل مدين',
+                    Icons.account_balance_wallet_rounded,
+                    AppTheme.accentGold,
+                    badgeText: debtorsCount > 0 ? 'مستحق' : 'خالص',
+                    isCompact: isMobile,
+                  ),
+                  _buildSummaryCard(
+                    'إجمالي مبيعات العملاء',
+                    AppTheme.formatCurrency(totalSales, erp.settings.currency),
+                    'فواتير وعروض معتمدة',
+                    Icons.point_of_sale_rounded,
+                    AppTheme.primaryGreen,
+                    isCompact: isMobile,
+                  ),
+                  _buildSummaryCard(
+                    'إجمالي التحصيلات والمسدد',
+                    AppTheme.formatCurrency(totalPaid, erp.settings.currency),
+                    'سندات قبض مسجلة',
+                    Icons.payments_rounded,
+                    const Color(0xFF0284C7),
+                    isCompact: isMobile,
+                  ),
+                  _buildSummaryCard(
+                    'نسبة التحصيل الكلية',
+                    '${collectionPct.clamp(0, 100).toStringAsFixed(1)}%',
+                    'من إجمالي المستحقات',
+                    Icons.pie_chart_rounded,
+                    const Color(0xFF16A34A),
+                    isPercentage: true,
+                    pctValue: (collectionPct / 100).clamp(0.0, 1.0),
+                    isCompact: isMobile,
+                  ),
+                ],
+              );
             },
           ),
           const SizedBox(height: 20),
@@ -442,6 +365,8 @@ class _CustomersViewState extends State<CustomersView> {
                         ),
                       ),
                     )
+                  else if (MediaQuery.of(context).size.width < 750)
+                    _buildMobileCustomerCards(filtered, erp)
                   else
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -630,6 +555,266 @@ class _CustomersViewState extends State<CustomersView> {
     );
   }
 
+  Widget _buildMobileCustomerCards(List<Customer> filtered, ErpProvider erp) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final c = filtered[index];
+        final totalOwed = c.openingBalance + c.totalSales;
+        final custPct = totalOwed > 0 ? (c.paid / totalOwed).clamp(0.0, 1.0) : 1.0;
+        final hasDebt = c.currentBalance > 0;
+        final isCredit = c.currentBalance < 0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: hasDebt
+                  ? Colors.red.withValues(alpha: 0.25)
+                  : AppTheme.borderColor,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // الصف العلوي: كود العميل وبادج الرصيد
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      c.code,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryGreen,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: hasDebt
+                            ? Colors.red.shade50
+                            : (isCredit ? Colors.blue.shade50 : Colors.green.shade50),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: hasDebt
+                              ? Colors.red.shade200
+                              : (isCredit ? Colors.blue.shade200 : Colors.green.shade200),
+                        ),
+                      ),
+                      child: Text(
+                        hasDebt
+                            ? 'مستحق: ${AppTheme.formatCurrency(c.currentBalance)}'
+                            : (isCredit
+                                ? 'دائن: ${AppTheme.formatCurrency(c.currentBalance.abs())}'
+                                : 'خالص'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: hasDebt
+                              ? Colors.red.shade700
+                              : (isCredit ? Colors.blue.shade700 : Colors.green.shade700),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // اسم العميل
+              Text(
+                c.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.5,
+                  color: AppTheme.textDark,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (c.phone != null && c.phone!.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: c.phone!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('تم نسخ رقم الهاتف: ${c.phone}'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 13, color: AppTheme.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        c.phone!,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.copy, size: 12, color: AppTheme.textMuted),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const SizedBox(height: 10),
+
+              // صندوق المبالغ المالية ونسبة السداد
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _buildMobileMetricCol('المبيعات', AppTheme.formatCurrency(c.totalSales), AppTheme.darkSlate),
+                        _buildMobileMetricCol('المسدد', AppTheme.formatCurrency(c.paid), const Color(0xFF16A34A), isBold: true),
+                        _buildMobileMetricCol(
+                          'المتبقي',
+                          AppTheme.formatCurrency(c.currentBalance),
+                          hasDebt ? Colors.red.shade700 : Colors.green.shade700,
+                          isBold: true,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          'السداد: ${(custPct * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: custPct,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                custPct >= 1.0 ? Colors.green : (custPct >= 0.5 ? Colors.amber : Colors.red),
+                              ),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // أزرار الإجراءات
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _showQuickPaymentDialog(c),
+                    icon: const Icon(Icons.receipt_long, size: 14),
+                    label: const Text('سند قبض', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentGold,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showStatementDialog(c),
+                    icon: const Icon(Icons.history_edu, size: 14, color: Color(0xFF0284C7)),
+                    label: const Text('كشف حساب', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      side: const BorderSide(color: AppTheme.borderColor),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showEditCustomerDialog(c),
+                    icon: const Icon(Icons.edit_outlined, size: 14, color: AppTheme.darkSlate),
+                    label: const Text('تعديل', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      side: const BorderSide(color: AppTheme.borderColor),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    tooltip: 'حذف العميل',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _confirmDeleteCustomer(c),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileMetricCol(String label, String value, Color valueColor, {bool isBold = false}) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSummaryCard(
     String title,
     String value,
@@ -639,74 +824,95 @@ class _CustomersViewState extends State<CustomersView> {
     String? badgeText,
     bool isPercentage = false,
     double pctValue = 0.0,
+    bool isCompact = false,
   }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
+    return Container(
+      padding: EdgeInsets.all(isCompact ? 10 : 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isCompact ? 6 : 8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: isCompact ? 18 : 22),
+              ),
+              if (badgeText != null)
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Icon(icon, color: color, size: 22),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color),
-                      ),
-                    ],
+                  child: Text(
+                    badgeText,
+                    style: TextStyle(fontSize: isCompact ? 9.5 : 11, fontWeight: FontWeight.bold, color: color),
                   ),
                 ),
-                if (badgeText != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: isCompact ? 11 : 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    value,
+                    style: TextStyle(fontSize: isCompact ? 15 : 18, fontWeight: FontWeight.bold, color: color),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                if (isPercentage) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: pctValue,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 4,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: isCompact ? 10 : 11, color: AppTheme.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
-            const SizedBox(height: 10),
-            if (isPercentage) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: pctValue,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                  minHeight: 5,
-                ),
-              ),
-              const SizedBox(height: 6),
-            ],
-            Text(subtitle, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -41,24 +41,31 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     final erp = context.watch<ErpProvider>();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // شريط العنوان الرئيسي
+          // 1. ترويسة تنفيذية فخمة (Executive Hero Header)
           _buildHeader(erp),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
-          // كروت المؤشرات الإحصائية
+          // 2. كروت المؤشرات الإحصائية المتقدمة
           _buildMetricsGrid(erp),
           const SizedBox(height: 20),
 
-          // شريط التبويبات المتجاوب
+          // 3. شريط التبويبات المتجاوب
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: TabBar(
               controller: _tabController,
@@ -68,22 +75,64 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               unselectedLabelColor: AppTheme.textMuted,
               indicatorColor: AppTheme.primaryGreen,
               indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
               tabs: [
                 Tab(
-                  icon: const Icon(Icons.layers_outlined),
-                  text: 'أرصدة وخامات الورق (${erp.papers.length})',
+                  icon: const Icon(Icons.layers_rounded, size: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('أرصدة وخامات الورق'),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${erp.papers.length}',
+                          style: const TextStyle(
+                            color: AppTheme.primaryGreen,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Tab(
-                  icon: const Icon(Icons.history_outlined),
-                  text: 'سجل حركات المخزون (${erp.stockMoves.length})',
+                  icon: const Icon(Icons.history_rounded, size: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('سجل حركات المخزون'),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${erp.stockMoves.length}',
+                          style: const TextStyle(
+                            color: AppTheme.darkSlate,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
 
-          // محتوى التبويب النشط
+          // 4. محتوى التبويب النشط
           AnimatedBuilder(
             animation: _tabController,
             builder: (context, _) {
@@ -99,121 +148,306 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     );
   }
 
-  // --- شريط العنوان ---
+  // --- ترويسة تنفيذية فخمة (Executive Hero Header) ---
   Widget _buildHeader(ErpProvider erp) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 10,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.inventory_2, color: AppTheme.primaryGreen, size: 22),
-                ),
-                const Text(
-                  'قاعدة الورق وإدارة المخزون',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'أرصدة الورق، أسعار الأفرخ، كروت الأصناف، والتوريد والمنصرف للإنتاج',
-              style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-            ),
+    final totalSheets = erp.papers.fold<double>(0, (s, p) => s + p.balance).toInt();
+    final lowStockCount = erp.lowStockPapers.length;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF064E3B), // Dark emerald
+            Color(0xFF047857), // Medium emerald
+            Color(0xFF0F766E), // Teal accent
           ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
         ),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _showNewMovementDialog(null),
-              icon: const Icon(Icons.swap_horiz, size: 18),
-              label: const Text('تسجيل حركة مخزون'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryGreen,
-                side: const BorderSide(color: AppTheme.primaryGreen),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F5132).withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: -20,
+            bottom: -30,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
-            ElevatedButton.icon(
-              onPressed: () => _showPaperDialog(null),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('إضافة صنف ورق جديد'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
-            ),
-          ],
-        ),
-      ],
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 20, vertical: isMobile ? 14 : 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(isMobile ? 8 : 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                          ),
+                          child: Icon(Icons.inventory_2_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                        ),
+                        SizedBox(width: isMobile ? 10 : 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'المستودع والخامات • ERP المطبعة',
+                                  style: TextStyle(
+                                    color: Color(0xFFD1FAE5),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'قاعدة الورق وإدارة المخزون',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isMobile ? 18 : 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.3,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (!isMobile) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  'متابعة حية للأرصدة، كروت الأصناف، أسعار الأفرخ، والوارد والمنصرف لأوامر الإنتاج',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontSize: 12.5,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: isMobile ? 10 : 16),
+                    const Divider(color: Colors.white12, height: 1),
+                    SizedBox(height: isMobile ? 10 : 14),
+
+                    // إحصاءات فورية وأزرار الإجراءات
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _buildHeroPill(
+                              icon: Icons.layers_rounded,
+                              label: '$totalSheets فرخ بالمستودع',
+                              color: const Color(0xFFD1FAE5),
+                              bgColor: Colors.black.withValues(alpha: 0.22),
+                            ),
+                            _buildHeroPill(
+                              icon: Icons.category_rounded,
+                              label: '${erp.papers.length} أصناف ورق',
+                              color: const Color(0xFFBAE6FD),
+                              bgColor: Colors.black.withValues(alpha: 0.22),
+                            ),
+                            if (lowStockCount > 0)
+                              _buildHeroPill(
+                                icon: Icons.warning_amber_rounded,
+                                label: '$lowStockCount إعادة طلب',
+                                color: const Color(0xFFFCA5A5),
+                                bgColor: Colors.red.withValues(alpha: 0.28),
+                              ),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _showNewMovementDialog(null),
+                              icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                              label: Text(
+                                isMobile ? 'حركة مخزون' : 'تسجيل حركة مخزون',
+                                style: TextStyle(fontSize: isMobile ? 12 : 13),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white38),
+                                padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 8 : 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () => _showPaperDialog(null),
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: Text(
+                                isMobile ? 'إضافة صنف' : 'إضافة صنف ورق جديد',
+                                style: TextStyle(fontSize: isMobile ? 12 : 13),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  // --- كروت المؤشرات الإحصائية ---
+  Widget _buildHeroPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- كروت المؤشرات الإحصائية المتقدمة ---
   Widget _buildMetricsGrid(ErpProvider erp) {
     final totalSheets = erp.papers.fold<double>(0, (s, p) => s + p.balance).toInt();
     final lowStockCount = erp.lowStockPapers.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 950 ? 4 : (constraints.maxWidth > 550 ? 2 : 1);
-        final aspect = constraints.maxWidth > 1200 ? 2.6 : (constraints.maxWidth > 950 ? 2.1 : 2.2);
+        final isMobile = constraints.maxWidth < 650;
+        final crossAxisCount = constraints.maxWidth > 1050 ? 4 : 2;
+        final aspect = constraints.maxWidth > 1200
+            ? 1.75
+            : (constraints.maxWidth > 1050
+                ? 1.55
+                : (isMobile ? 1.38 : 1.7));
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: isMobile ? 10 : 14,
+          mainAxisSpacing: isMobile ? 10 : 14,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: aspect,
           children: [
             _buildMetricCard(
-              title: 'إجمالي قيمة مخزون الورق',
+              title: 'إجمالي قيمة المخزون',
               value: AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency),
-              subtitle: '$totalSheets فرخ 100x70 بالمستودع',
-              icon: Icons.account_balance_wallet_outlined,
+              subtitle: '$totalSheets فرخ 100x70',
+              icon: Icons.account_balance_wallet_rounded,
               color: AppTheme.primaryGreen,
+              bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
               onTap: null,
+              isCompact: isMobile,
             ),
             _buildMetricCard(
               title: 'أصناف تحت حد الطلب',
               value: '$lowStockCount صنف',
-              subtitle: lowStockCount == 0 ? 'المخزون بالمستوى الآمن' : 'اضغط لعرض الأصناف المحتاجة لطلب',
+              subtitle: lowStockCount == 0 ? 'المخزون بمستوى آمن' : 'اضغط لعرض وتصفية النواقص',
               icon: Icons.warning_amber_rounded,
-              color: lowStockCount == 0 ? Colors.green : Colors.red.shade700,
+              color: lowStockCount == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              bgColor: lowStockCount == 0 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+              badge: lowStockCount > 0 && !isMobile
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: const Text(
+                        'إجراء مطلوب',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.red),
+                      ),
+                    )
+                  : null,
               onTap: () {
                 setState(() {
                   _tabController.index = 0;
                   _onlyLowStock = !_onlyLowStock;
                 });
               },
+              isCompact: isMobile,
             ),
             _buildMetricCard(
               title: 'أصناف الورق المسجلة',
               value: '${erp.papers.length} خامة',
-              subtitle: 'أوفست، كوشيه، بريستول، NCR...',
-              icon: Icons.layers_outlined,
+              subtitle: 'أوفست، كوشيه، بريستول...',
+              icon: Icons.layers_rounded,
               color: const Color(0xFF0284C7),
+              bgColor: const Color(0xFFE0F2FE),
               onTap: null,
+              isCompact: isMobile,
             ),
             _buildMetricCard(
               title: 'حركات المخزون المسجلة',
               value: '${erp.stockMoves.length} حركة',
-              subtitle: 'وارد / منصرف / تسوية',
-              icon: Icons.history_edu_outlined,
-              color: AppTheme.accentGold,
+              subtitle: 'وارد توريد / منصرف إنتاج',
+              icon: Icons.history_edu_rounded,
+              color: const Color(0xFFD97706),
+              bgColor: const Color(0xFFFEF3C7),
               onTap: () => setState(() => _tabController.index = 1),
+              isCompact: isMobile,
             ),
           ],
         );
@@ -227,42 +461,89 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     required String subtitle,
     required IconData icon,
     required Color color,
+    required Color bgColor,
     required VoidCallback? onTap,
+    Widget? badge,
+    bool isCompact = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: EdgeInsets.all(isCompact ? 10 : 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              const SizedBox(width: 12),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isCompact ? 6 : 8),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: isCompact ? 18 : 20),
+                  ),
+                  if (badge != null) badge,
+                ],
+              ),
+              const SizedBox(height: 4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: isCompact ? 11 : 12,
+                        color: AppTheme.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 2),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,
                       child: Text(
                         value,
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color),
+                        style: TextStyle(
+                          fontSize: isCompact ? 15 : 19,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.darkSlate,
+                          letterSpacing: -0.3,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(fontSize: 11, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: isCompact ? 10 : 11,
+                        color: color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -303,139 +584,195 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
       filtered.sort((a, b) => a.displayName.compareTo(b.displayName));
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // شريط البحث والفلترة
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 600;
-                final searchInput = TextField(
-                  decoration: InputDecoration(
-                    hintText: 'بحث باسم الخامة، الجرام، الفئة، أو المورد...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _paperSearchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () => setState(() => _paperSearchQuery = ''),
-                          )
-                        : null,
-                    isDense: true,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // شريط البحث والفلترة
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 650;
+              final searchInput = TextField(
+                decoration: InputDecoration(
+                  hintText: 'بحث باسم الخامة، الجرام، الفئة، أو المورد...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryGreen),
+                  suffixIcon: _paperSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () => setState(() => _paperSearchQuery = ''),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
                   ),
-                  onChanged: (val) => setState(() => _paperSearchQuery = val),
-                );
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 1.5),
+                  ),
+                  isDense: true,
+                ),
+                onChanged: (val) => setState(() => _paperSearchQuery = val),
+              );
 
-                final sortDropdown = Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.borderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _paperSortBy,
-                      isExpanded: isCompact,
-                      icon: const Icon(Icons.sort, size: 18),
-                      items: const [
-                        DropdownMenuItem(value: 'name', child: Text('الاسم أبجدياً')),
-                        DropdownMenuItem(value: 'balance_desc', child: Text('الأعلى رصيداً')),
-                        DropdownMenuItem(value: 'balance_asc', child: Text('الأقل رصيداً')),
-                        DropdownMenuItem(value: 'price_desc', child: Text('الأعلى سعراً')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _paperSortBy = val);
-                      },
-                    ),
-                  ),
-                );
-
-                if (isCompact) {
-                  return Column(
-                    children: [
-                      searchInput,
-                      const SizedBox(height: 10),
-                      sortDropdown,
+              final sortDropdown = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _paperSortBy,
+                    isExpanded: isCompact,
+                    icon: const Icon(Icons.sort_rounded, size: 18, color: AppTheme.primaryGreen),
+                    items: const [
+                      DropdownMenuItem(value: 'name', child: Text('الاسم أبجدياً')),
+                      DropdownMenuItem(value: 'balance_desc', child: Text('الأعلى رصيداً')),
+                      DropdownMenuItem(value: 'balance_asc', child: Text('الأقل رصيداً')),
+                      DropdownMenuItem(value: 'price_desc', child: Text('الأعلى سعراً')),
                     ],
-                  );
-                }
+                    onChanged: (val) {
+                      if (val != null) setState(() => _paperSortBy = val);
+                    },
+                  ),
+                ),
+              );
 
-                return Row(
+              if (isCompact) {
+                return Column(
                   children: [
-                    Expanded(child: searchInput),
-                    const SizedBox(width: 12),
+                    searchInput,
+                    const SizedBox(height: 10),
                     sortDropdown,
                   ],
                 );
-              },
-            ),
-            const SizedBox(height: 12),
+              }
 
-            // رقائق الفئات والتصفية
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Text('الفئات:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ...categories.map((c) {
-                  final isSelected = _categoryFilter == c;
-                  return ChoiceChip(
-                    label: Text(c),
-                    selected: isSelected,
-                    selectedColor: AppTheme.primaryGreen.withOpacity(0.15),
-                    labelStyle: TextStyle(
-                      color: isSelected ? AppTheme.primaryGreen : AppTheme.textDark,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 12,
-                    ),
-                    onSelected: (_) => setState(() => _categoryFilter = c),
-                  );
-                }),
-                FilterChip(
-                  label: Text('تحت حد الطلب (${erp.lowStockPapers.length})'),
-                  selected: _onlyLowStock,
-                  selectedColor: Colors.red.shade100,
-                  checkmarkColor: Colors.red.shade900,
+              return Row(
+                children: [
+                  Expanded(child: searchInput),
+                  const SizedBox(width: 12),
+                  sortDropdown,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // رقائق الفئات والتصفية
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.tune_rounded, size: 16, color: AppTheme.textMuted),
+                  SizedBox(width: 4),
+                  Text('الفئة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.darkSlate)),
+                ],
+              ),
+              ...categories.map((c) {
+                final isSelected = _categoryFilter == c;
+                return ChoiceChip(
+                  label: Text(c),
+                  selected: isSelected,
+                  selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.15),
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  side: BorderSide(
+                    color: isSelected ? AppTheme.primaryGreen : AppTheme.borderColor,
+                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   labelStyle: TextStyle(
-                    color: _onlyLowStock ? Colors.red.shade900 : Colors.black87,
-                    fontWeight: _onlyLowStock ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? AppTheme.primaryGreen : AppTheme.textDark,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 12,
                   ),
-                  onSelected: (val) => setState(() => _onlyLowStock = val),
+                  onSelected: (_) => setState(() => _categoryFilter = c),
+                );
+              }),
+              FilterChip(
+                label: Text('تحت حد الطلب (${erp.lowStockPapers.length})'),
+                selected: _onlyLowStock,
+                selectedColor: const Color(0xFFFEE2E2),
+                backgroundColor: const Color(0xFFF8FAFC),
+                side: BorderSide(color: _onlyLowStock ? Colors.red : AppTheme.borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                checkmarkColor: Colors.red.shade900,
+                labelStyle: TextStyle(
+                  color: _onlyLowStock ? Colors.red.shade900 : Colors.black87,
+                  fontWeight: _onlyLowStock ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
                 ),
-              ],
-            ),
-            const Divider(height: 24),
+                onSelected: (val) => setState(() => _onlyLowStock = val),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
 
-            // جدول الأصناف
-            if (filtered.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: Text('لا توجد أصناف ورق مطابقة لخيارات البحث')),
-              )
-            else if (MediaQuery.of(context).size.width < 750)
-              _buildMobilePaperCards(filtered, erp)
-            else
-              SingleChildScrollView(
+          // جدول الأصناف
+          if (filtered.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(36),
+              child: Center(
+                child: Text(
+                  'لا توجد أصناف ورق مطابقة لخيارات البحث أو التصفية الحالية',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                ),
+              ),
+            )
+          else if (MediaQuery.of(context).size.width < 750)
+            _buildMobilePaperCards(filtered, erp)
+          else
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                  headingRowHeight: 48,
+                  dataRowMinHeight: 52,
+                  dataRowMaxHeight: 58,
                   columns: const [
-                    DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('النوع والجرام', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('مقاس الفرخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('ملازم 50x35', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('سعر الفرخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('النوع والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('مقاس الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('ملازم 50x35', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('سعر الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
                   ],
                   rows: filtered.map((p) {
                     final status = p.balance <= 0
@@ -445,9 +782,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     return DataRow(cells: [
                       DataCell(
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.08),
+                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -508,8 +845,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   }).toList(),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -536,145 +873,193 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     final totalIn = erp.stockMoves.where((m) => m.moveType == 'دخول').fold<double>(0, (s, m) => s + m.qtySheets);
     final totalOut = erp.stockMoves.where((m) => m.moveType == 'خروج').fold<double>(0, (s, m) => s + m.qtySheets);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ملخص الوارد والمنصرف
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(8),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ملخص الوارد والمنصرف وصافي الحركة
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 650;
+              final net = totalIn - totalOut;
+
+              final cards = [
+                _buildMovementSummaryCard(
+                  title: 'إجمالي الوارد (توريد)',
+                  value: '${totalIn.toInt()} فرخ',
+                  icon: Icons.arrow_downward_rounded,
+                  color: const Color(0xFF15803D),
+                  bgColor: const Color(0xFFDCFCE7),
+                ),
+                _buildMovementSummaryCard(
+                  title: 'إجمالي المنصرف (إنتاج)',
+                  value: '${totalOut.toInt()} فرخ',
+                  icon: Icons.arrow_upward_rounded,
+                  color: const Color(0xFFB91C1C),
+                  bgColor: const Color(0xFFFEE2E2),
+                ),
+                _buildMovementSummaryCard(
+                  title: 'صافي حركة المخزون',
+                  value: '${net >= 0 ? '+' : ''}${net.toInt()} فرخ',
+                  icon: Icons.swap_vert_rounded,
+                  color: net >= 0 ? AppTheme.primaryGreen : Colors.orange.shade800,
+                  bgColor: net >= 0 ? AppTheme.primaryGreen.withValues(alpha: 0.1) : Colors.orange.shade50,
+                ),
+              ];
+
+              if (isNarrow) {
+                return Column(
+                  children: cards.map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: c,
+                  )).toList(),
+                );
+              }
+
+              return Row(
+                children: cards.map((c) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: c,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.arrow_downward, color: Color(0xFF15803D), size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        'إجمالي الوارد: ${totalIn.toInt()} فرخ',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF15803D), fontSize: 13),
-                      ),
+                )).toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // شريط البحث ونوع الحركة
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 650;
+              final searchInput = TextField(
+                decoration: InputDecoration(
+                  hintText: 'بحث برقم الحركة، اسم الصنف، المرجع، المورد...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryGreen),
+                  suffixIcon: _moveSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () => setState(() => _moveSearchQuery = ''),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 1.5),
+                  ),
+                  isDense: true,
+                ),
+                onChanged: (val) => setState(() => _moveSearchQuery = val),
+              );
+
+              final typeDropdown = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _moveTypeFilter,
+                    isExpanded: isCompact,
+                    icon: const Icon(Icons.filter_list_rounded, size: 18, color: AppTheme.primaryGreen),
+                    items: const [
+                      DropdownMenuItem(value: 'الكل', child: Text('جميع الحركات')),
+                      DropdownMenuItem(value: 'دخول', child: Text('دخول (توريد)')),
+                      DropdownMenuItem(value: 'خروج', child: Text('خروج (صرف إنتاج)')),
+                      DropdownMenuItem(value: 'تسوية', child: Text('تسوية جردية')),
                     ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _moveTypeFilter = val);
+                    },
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.arrow_upward, color: Color(0xFFB91C1C), size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        'إجمالي المنصرف: ${totalOut.toInt()} فرخ',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB91C1C), fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+              );
 
-            // شريط البحث ونوع الحركة
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 600;
-                final searchInput = TextField(
-                  decoration: InputDecoration(
-                    hintText: 'بحث برقم الحركة، اسم الصنف، المرجع، المورد...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _moveSearchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () => setState(() => _moveSearchQuery = ''),
-                          )
-                        : null,
-                    isDense: true,
-                  ),
-                  onChanged: (val) => setState(() => _moveSearchQuery = val),
-                );
-
-                final typeDropdown = Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.borderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _moveTypeFilter,
-                      isExpanded: isCompact,
-                      items: const [
-                        DropdownMenuItem(value: 'الكل', child: Text('جميع الحركات')),
-                        DropdownMenuItem(value: 'دخول', child: Text('دخول (توريد)')),
-                        DropdownMenuItem(value: 'خروج', child: Text('خروج (صرف إنتاج)')),
-                        DropdownMenuItem(value: 'تسوية', child: Text('تسوية جردية')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _moveTypeFilter = val);
-                      },
-                    ),
-                  ),
-                );
-
-                if (isCompact) {
-                  return Column(
-                    children: [
-                      searchInput,
-                      const SizedBox(height: 10),
-                      typeDropdown,
-                    ],
-                  );
-                }
-
-                return Row(
+              if (isCompact) {
+                return Column(
                   children: [
-                    Expanded(child: searchInput),
-                    const SizedBox(width: 12),
+                    searchInput,
+                    const SizedBox(height: 10),
                     typeDropdown,
                   ],
                 );
-              },
-            ),
-            const Divider(height: 24),
+              }
 
-            if (filteredMoves.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: Text('لا توجد حركات مخزون مسجلة تطابق البحث')),
-              )
-            else if (MediaQuery.of(context).size.width < 750)
-              _buildMobileStockMoveCards(filteredMoves, erp)
-            else
-              SingleChildScrollView(
+              return Row(
+                children: [
+                  Expanded(child: searchInput),
+                  const SizedBox(width: 12),
+                  typeDropdown,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          if (filteredMoves.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(36),
+              child: Center(
+                child: Text(
+                  'لا توجد حركات مخزون مسجلة تطابق البحث',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                ),
+              ),
+            )
+          else if (MediaQuery.of(context).size.width < 750)
+            _buildMobileStockMoveCards(filteredMoves, erp)
+          else
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                  headingRowHeight: 48,
+                  dataRowMinHeight: 52,
+                  dataRowMaxHeight: 58,
                   columns: const [
-                    DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('الخامة والجرام', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('المورد / الجهة', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('عكس الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('الخامة والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('المورد / الجهة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    DataColumn(label: Text('عكس الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
                   ],
                   rows: filteredMoves.map((m) {
                     return DataRow(cells: [
@@ -705,8 +1090,59 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   }).toList(),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMovementSummaryCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1625,7 +2061,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isDepleted
                   ? Colors.red.shade300
@@ -1634,9 +2070,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -1651,7 +2087,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1680,6 +2116,22 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   AppTheme.statusBadge(status),
                 ],
               ),
+              const SizedBox(height: 8),
+
+              // شريط تقدم المخزون
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: p.reorderLevel > 0 ? (p.balance / (p.reorderLevel * 2)).clamp(0.05, 1.0) : 1.0,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDepleted
+                        ? const Color(0xFFEF4444)
+                        : (isUnder ? const Color(0xFFF59E0B) : const Color(0xFF10B981)),
+                  ),
+                  minHeight: 5,
+                ),
+              ),
               const SizedBox(height: 10),
 
               // شبكة البيانات الأساسية
@@ -1692,30 +2144,45 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildMobileField('الرصيد الحالي:', '${p.balance.toInt()} فرخ',
+                        Expanded(
+                          child: _buildMobileField(
+                            'الرصيد الحالي:',
+                            '${p.balance.toInt()} فرخ',
                             highlightColor: isDepleted
                                 ? Colors.red
                                 : (isUnder ? Colors.orange.shade900 : Colors.green.shade800),
-                            isBold: true),
-                        _buildMobileField('حد الطلب:', '${p.reorderLevel} فرخ'),
+                            isBold: true,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMobileField('حد الطلب:', '${p.reorderLevel} فرخ'),
+                        ),
                       ],
                     ),
                     const Divider(height: 12, thickness: 0.5),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice), isBold: true),
-                        _buildMobileField('مقاس الفرخ:', p.sheetSize),
+                        Expanded(
+                          child: _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice), isBold: true),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMobileField('مقاس الفرخ:', p.sheetSize),
+                        ),
                       ],
                     ),
                     const Divider(height: 12, thickness: 0.5),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildMobileField('ملازم 50x35:', '${p.sheetsPerUnit} ملازم'),
-                        _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue)),
+                        Expanded(
+                          child: _buildMobileField('ملازم 50x35:', '${p.sheetsPerUnit} ملازم'),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue)),
+                        ),
                       ],
                     ),
                     if (p.supplier != null && p.supplier!.isNotEmpty) ...[
@@ -1746,30 +2213,31 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _showNewMovementDialog(p),
-                      icon: const Icon(Icons.add_shopping_cart, size: 15),
-                      label: const Text('تسجيل حركة', style: TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                      label: const Text('حركة مخزون', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primaryGreen,
                         side: const BorderSide(color: AppTheme.primaryGreen),
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.receipt_long_outlined, size: 19, color: Color(0xFF0284C7)),
+                    icon: const Icon(Icons.receipt_long_rounded, size: 19, color: Color(0xFF0284C7)),
                     tooltip: 'كارت الصنف',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _showItemStockCardDialog(p, erp),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 19, color: AppTheme.accentGold),
+                    icon: const Icon(Icons.edit_rounded, size: 19, color: AppTheme.accentGold),
                     tooltip: 'تعديل',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _showPaperDialog(p),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 19, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Colors.red),
                     tooltip: 'حذف',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _confirmDeletePaper(p, erp),
@@ -1784,20 +2252,23 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   }
 
   Widget _buildMobileField(String label, String value, {Color? highlightColor, bool isBold = false}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: highlightColor ?? AppTheme.darkSlate,
+    return Text.rich(
+      TextSpan(
+        text: '$label ',
+        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+        children: [
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: highlightColor ?? AppTheme.darkSlate,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 

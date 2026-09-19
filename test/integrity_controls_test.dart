@@ -283,6 +283,7 @@ void main() {
     test('عكس حركة المخزون ينشئ قيداً مقابلاً ولا يحذف الأصل', () async {
       final paper = erp.papers.first;
       final balanceBefore = paper.balance;
+      final movesCountBefore = erp.stockMoves.length;
 
       expect(
         (await erp.addStockMove(
@@ -300,7 +301,7 @@ void main() {
 
       final reversal = await erp.reverseStockMove(originalMove.id);
       expect(reversal.isSuccess, isTrue);
-      expect(erp.stockMoves, hasLength(2));
+      expect(erp.stockMoves, hasLength(movesCountBefore + 2));
       expect(paper.balance, balanceBefore);
       final reversalMove = erp.stockMoves.first;
       expect(reversalMove.moveType, 'خروج');

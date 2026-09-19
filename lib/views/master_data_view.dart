@@ -18,6 +18,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -30,79 +33,118 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // شريط العنوان
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 650;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 14 : 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'البيانات المرجعية وقوالب المنتجات',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+              // شريط العنوان
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isMobile ? 8 : 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'الماكينات، قوالب المنتجات الافتراضية، وخدمات التشطيب (تطابق شيتات الإكسل)',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                    child: Icon(Icons.settings_suggest_rounded, color: AppTheme.primaryGreen, size: isMobile ? 22 : 26),
+                  ),
+                  SizedBox(width: isMobile ? 10 : 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'البيانات المرجعية وقوالب المنتجات',
+                          style: TextStyle(
+                            fontSize: isMobile ? 18 : 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.darkSlate,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'الماكينات، قوالب المنتجات الافتراضية، وخدمات التشطيب (تطابق شيتات الإكسل)',
+                          style: TextStyle(fontSize: isMobile ? 11.5 : 13, color: AppTheme.textMuted),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: isMobile ? 12 : 18),
+
+              // شريط التبويبات المتجاوب
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: AppTheme.primaryGreen,
+                  unselectedLabelColor: AppTheme.textMuted,
+                  indicatorColor: AppTheme.primaryGreen,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  tabs: [
+                    Tab(
+                      icon: const Icon(Icons.precision_manufacturing_rounded, size: 19),
+                      text: 'الماكينات (${erp.machines.length})',
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.auto_stories_rounded, size: 19),
+                      text: 'قوالب المنتجات (${erp.products.length})',
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.content_cut_rounded, size: 19),
+                      text: 'خدمات التشطيب (${erp.finishings.length})',
                     ),
                   ],
                 ),
               ),
+              SizedBox(height: isMobile ? 12 : 16),
+
+              // محتوى التبويب النشط (يتمدد طبيعياً بدون هدر للمساحة)
+              if (_tabController.index == 0)
+                _buildMachinesTab(erp, isMobile)
+              else if (_tabController.index == 1)
+                _buildProductsTab(erp, isMobile)
+              else
+                _buildFinishingsTab(erp, isMobile),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // شريط التبويبات
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.borderColor),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: AppTheme.primaryGreen,
-              unselectedLabelColor: AppTheme.textMuted,
-              indicatorColor: AppTheme.primaryGreen,
-              tabs: const [
-                Tab(icon: Icon(Icons.precision_manufacturing), text: 'الماكينات (شيت الماكينات)'),
-                Tab(icon: Icon(Icons.auto_stories), text: 'قوالب المنتجات (شيت المنتجات)'),
-                Tab(icon: Icon(Icons.content_cut), text: 'خدمات التشطيب (شيت التشطيبات)'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          SizedBox(
-            height: 600,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // تبويب 1: الماكينات
-                _buildMachinesTab(erp),
-                // تبويب 2: قوالب المنتجات
-                _buildProductsTab(erp),
-                // تبويب 3: التشطيبات
-                _buildFinishingsTab(erp),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildMachinesTab(ErpProvider erp) {
+  // ==========================================
+  // تبويب 1: الماكينات
+  // ==========================================
+  Widget _buildMachinesTab(ErpProvider erp, bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: erp.machines.map((m) => _buildMachineMobileCard(m)).toList(),
+      );
+    }
+
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -128,7 +170,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 DataCell(AppTheme.statusBadge(m.status)),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
                     onPressed: () => _showEditMachineDialog(m),
                   ),
                 ),
@@ -140,8 +182,115 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     );
   }
 
-  Widget _buildProductsTab(ErpProvider erp) {
+  Widget _buildMachineMobileCard(MachineItem m) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF0F766E), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        m.name,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AppTheme.statusBadge(m.status),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+
+          // شبكة مواصفات الماكينة
+          Row(
+            children: [
+              Expanded(
+                child: _buildParamItem('النوع:', m.kind),
+              ),
+              Expanded(
+                child: _buildParamItem('الهالك:', '${m.wastePct}%', isHighlight: true),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildParamItem('تكلفة الساعة:', AppTheme.formatCurrency(m.hourlyCost)),
+              ),
+              Expanded(
+                child: _buildParamItem('السرعة الإنتاجية:', '${m.speedPerHour} فرخ/س'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showEditMachineDialog(m),
+              icon: const Icon(Icons.edit_rounded, size: 16),
+              label: const Text('تعديل معايير الماكينة'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryGreen,
+                side: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // تبويب 2: قوالب المنتجات
+  // ==========================================
+  Widget _buildProductsTab(ErpProvider erp, bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: erp.products.map((p) => _buildProductMobileCard(p)).toList(),
+      );
+    }
+
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -167,7 +316,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 DataCell(Text('${p.defaultPaperCategory} ${p.defaultPaperType}')),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
                     onPressed: () => _showEditProductDialog(p),
                   ),
                 ),
@@ -179,8 +328,125 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     );
   }
 
-  Widget _buildFinishingsTab(ErpProvider erp) {
+  Widget _buildProductMobileCard(ProductTemplate p) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        p.name,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Text(
+                  p.category,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildParamItem('صفحات/فرخ:', '${p.pagesPerSheet} صفحة', isHighlight: true),
+              ),
+              Expanded(
+                child: _buildParamItem('التجليد:', p.binding),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildParamItem('الماكينة:', p.defaultMachine),
+              ),
+              Expanded(
+                child: _buildParamItem('الخامة:', '${p.defaultPaperCategory} ${p.defaultPaperType}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showEditProductDialog(p),
+              icon: const Icon(Icons.edit_rounded, size: 16),
+              label: const Text('تعديل قالب المنتج'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0284C7),
+                side: BorderSide(color: const Color(0xFF0284C7).withValues(alpha: 0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // تبويب 3: خدمات التشطيب
+  // ==========================================
+  Widget _buildFinishingsTab(ErpProvider erp, bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: erp.finishings.map((f) => _buildFinishingMobileCard(f)).toList(),
+      );
+    }
+
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -200,7 +466,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 DataCell(Text(f.unit)),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
                     onPressed: () => _showEditFinishingDialog(f),
                   ),
                 ),
@@ -209,6 +475,90 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFinishingMobileCard(FinishingItem f) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD97706).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  f.name,
+                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'وحدة الحساب: ${f.unit}',
+                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                AppTheme.formatCurrency(f.price),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+              ),
+              const SizedBox(height: 4),
+              IconButton(
+                icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _showEditFinishingDialog(f),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParamItem(String label, String value, {bool isHighlight = false}) {
+    return Text.rich(
+      TextSpan(
+        text: '$label ',
+        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+        children: [
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+              color: isHighlight ? AppTheme.primaryGreen : AppTheme.darkSlate,
+            ),
+          ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 

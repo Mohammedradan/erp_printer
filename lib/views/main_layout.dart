@@ -163,7 +163,7 @@ class MainLayoutState extends State<MainLayout> {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          toolbarHeight: 60,
+          toolbarHeight: 56,
           elevation: 0,
           backgroundColor: Colors.white,
           leading: isDesktop
@@ -177,20 +177,13 @@ class MainLayoutState extends State<MainLayout> {
                   onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
                 )
               : IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.menu_rounded, color: AppTheme.darkSlate, size: 20),
-                  ),
+                  icon: const Icon(Icons.menu_rounded, color: AppTheme.darkSlate, size: 24),
                   tooltip: 'القائمة الرئيسية',
                   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1, color: AppTheme.borderColor),
+            child: Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
           ),
           title: isDesktop
               ? Row(
@@ -214,7 +207,7 @@ class MainLayoutState extends State<MainLayout> {
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
-                                  erp.settings.companyName,
+                                  erp.settings.companyName.isNotEmpty ? erp.settings.companyName : 'مطبعة احترافية',
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -261,29 +254,14 @@ class MainLayoutState extends State<MainLayout> {
                     ),
                   ],
                 )
-              : Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(currentItem.icon, size: 18, color: AppTheme.primaryGreen),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        currentItem.title,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.darkSlate,
-                        ),
-                      ),
-                    ),
-                  ],
+              : Text(
+                  currentItem.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.darkSlate,
+                  ),
                 ),
           actions: [
             if (isDesktop) ...[
@@ -313,13 +291,13 @@ class MainLayoutState extends State<MainLayout> {
             // تنبيهات إعادة الطلب
             if (erp.lowStockPapers.isNotEmpty || erp.lowStockInks.isNotEmpty)
               IconButton(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Badge(
-                  label: Text('${erp.lowStockPapers.length + erp.lowStockInks.length}'),
+                  label: Text(
+                    '${erp.lowStockPapers.length + erp.lowStockInks.length}',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
                   backgroundColor: Colors.red,
-                  child: const Icon(Icons.notifications_active_outlined, color: Colors.red, size: 20),
+                  child: const Icon(Icons.notifications_outlined, color: AppTheme.darkSlate, size: 24),
                 ),
                 tooltip: 'تنبيهات نقص المخزون',
                 onPressed: () => setState(() => _selectedIndex = 4),
@@ -342,34 +320,166 @@ class MainLayoutState extends State<MainLayout> {
               ),
             ],
 
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
 
-            // مستخدم النظام الحالي
-            GestureDetector(
-              onTap: () async {
-                await auth.logout();
-                if (!mounted) return;
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginView()),
-                );
-              },
-              child: Tooltip(
-                message: '${currentUser?.displayName ?? 'مجهول'} - ${currentUser?.role.label ?? ''} (اضغط للخروج)',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isDesktop) Text(
-                      currentUser?.displayName ?? '',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textDark, fontWeight: FontWeight.w600),
+            // قائمة المستخدم وتسجيل الخروج الآمن
+            if (isDesktop)
+              Center(
+                child: Container(
+                  height: 38,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderColor),
+                  ),
+                  child: PopupMenuButton<String>(
+                    tooltip: 'حساب المستخدم',
+                    offset: const Offset(0, 46),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    onSelected: (val) async {
+                      if (val == 'users') {
+                        if (isAdmin) setState(() => _selectedIndex = 12);
+                      } else if (val == 'logout') {
+                        _showLogoutConfirmationDialog(auth);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        enabled: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentUser?.displayName ?? 'مستخدم النظام',
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark, fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              currentUser?.role.label ?? '',
+                              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      if (isAdmin)
+                        const PopupMenuItem(
+                          value: 'users',
+                          child: Row(
+                            children: [
+                              Icon(Icons.manage_accounts_outlined, size: 18, color: AppTheme.primaryGreen),
+                              SizedBox(width: 8),
+                              Text('إدارة المستخدمين والصلاحيات', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout_rounded, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('تسجيل الخروج', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (currentUser != null)
+                            UserAvatar.fromUser(currentUser, size: 28, showBadge: false),
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                currentUser?.displayName ?? '',
+                                style: const TextStyle(fontSize: 11, color: AppTheme.textDark, fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                currentUser?.role.label ?? '',
+                                style: const TextStyle(fontSize: 9, color: AppTheme.textMuted),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.textMuted),
+                        ],
+                      ),
                     ),
-                    if (isDesktop) const SizedBox(width: 6),
-                    if (currentUser != null)
-                      UserAvatar.fromUser(currentUser, size: 30, showBadge: false),
-                  ],
+                  ),
+                ),
+              )
+            else
+              PopupMenuButton<String>(
+                tooltip: 'حساب المستخدم',
+                offset: const Offset(0, 46),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onSelected: (val) async {
+                  if (val == 'users') {
+                    if (isAdmin) setState(() => _selectedIndex = 12);
+                  } else if (val == 'logout') {
+                    _showLogoutConfirmationDialog(auth);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(
+                    enabled: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentUser?.displayName ?? 'مستخدم النظام',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark, fontSize: 13),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          currentUser?.role.label ?? '',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  if (isAdmin)
+                    const PopupMenuItem(
+                      value: 'users',
+                      child: Row(
+                        children: [
+                          Icon(Icons.manage_accounts_outlined, size: 18, color: AppTheme.primaryGreen),
+                          SizedBox(width: 8),
+                          Text('إدارة المستخدمين والصلاحيات', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout_rounded, size: 18, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('تسجيل الخروج', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 12, start: 4),
+                  child: currentUser != null
+                      ? UserAvatar.fromUser(currentUser, size: 32, showBadge: false)
+                      : const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppTheme.primaryGreen,
+                          child: Icon(Icons.person, color: Colors.white, size: 18),
+                        ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
           ],
         ),
         drawer: isDesktop ? null : _buildMobileDrawer(erp, auth, navSections),
@@ -625,8 +735,8 @@ class MainLayoutState extends State<MainLayout> {
   /// القائمة الجانبية المخصصة للهاتف بتصميم راقٍ وعصري
   Widget _buildMobileDrawer(ErpProvider erp, AuthProvider auth, List<NavSection> navSections) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // عرض القائمة الجانبية 70% فقط من الشاشة (بحد أقصى 275dp) ليبقى ثلث الشاشة ظاهراً بوضوح في الخلفية
-    final drawerWidth = min(screenWidth * 0.70, 275.0);
+    // عرض القائمة الجانبية 80% من الشاشة (بحد أقصى 310dp) ليعطي مساحة مريحة لجميع العناوين
+    final drawerWidth = min(screenWidth * 0.80, 310.0);
 
     return Drawer(
       width: drawerWidth,
@@ -643,7 +753,7 @@ class MainLayoutState extends State<MainLayout> {
           _buildDrawerHeader(erp),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.only(top: 4, bottom: 28),
               children: navSections.map((section) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,12 +1017,9 @@ class MainLayoutState extends State<MainLayout> {
                 IconButton(
                   icon: const Icon(Icons.logout, size: 20, color: Colors.redAccent),
                   tooltip: 'تسجيل الخروج',
-                  onPressed: () async {
-                    await auth.logout();
-                    if (!mounted) return;
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginView()),
-                    );
+                  onPressed: () {
+                    _scaffoldKey.currentState?.closeDrawer();
+                    _showLogoutConfirmationDialog(auth);
                   },
                 ),
               ],
@@ -981,6 +1088,48 @@ class MainLayoutState extends State<MainLayout> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmationDialog(AuthProvider auth) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.red, size: 22),
+            SizedBox(width: 8),
+            Text('تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟',
+          style: TextStyle(fontSize: 13.5, color: AppTheme.darkSlate),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('إلغاء', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await auth.logout();
+              if (!mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginView()),
+              );
+            },
+            child: const Text('تسجيل خروج', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

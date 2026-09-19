@@ -382,152 +382,260 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
 
     final result = _calculateActivePricing(erp);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // شريط العنوان وأزرار التنقل السريع
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 12,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 650;
+        final isWide = constraints.maxWidth >= 950;
+        final inputsWidget = _buildInputsSection(erp);
+        final outputsWidget = _buildOutputsSection(result, erp);
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 12 : 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'محرك التسعير الذكي وقوالب المنتجات',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'مسار حساب تخصصي لكل منتج: كتب، دفاتر NCR، كروت وبروشورات، وقوالب مخصصة',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                  ),
-                ],
-              ),
+              // شريط العنوان وأزرار الإجراءات
               Wrap(
-                spacing: 10,
-                runSpacing: 8,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      if (widget.onNavigate != null) {
-                        widget.onNavigate!(11); // فتح قسم إدارة الأسعار
-                      }
-                    },
-                    icon: const Icon(Icons.price_change_outlined, size: 18),
-                    label: const Text('إدارة وتعديل الأسعار'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryGreen,
-                      side: const BorderSide(color: AppTheme.primaryGreen),
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'محرك التسعير الذكي وقوالب المنتجات',
+                        style: TextStyle(
+                          fontSize: isMobile ? 17 : 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.darkSlate,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'مسار حساب تخصصي: كتب، دفاتر، كروت، وقوالب مخصصة',
+                        style: TextStyle(fontSize: isMobile ? 11.5 : 13, color: AppTheme.textMuted),
+                      ),
+                    ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showSaveQuotationDialog(result),
-                    icon: const Icon(Icons.note_add_outlined, size: 18),
-                    label: const Text('إنشاء عرض سعر من الحسبة'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          if (widget.onNavigate != null) {
+                            widget.onNavigate!(11); // فتح قسم إدارة الأسعار
+                          }
+                        },
+                        icon: const Icon(Icons.price_change_outlined, size: 16),
+                        label: Text(isMobile ? 'الأسعار' : 'إدارة وتعديل الأسعار', style: TextStyle(fontSize: isMobile ? 12 : 13)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primaryGreen,
+                          side: const BorderSide(color: AppTheme.primaryGreen),
+                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 8 : 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _showSaveQuotationDialog(result),
+                        icon: const Icon(Icons.note_add_outlined, size: 16),
+                        label: Text(isMobile ? 'إنشاء عرض سعر' : 'إنشاء عرض سعر من الحسبة', style: TextStyle(fontSize: isMobile ? 12 : 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryGreen,
+                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 18),
+              SizedBox(height: isMobile ? 12 : 16),
 
-          // شريط اختيار قالب المنتج (Tabs)
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildTemplateChip(ProductPricingType.book, '📖 كتاب ومجلة', 'الصفحات → الملازم → الغلاف → التجليد'),
-                  const SizedBox(width: 6),
-                  _buildTemplateChip(ProductPricingType.ncr, '📑 دفاتر NCR مكربنة', 'أوراق الدفتر → الألوان → الترقيم → التجميع'),
-                  const SizedBox(width: 6),
-                  _buildTemplateChip(ProductPricingType.card, '📇 كرت ومطبوع فردي', 'المقاس → التوزيع في الفرخ → القص → التشطيب'),
-                  const SizedBox(width: 6),
-                  _buildTemplateChip(ProductPricingType.custom, '📦 منتجات أخرى ومخصصة', 'معادلة مفتوحة وقابلة للإضافة مستقبلاً'),
-                ],
+              // كرت الملخص الفوري للتسعير (يظهر بأعلى الجوال مباشرة لتحديث النتيجة الحية)
+              if (isMobile) _buildMobileLiveSummary(result, erp),
+
+              // شريط اختيار قالب المنتج (Tabs)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildTemplateChip(ProductPricingType.book, '📖 كتاب ومجلة', 'الصفحات → الملازم → الغلاف → التجليد', isMobile: isMobile),
+                      const SizedBox(width: 6),
+                      _buildTemplateChip(ProductPricingType.ncr, '📑 دفاتر NCR مكربنة', 'أوراق الدفتر → الألوان → الترقيم', isMobile: isMobile),
+                      const SizedBox(width: 6),
+                      _buildTemplateChip(ProductPricingType.card, '📇 كرت ومطبوع فردي', 'المقاس → التوزيع → القص', isMobile: isMobile),
+                      const SizedBox(width: 6),
+                      _buildTemplateChip(ProductPricingType.custom, '📦 منتج مخصص', 'معادلة تكاليف حرة', isMobile: isMobile),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
+              SizedBox(height: isMobile ? 14 : 20),
 
-          // تقسيم الشاشة: عمود المدخلات (يمين) + عمود المخرجات ومسار الحساب (يسار)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 950;
-              final inputsWidget = _buildInputsSection(erp);
-              final outputsWidget = _buildOutputsSection(result, erp);
-
-              if (isWide) {
-                return Row(
+              // تقسيم الشاشة: عمود المدخلات (يمين) + عمود المخرجات ومسار الحساب (يسار)
+              if (isWide)
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(flex: 6, child: inputsWidget),
                     const SizedBox(width: 20),
                     Expanded(flex: 5, child: outputsWidget),
                   ],
-                );
-              } else {
-                return Column(
+                )
+              else
+                Column(
                   children: [
                     inputsWidget,
                     const SizedBox(height: 20),
                     outputsWidget,
                   ],
-                );
-              }
-            },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileLiveSummary(PricingResult result, ErpProvider erp) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.darkSlate,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('سعر بيع النسخة', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${result.unitPrice.toStringAsFixed(2)} ${erp.settings.currency}',
+                        style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('إجمالي البيع المقترح', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${AppTheme.formatCurrency(result.lineAmount)} ${erp.settings.currency}',
+                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white24, height: 1),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'التكلفة: ${AppTheme.formatCurrency(result.lineTotalCost)}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'الربح: ${AppTheme.formatCurrency(result.profit)} (${result.profitMarginPct.toStringAsFixed(0)}%)',
+                  style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTemplateChip(ProductPricingType type, String title, String subtitle) {
+  Widget _buildTemplateChip(ProductPricingType type, String title, String subtitle, {bool isMobile = false}) {
     final isSelected = _activeTemplate == type;
     return InkWell(
       onTap: () => setState(() => _activeTemplate = type),
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 14, vertical: isMobile ? 8 : 10),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryGreen.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          border: isSelected ? Border.all(color: AppTheme.primaryGreen, width: 1.5) : null,
+          border: isSelected ? Border.all(color: AppTheme.primaryGreen, width: 1.5) : Border.all(color: Colors.transparent),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
-                fontSize: 14,
+        child: isMobile
+            ? Text(
+                title,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                  fontSize: 13,
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: isSelected ? AppTheme.primaryGreen : AppTheme.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: isSelected ? AppTheme.primaryGreen : AppTheme.textMuted,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

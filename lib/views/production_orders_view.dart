@@ -424,8 +424,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                 // رأس الكارت: رقم الأمر + الحالة
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -442,14 +444,17 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 4),
                         Text(
                           AppTheme.formatDate(o.date),
-                          style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                         ),
                       ],
                     ),
-                    AppTheme.statusBadge(o.status),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: AppTheme.statusBadge(o.status),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -494,14 +499,24 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.print_outlined, size: 15, color: Color(0xFF0284C7)),
-                              const SizedBox(width: 5),
-                              Text('الماكينة: ${o.machine}', style: const TextStyle(fontSize: 12)),
-                            ],
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(Icons.print_outlined, size: 15, color: Color(0xFF0284C7)),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    'الماكينة: ${o.machine}',
+                                    style: const TextStyle(fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFFD97706)),
                               const SizedBox(width: 5),
@@ -541,7 +556,13 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           children: [
                             const Icon(Icons.event_available_outlined, size: 15, color: Colors.blueGrey),
                             const SizedBox(width: 5),
-                            Text('موعد التسليم: ${AppTheme.formatDate(o.dueDate!)}', style: const TextStyle(fontSize: 11.5, color: Colors.blueGrey)),
+                            Expanded(
+                              child: Text(
+                                'موعد التسليم: ${AppTheme.formatDate(o.dueDate!)}',
+                                style: const TextStyle(fontSize: 11.5, color: Colors.blueGrey),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -554,41 +575,51 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // حالة صرف المواد
-                    o.areAllMaterialsIssued
-                        ? const Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
-                              SizedBox(width: 4),
-                              Text('تم صرف المواد', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          )
-                        : OutlinedButton.icon(
-                            onPressed: () async {
-                              final result = await erp.deductPaperForOrder(o.id);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(result.message),
-                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                    Expanded(
+                      child: o.areAllMaterialsIssued
+                          ? const Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
+                                SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    'تم صرف المواد',
+                                    style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.outbox_rounded, size: 15),
-                            label: Text(
-                              o.materialRequirements.isEmpty
-                                  ? 'صرف المواد'
-                                  : 'صرف ${o.issuedMaterialsCount}/${o.materialRequirements.length}',
-                              style: const TextStyle(fontSize: 11.5),
+                                ),
+                              ],
+                            )
+                          : OutlinedButton.icon(
+                              onPressed: () async {
+                                final result = await erp.deductPaperForOrder(o.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result.message),
+                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.outbox_rounded, size: 15),
+                              label: Text(
+                                o.materialRequirements.isEmpty
+                                    ? 'صرف المواد'
+                                    : 'صرف ${o.issuedMaterialsCount}/${o.materialRequirements.length}',
+                                style: const TextStyle(fontSize: 11.5),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.blue.shade700,
+                                side: BorderSide(color: Colors.blue.shade300),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.blue.shade700,
-                              side: BorderSide(color: Colors.blue.shade300),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
+                    ),
+                    const SizedBox(width: 8),
                     // أزرار التحكم بالأمر
                     Row(
                       mainAxisSize: MainAxisSize.min,

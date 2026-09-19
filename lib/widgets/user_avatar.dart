@@ -140,9 +140,9 @@ class UserAvatar extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.primary.withValues(alpha: 0.35),
-                  blurRadius: size * 0.25,
-                  offset: Offset(0, size * 0.08),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
               ],
               border: Border.all(
