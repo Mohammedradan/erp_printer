@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../theme/app_theme.dart';
@@ -20,6 +23,10 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  DateTime? _lastBackupTime;
+  bool _isBackingUp = false;
+  bool _isRestoring = false;
+
   late TextEditingController _sheetSizeCtrl;
   late TextEditingController _unitSizeCtrl;
   late TextEditingController _platePriceCtrl;
@@ -774,22 +781,79 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  // --- كرت 4: النسخ الاحتياطي واستعادة البيانات ---
+  // --- كرت 4: النسخ الاحتياطي على Google Drive ---
   Widget _buildBackupRestoreCard(ErpProvider erp) {
     return _buildSectionCard(
-      title: 'النسخ الاحتياطي واستعادة البيانات (Backup & Restore)',
-      subtitle: 'تصدير نسخة كاملة من قاعدة بيانات النظام بصيغة JSON أو استيرادها على أي جهاز آخر بأمان',
-      icon: Icons.cloud_sync_rounded,
-      iconColor: const Color(0xFF10B981),
+      title: 'النسخ الاحتياطي على Google Drive',
+      subtitle: 'تصدير نسخة كاملة من بيانات النظام ومشاركتها مباشرة على Google Drive، أو استيراد نسخة سابقة',
+      icon: Icons.cloud_done_rounded,
+      iconColor: const Color(0xFF1A73E8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // بطاقة حالة النسخة الاحتياطية
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A73E8), Color(0xFF0F5BB5)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.drive_folder_upload_rounded, color: Colors.white, size: 26),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Google Drive',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _lastBackupTime != null
+                            ? 'آخر نسخة: ${_formatDateTime(_lastBackupTime!)}'
+                            : 'لم يتم عمل نسخة احتياطية بعد',
+                        style: const TextStyle(color: Color(0xFFD2E3FC), fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${erp.customers.length + erp.quotations.length + erp.papers.length} سجل',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // شرح آلية العمل
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFF0F9FF),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: const Color(0xFFBAE6FD)),
             ),
             child: const Row(
               children: [
@@ -797,37 +861,75 @@ class _SettingsViewState extends State<SettingsView> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'النسخة الاحتياطية تشمل جميع الأسعار، المخزون، سجل الحركات، العملاء، عروض الأسعار، وأوامر الإنتاج.',
-                    style: TextStyle(fontSize: 12, color: AppTheme.darkSlate),
+                    'سيُصدَّر ملف erp_backup.json وتُفتح نافذة المشاركة → اختر Google Drive لرفعه مباشرةً.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF0C4A6E)),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _exportBackupDialog(erp),
-                icon: const Icon(Icons.download_rounded, size: 18),
-                label: const Text('تصدير نسخة احتياطية (JSON)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _importBackupDialog(erp),
-                icon: const Icon(Icons.upload_rounded, size: 18),
-                label: const Text('استيراد نسخة احتياطية'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.darkSlate,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-              ),
-            ],
+
+          // أزرار العمليات
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 480;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  // زر الرفع على Drive
+                  SizedBox(
+                    width: isNarrow ? double.infinity : null,
+                    child: ElevatedButton.icon(
+                      onPressed: _isBackingUp ? null : () => _shareBackupToDrive(erp),
+                      icon: _isBackingUp
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.drive_folder_upload_rounded, size: 18),
+                      label: Text(_isBackingUp ? 'جارٍ التصدير...' : 'رفع نسخة على Drive'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A73E8),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+
+                  // زر الاستيراد من ملف
+                  SizedBox(
+                    width: isNarrow ? double.infinity : null,
+                    child: OutlinedButton.icon(
+                      onPressed: _isRestoring ? null : () => _importBackupFromFile(erp),
+                      icon: _isRestoring
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.upload_file_rounded, size: 18),
+                      label: Text(_isRestoring ? 'جارٍ الاستيراد...' : 'استعادة من ملف'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1A73E8),
+                        side: const BorderSide(color: Color(0xFF1A73E8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+
+                  // زر نسخ JSON للحافظة (بديل احتياطي)
+                  TextButton.icon(
+                    onPressed: () => _exportBackupDialog(erp),
+                    icon: const Icon(Icons.copy_all_rounded, size: 16),
+                    label: const Text('نسخ JSON للحافظة'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textMuted,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -999,19 +1101,89 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  void _exportBackupDialog(ErpProvider erp) {
-    final backupJson = erp.exportDatabaseBackup();
-    final ctrl = TextEditingController(text: backupJson);
+  String _formatDateTime(DateTime dt) {
+    final d = dt;
+    final date = '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+    final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    return '$date $time';
+  }
 
-    showDialog(
+  // --- رفع النسخة الاحتياطية إلى Google Drive عبر Share ---
+  Future<void> _shareBackupToDrive(ErpProvider erp) async {
+    setState(() => _isBackingUp = true);
+    try {
+      final backupJson = erp.exportDatabaseBackup();
+      final now = DateTime.now();
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final fileName = 'erp_backup_$dateStr.json';
+
+      // حفظ الملف في مجلد مؤقت
+      final tmpDir = await getTemporaryDirectory();
+      final file = File('${tmpDir.path}/$fileName');
+      await file.writeAsString(backupJson, flush: true);
+
+      // فتح نافذة المشاركة الأصلية
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/json')],
+        subject: 'نسخة احتياطية ERP مطبعة – $dateStr',
+        text: 'ملف نسخة احتياطية كاملة من نظام ERP المطبعة. قم برفعه على Google Drive للحفاظ عليه.',
+      );
+
+      if (mounted) {
+        setState(() => _lastBackupTime = now);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Expanded(child: Text('تم تصدير الملف بنجاح! اختر Google Drive من نافذة المشاركة')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1A73E8),
+            duration: const Duration(seconds: 4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء تصدير النسخة الاحتياطية: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBackingUp = false);
+    }
+  }
+
+  // --- استيراد نسخة احتياطية (لصق JSON أو استيراد من ملف) ---
+  Future<void> _importBackupFromFile(ErpProvider erp) async {
+    final ctrl = TextEditingController();
+
+    // محاولة لصق تلقائي من الحافظة
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clipboardData?.text?.isNotEmpty == true) {
+      ctrl.text = clipboardData!.text!;
+    }
+
+    if (!mounted) return;
+
+    final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Row(
           children: [
-            Icon(Icons.download_done_rounded, color: AppTheme.primaryGreen),
-            SizedBox(width: 8),
-            Text('تصدير نسخة احتياطية'),
+            Icon(Icons.upload_file_rounded, color: Color(0xFF1A73E8), size: 26),
+            SizedBox(width: 10),
+            Text('استعادة من نسخة احتياطية', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
@@ -1020,13 +1192,157 @@ class _SettingsViewState extends State<SettingsView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('تم تجهيز كود النسخة الاحتياطية. يمكنك نسخه وحفظه بأمان:'),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'سيتم استبدال كافة البيانات الحالية بالبيانات المستوردة.',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('الصق كود JSON للنسخة الاحتياطية:', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: ctrl,
+                maxLines: 7,
+                decoration: InputDecoration(
+                  hintText: 'الصق كود النسخة الاحتياطية هنا...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.paste_rounded),
+                    tooltip: 'لصق من الحافظة',
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) ctrl.text = data!.text!;
+                    },
+                  ),
+                ),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A73E8),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              if (ctrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx, ctrl.text.trim());
+            },
+            child: const Text('استعادة وتطبيق', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null || result.isEmpty) return;
+
+    setState(() => _isRestoring = true);
+    try {
+      final success = await erp.importDatabaseBackup(result);
+
+      if (mounted) {
+        if (success) {
+          final s = erp.settings;
+          _companyNameCtrl.text = s.companyName;
+          _companyPhoneCtrl.text = s.companyPhone;
+          _companyAddressCtrl.text = s.companyAddress;
+          _taxNumberCtrl.text = s.taxNumber;
+          _quotationNotesCtrl.text = s.quotationNotes;
+          _sheetSizeCtrl.text = s.sheetSize;
+          _unitSizeCtrl.text = s.unitSize;
+          _platePriceCtrl.text = '${s.defaultPlatePrice.toInt()}';
+          _marginCtrl.text = '${s.defaultProfitMarginPct.toInt()}';
+          _workHoursCtrl.text = '${s.workHoursPerDay.toInt()}';
+          _currencyCtrl.text = s.currency;
+          _taxCtrl.text = '${s.taxPct.toInt()}';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('تم استرجاع وتحديث كافة البيانات بنجاح!')),
+                ],
+              ),
+              backgroundColor: AppTheme.primaryGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('فشل الاستيراد: الكود غير صالح أو ليس نسخة احتياطية معتمدة.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRestoring = false);
+    }
+  }
+
+  // --- نسخ JSON للحافظة (احتياطي) ---
+  void _exportBackupDialog(ErpProvider erp) {
+    final backupJson = erp.exportDatabaseBackup();
+    final ctrl = TextEditingController(text: backupJson);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        title: const Row(
+          children: [
+            Icon(Icons.copy_all_rounded, color: AppTheme.primaryGreen),
+            SizedBox(width: 8),
+            Text('نسخ JSON للحافظة'),
+          ],
+        ),
+        content: SizedBox(
+          width: MediaQuery.of(ctx).size.width < 550 ? double.maxFinite : 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('كود النسخة الاحتياطية الكامل. انسخه واحفظه في مكان آمن:'),
               const SizedBox(height: 10),
               TextField(
                 controller: ctrl,
                 maxLines: 8,
                 readOnly: true,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
                 decoration: const InputDecoration(border: OutlineInputBorder()),
               ),
             ],
@@ -1048,75 +1364,6 @@ class _SettingsViewState extends State<SettingsView> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
           ),
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق')),
-        ],
-      ),
-    );
-  }
-
-  void _importBackupDialog(ErpProvider erp) {
-    final ctrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        title: const Row(
-          children: [
-            Icon(Icons.upload_file_rounded, color: AppTheme.primaryGreen),
-            SizedBox(width: 8),
-            Text('استيراد نسخة احتياطية'),
-          ],
-        ),
-        content: SizedBox(
-          width: MediaQuery.of(ctx).size.width < 550 ? double.maxFinite : 500,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'تحذير: استيراد نسخة احتياطية سيقوم باستبدال البيانات الحالية بالبيانات المستوردة.',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12.5),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: ctrl,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  hintText: 'الصق كود النسخة الاحتياطية (JSON) هنا...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
-            onPressed: () async {
-              if (ctrl.text.trim().isEmpty) return;
-              final success = await erp.importDatabaseBackup(ctrl.text.trim());
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (mounted) {
-                if (success) {
-                  final s = erp.settings;
-                  _companyNameCtrl.text = s.companyName;
-                  _companyPhoneCtrl.text = s.companyPhone;
-                  _companyAddressCtrl.text = s.companyAddress;
-                  _taxNumberCtrl.text = s.taxNumber;
-                  _quotationNotesCtrl.text = s.quotationNotes;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تم استرجاع وتحديث كافة البيانات بنجاح!')),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('فشل استيراد النسخة الاحتياطية. يرجى التحقق من صحة الكود.')),
-                  );
-                }
-              }
-            },
-            child: const Text('استعادة وتطبيق'),
-          ),
         ],
       ),
     );
