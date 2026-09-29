@@ -16,6 +16,26 @@ class DomainOperationResult {
       DomainOperationResult._(false, message);
 }
 
+/// سطر معاينة لصرف مواد أمر الإنتاج: يعرض المطلوب المتبقي مقابل الرصيد
+/// المتاح لاكتشاف أي عجز قبل تنفيذ الصرف.
+class PaperIssuanceLine {
+  final String materialId;
+  final String materialName;
+  final double requiredQty;
+  final double availableQty;
+
+  const PaperIssuanceLine({
+    required this.materialId,
+    required this.materialName,
+    required this.requiredQty,
+    required this.availableQty,
+  });
+
+  double get deficit =>
+      (requiredQty - availableQty).clamp(0.0, double.infinity).toDouble();
+  bool get hasDeficit => deficit > 0.0001;
+}
+
 class ErpProvider with ChangeNotifier {
   final StorageService _storage;
 
@@ -718,8 +738,48 @@ class ErpProvider with ChangeNotifier {
     return DomainOperationResult.success('تم حذف أمر الإنتاج غير المصروف');
   }
 
+  /// معاينة صرف مواد أمر الإنتاج: المطلوب المتبقي مقابل الرصيد المتاح لكل مادة
+  /// ورقية، لاكتشاف أي عجز قبل تنفيذ الصرف وعرضه في الواجهة.
+  List<PaperIssuanceLine> paperIssuancePreview(String orderId) {
+    final orderMatches =
+        _productionOrders.where((order) => order.id == orderId).toList();
+    if (orderMatches.isEmpty) return const [];
+    final order = orderMatches.first;
+    if (order.materialRequirements.isEmpty) return const [];
+    final lines = <PaperIssuanceLine>[];
+    for (final material in order.materialRequirements) {
+      if (material.materialType != 'paper' || material.remainingQuantity <= 0) {
+        continue;
+      }
+      final papers =
+          _papers.where((paper) => paper.id == material.materialId).toList();
+      lines.add(PaperIssuanceLine(
+        materialId: material.materialId,
+        materialName: material.materialName,
+        requiredQty: material.remainingQuantity,
+        availableQty: papers.isNotEmpty ? papers.first.balance : 0.0,
+      ));
+    }
+    return lines;
+  }
+
   /// صرف كل المواد الورقية المتبقية لأمر الإنتاج بعد التحقق من توفرها بالكامل.
-  Future<DomainOperationResult> deductPaperForOrder(String orderId) async {
+  ///
+  /// عند تفعيل [allowDeficit] (خيار المدير فقط عبر الواجهة) يُسمح بإتمام الصرف
+  /// حتى مع نقص الرصيد، على أن يوثَّق السبب إلزامياً في [deficitReason] ويظهر
+  /// في سجل حركات المخزون للتدقيق، ويُنزَّل الرصيد تحت الصفر كإشارة صريحة
+  /// بضرورة إجراء تسوية جرد لاحقة.
+  Future<DomainOperationResult> deductPaperForOrder(
+    String orderId, {
+    bool allowDeficit = false,
+    String? deficitReason,
+    String? approvedBy,
+  }) async {
+    final trimmedReason = deficitReason?.trim();
+    if (allowDeficit && (trimmedReason == null || trimmedReason.isEmpty)) {
+      return DomainOperationResult.failure(
+          'الصرف الاستثنائي مع عجز يتطلب سبباً موثقاً');
+    }
     final index = _productionOrders.indexWhere((order) => order.id == orderId);
     if (index == -1) return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
     final order = _productionOrders[index];
@@ -759,16 +819,25 @@ class ErpProvider with ChangeNotifier {
     }
 
     // تحقق مسبق من جميع الأصناف حتى لا ينفذ صرف جزئي.
+    final shortages = <String>[];
     for (final material in remainingMaterials) {
       final papers = _papers.where((paper) => paper.id == material.materialId).toList();
       if (papers.isEmpty) {
         return DomainOperationResult.failure('صنف المادة ${material.materialName} غير موجود في المخزون');
       }
-      if (papers.first.balance + 0.0001 < material.remainingQuantity) {
-        return DomainOperationResult.failure(
-          'رصيد ${papers.first.displayName} غير كافٍ. المتاح ${papers.first.balance.toStringAsFixed(0)}، والمطلوب ${material.remainingQuantity.toStringAsFixed(0)}',
+      final paper = papers.first;
+      if (paper.balance + 0.0001 < material.remainingQuantity) {
+        final deficit =
+            (material.remainingQuantity - paper.balance).clamp(0.0, double.infinity);
+        shortages.add(
+          '${paper.displayName}: المتاح ${paper.balance.toStringAsFixed(0)}، والمطلوب ${material.remainingQuantity.toStringAsFixed(0)} (عجز ${deficit.toStringAsFixed(0)})',
         );
       }
+    }
+    if (shortages.isNotEmpty && !allowDeficit) {
+      return DomainOperationResult.failure(
+        'رصيد المواد غير كافٍ للصرف — ${shortages.join('؛ ')}',
+      );
     }
 
     // تنفيذ الدفعة بعد اكتمال التحقق؛ لا تستدعي addStockMove هنا حتى لا تحفظ
@@ -796,7 +865,10 @@ class ErpProvider with ChangeNotifier {
           totalValue: quantity * unitPrice,
           reference: 'أمر إنتاج ${order.number}',
           supplier: paper.supplier,
-          notes: 'صرف تلقائي لمادة ${material.materialName} لأمر الإنتاج ${order.number}',
+          notes: allowDeficit
+              ? 'صرف استثنائي بعجز لمادة ${material.materialName} لأمر الإنتاج ${order.number} — السبب: $trimmedReason'
+                  '${attributionSuffix('اعتمده', approvedBy)}'
+              : 'صرف تلقائي لمادة ${material.materialName} لأمر الإنتاج ${order.number}',
         ),
       );
       material.quantityIssued += quantity;
@@ -808,11 +880,15 @@ class ErpProvider with ChangeNotifier {
     await _storage.saveStockMoves(_stockMoves);
     await _storage.saveProductionOrders(_productionOrders);
     notifyListeners();
-    return DomainOperationResult.success('تم صرف جميع المواد المطلوبة لأمر الإنتاج');
+    return DomainOperationResult.success(allowDeficit
+        ? 'تم الصرف الاستثنائي مع عجز لأمر الإنتاج؛ راجع الأرصدة وأجرِ تسوية جرد عند اللزوم'
+        : 'تم صرف جميع المواد المطلوبة لأمر الإنتاج');
   }
 
   /// يعيد مادة سبق صرفها إلى المخزون ويخفض الكمية المصروفة في أمر الإنتاج.
-  /// يُستخدم قبل الإلغاء أو لتصحيح صرف قبل اكتمال الأمر، ولا يحذف حركة الصرف الأصلية.
+  /// قبل الاكتمال: يُستخدم للإلغاء أو تصحيح صرف، ولا يحذف حركة الصرف الأصلية.
+  /// بعد الاكتمال: يُستخدم لتصفية الفائض غير المستهلك، فتُخفَّض الكمية المطلوبة
+  /// والمصروفة معاً حتى يظل الأمر مكتمل الاستيفاء ويعكس الاستهلاك الفعلي.
   Future<DomainOperationResult> returnProductionMaterial({
     required String orderId,
     required String materialRequirementId,
@@ -831,11 +907,12 @@ class ErpProvider with ChangeNotifier {
       return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
     }
     final order = _productionOrders[orderIndex];
-    if (order.status == 'مكتمل' || order.status == 'ملغي') {
+    if (order.status == 'ملغي') {
       return DomainOperationResult.failure(
-        'لا يمكن إرجاع مواد من أمر مكتمل أو ملغي؛ أنشئ تسوية تصحيحية موثقة',
+        'لا يمكن إرجاع مواد من أمر ملغي؛ استخدم تسوية جرد موثقة',
       );
     }
+    final isPostCompletion = order.status == 'مكتمل';
     final materialMatches = order.materialRequirements
         .where((material) => material.id == materialRequirementId)
         .toList();
@@ -862,9 +939,16 @@ class ErpProvider with ChangeNotifier {
         : paper.sheetPrice;
     paper.balance += quantity;
     material.quantityIssued = (material.quantityIssued - quantity).clamp(0.0, double.infinity).toDouble();
+    if (isPostCompletion) {
+      // إرجاع فائض بعد الاكتمال: تُخفَّض الكمية المطلوبة مع المصروفة حتى يظل الأمر
+      // مكتمل الاستيفاء ويعكس سطر المادة الاستهلاك الفعلي مقابل المقدر.
+      material.quantityRequired = material.quantityIssued;
+    }
     order.isPaperDeducted = order.areAllMaterialsIssued;
     // لا يمكن بقاء أمر تحت الإنتاج عندما تعاد إحدى مواده؛ يعود إلى حالة معتمد.
-    if (order.status == 'قيد الإنتاج' && !order.areAllMaterialsIssued) {
+    if (!isPostCompletion &&
+        order.status == 'قيد الإنتاج' &&
+        !order.areAllMaterialsIssued) {
       order.status = 'معتمد';
     }
     _stockMoves.insert(
@@ -881,17 +965,115 @@ class ErpProvider with ChangeNotifier {
         qtySheets: quantity,
         unitPrice: unitPrice,
         totalValue: quantity * unitPrice,
-        reference: 'أمر إنتاج ${order.number} - إرجاع مواد',
+        reference: isPostCompletion
+            ? 'أمر إنتاج ${order.number} - إرجاع فائض بعد الإكمال'
+            : 'أمر إنتاج ${order.number} - إرجاع مواد',
         supplier: paper.supplier,
-        notes: 'إرجاع ${material.materialName} من أمر الإنتاج ${order.number}: $returnNotes',
+        notes: isPostCompletion
+            ? 'إرجاع فائض بعد اكمال أمر الإنتاج ${order.number}: $returnNotes'
+            : 'إرجاع ${material.materialName} من أمر الإنتاج ${order.number}: $returnNotes',
       ),
     );
     await _storage.savePapers(_papers);
     await _storage.saveStockMoves(_stockMoves);
     await _storage.saveProductionOrders(_productionOrders);
     notifyListeners();
-    return DomainOperationResult.success('تم إرجاع ${quantity.toStringAsFixed(0)} ${material.unit} من ${material.materialName}');
+    return DomainOperationResult.success(isPostCompletion
+        ? 'تم إرجاع فائض ${quantity.toStringAsFixed(0)} ${material.unit} من ${material.materialName} إلى المخزون'
+        : 'تم إرجاع ${quantity.toStringAsFixed(0)} ${material.unit} من ${material.materialName}');
   }
+
+  /// يسجل هالكاً فعلياً إضافياً على أمر قيد الإنتاج أو مكتمل: ينشئ حركة خروج موثقة
+  /// ويزيد الكمية المطلوبة والمصروفة معاً بحيث يظل الأمر مكتمل الاستيفاء ويعكس
+  /// الاستهلاك الفعلي مقابل المقدر. لا يُسمح بتسجيل هالك يُنزل رصيد الصنف تحت
+  /// الصفر؛ إن كان الرفع فعلياً فتُجرى تسوية جرد أولاً.
+  Future<DomainOperationResult> recordProductionWaste({
+    required String orderId,
+    required String materialRequirementId,
+    required double quantity,
+    required String reason,
+    String? recordedBy,
+  }) async {
+    if (quantity <= 0) {
+      return DomainOperationResult.failure('يجب أن تكون كمية الهالك أكبر من صفر');
+    }
+    final trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      return DomainOperationResult.failure('تسجيل الهالك الفعلي يتطلب سبباً موثقاً');
+    }
+    final orderMatches =
+        _productionOrders.where((order) => order.id == orderId).toList();
+    if (orderMatches.isEmpty) {
+      return DomainOperationResult.failure('تعذر العثور على أمر الإنتاج');
+    }
+    final order = orderMatches.first;
+    if (order.status != 'قيد الإنتاج' && order.status != 'مكتمل') {
+      return DomainOperationResult.failure(
+        'يسجَّل الهالك الفعلي للأوامر قيد الإنتاج أو المكتملة فقط',
+      );
+    }
+    final materialMatches = order.materialRequirements
+        .where((material) => material.id == materialRequirementId)
+        .toList();
+    if (materialMatches.isEmpty) {
+      return DomainOperationResult.failure('المادة المطلوبة غير مرتبطة بأمر الإنتاج');
+    }
+    final material = materialMatches.first;
+    if (material.materialType != 'paper') {
+      return DomainOperationResult.failure(
+          'تسجيل هالك هذه المادة غير مدعوم في المخزون الحالي');
+    }
+    final papers = _papers.where((paper) => paper.id == material.materialId).toList();
+    if (papers.isEmpty) {
+      return DomainOperationResult.failure('صنف ${material.materialName} غير موجود في المخزون');
+    }
+    final paper = papers.first;
+    if (paper.balance + 0.0001 < quantity) {
+      return DomainOperationResult.failure(
+        'رصيد ${paper.displayName} غير كافٍ لتسجيل الهالك. المتاح ${paper.balance.toStringAsFixed(0)}؛ أجرِ تسوية جرد أولاً إذا كان الاستهلاك الفعلي أكبر',
+      );
+    }
+
+    final unitPrice = material.unitCostAtApproval > 0
+        ? material.unitCostAtApproval
+        : paper.sheetPrice;
+    paper.balance -= quantity;
+    material.quantityRequired += quantity;
+    material.quantityIssued += quantity;
+    order.isPaperDeducted = order.areAllMaterialsIssued;
+    _stockMoves.insert(
+      0,
+      StockMove(
+        id: 'SM_WASTE_${DateTime.now().microsecondsSinceEpoch}_${material.id}',
+        number: generateNextStockMoveNumber(),
+        date: DateTime.now(),
+        moveType: 'خروج',
+        paperId: paper.id,
+        paperCategory: paper.category,
+        paperType: paper.paperType,
+        gsm: paper.gsm,
+        qtySheets: quantity,
+        unitPrice: unitPrice,
+        totalValue: quantity * unitPrice,
+        reference: 'أمر إنتاج ${order.number} - هالك فعلي',
+        supplier: paper.supplier,
+        notes: 'هالك فعلي لمادة ${material.materialName} في أمر الإنتاج ${order.number} — السبب: $trimmedReason'
+            '${attributionSuffix('سجّله', recordedBy)}',
+      ),
+    );
+    await _storage.savePapers(_papers);
+    await _storage.saveStockMoves(_stockMoves);
+    await _storage.saveProductionOrders(_productionOrders);
+    notifyListeners();
+    return DomainOperationResult.success(
+        'تم تسجيل هالك فعلي ${quantity.toStringAsFixed(0)} ${material.unit} من ${material.materialName}');
+  }
+
+  /// لاحقة توثيق اسم المستخدم في ملاحظات الحركات الخاصة.
+  String attributionSuffix(String label, String? userName) =>
+      userName != null && userName.trim().isNotEmpty
+          ? ' — $label: ${userName.trim()}'
+          : '';
 
   // --- PAPERS & STOCK MOVES ACTIONS ---
   String generateNextStockMoveNumber() {

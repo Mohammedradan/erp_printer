@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
 class ProductionOrdersView extends StatefulWidget {
@@ -18,6 +19,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
   @override
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
+    final auth = context.watch<AuthProvider>();
 
     final filtered = erp.productionOrders.where((o) {
       final matchesStatus = _filterStatus == 'الكل' || o.status == _filterStatus;
@@ -256,17 +258,8 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                       ],
                                     )
                                   : ElevatedButton.icon(
-                                      onPressed: () async {
-                                        final result = await erp.deductPaperForOrder(o.id);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(result.message),
-                                              backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
-                                            ),
-                                          );
-                                        }
-                                      },
+                                      onPressed: () =>
+                                          _showIssueMaterialsDialog(o, erp, auth),
                                       icon: const Icon(Icons.outbox, size: 14),
                                       label: Text(
                                         o.materialRequirements.isEmpty
@@ -321,9 +314,19 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                             const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                           ];
                                         case 'قيد الإنتاج':
-                                          return const [
-                                            PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
-                                            PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                          return [
+                                            const PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
+                                            if (auth.isAdmin)
+                                              const PopupMenuItem(value: '_record_waste', child: Text('تسجيل هالك فعلي')),
+                                            const PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                          ];
+                                        case 'مكتمل':
+                                          return [
+                                            if (o.issuedMaterialsCount > 0) ...[
+                                              const PopupMenuItem(value: '_return_surplus', child: Text('إرجاع فائض إلى المخزون')),
+                                              if (auth.isAdmin)
+                                                const PopupMenuItem(value: '_record_waste', child: Text('تسجيل هالك فعلي')),
+                                            ],
                                           ];
                                         default:
                                           return const <PopupMenuEntry<String>>[];
@@ -591,17 +594,8 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                               ],
                             )
                           : OutlinedButton.icon(
-                              onPressed: () async {
-                                final result = await erp.deductPaperForOrder(o.id);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(result.message),
-                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
-                                    ),
-                                  );
-                                }
-                              },
+                              onPressed: () =>
+                                  _showIssueMaterialsDialog(o, erp, auth),
                               icon: const Icon(Icons.outbox_rounded, size: 15),
                               label: Text(
                                 o.materialRequirements.isEmpty
@@ -659,9 +653,19 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   const PopupMenuItem(value: 'ملغي', child: Text('إلغاء الأمر')),
                                 ];
                               case 'قيد الإنتاج':
-                                return const [
-                                  PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
-                                  PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                return [
+                                  const PopupMenuItem(value: '_return_materials', child: Text('إرجاع مواد إلى المخزون')),
+                                  if (auth.isAdmin)
+                                    const PopupMenuItem(value: '_record_waste', child: Text('تسجيل هالك فعلي')),
+                                  const PopupMenuItem(value: 'مكتمل', child: Text('اكتمال الأمر والتسليم')),
+                                ];
+                              case 'مكتمل':
+                                return [
+                                  if (o.issuedMaterialsCount > 0) ...[
+                                    const PopupMenuItem(value: '_return_surplus', child: Text('إرجاع فائض إلى المخزون')),
+                                    if (auth.isAdmin)
+                                      const PopupMenuItem(value: '_record_waste', child: Text('تسجيل هالك فعلي')),
+                                  ],
                                 ];
                               default:
                                 return const <PopupMenuEntry<String>>[];
@@ -690,8 +694,12 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
     String value,
     ErpProvider erp,
   ) async {
-    if (value == '_return_materials') {
+    if (value == '_return_materials' || value == '_return_surplus') {
       _showReturnMaterialsDialog(order, erp);
+      return;
+    }
+    if (value == '_record_waste') {
+      _showActualWasteDialog(order, erp);
       return;
     }
     final result = await erp.updateProductionOrderStatus(order.id, value);
@@ -715,6 +723,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
       );
       return;
     }
+    final isPostCompletion = order.status == 'مكتمل';
 
     ProductionMaterialRequirement selectedMaterial = issuedMaterials.first;
     final quantityCtrl = TextEditingController(
@@ -729,11 +738,16 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.assignment_return_rounded, color: Colors.orange),
-              SizedBox(width: 8),
-              Expanded(child: Text('إرجاع مواد إلى المخزون', style: TextStyle(fontSize: 17))),
+              const Icon(Icons.assignment_return_rounded, color: Colors.orange),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isPostCompletion ? 'إرجاع فائض إلى المخزون' : 'إرجاع مواد إلى المخزون',
+                  style: const TextStyle(fontSize: 17),
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -792,9 +806,11 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'سيُنشئ النظام حركة دخول موثقة ويحافظ على حركة الصرف الأصلية.',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  Text(
+                    isPostCompletion
+                        ? 'الأمر مكتمل؛ سيُنشئ النظام حركة دخول موثقة للفائض وتُحدَّث الكمية الفعلية المستهلكة للأمر.'
+                        : 'سيُنشئ النظام حركة دخول موثقة ويحافظ على حركة الصرف الأصلية.',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                   ),
                 ],
               ),
@@ -824,6 +840,331 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
               label: const Text('تسجيل الإرجاع'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// حوار صرف مواد أمر الإنتاج: يعرض المطلوب مقابل المتاح لكل مادة، وعند وجود
+  /// عجز يتيح للمدير فقط الصرف الاستثنائي الموثق بسبب إلزامي.
+  Future<void> _showIssueMaterialsDialog(
+    ProductionOrder order,
+    ErpProvider erp,
+    AuthProvider auth,
+  ) async {
+    final lines = erp.paperIssuancePreview(order.id);
+    if (lines.isEmpty) {
+      // أوامر قديمة بلا قائمة مواد محفوظة: نفّذ الصرف المباشر كما في السابق.
+      final result = await erp.deductPaperForOrder(order.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+          ),
+        );
+      }
+      return;
+    }
+    final hasDeficit = lines.any((line) => line.hasDeficit);
+    final reasonCtrl = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.outbox_rounded, color: Colors.blue),
+              SizedBox(width: 8),
+              Expanded(child: Text('صرف مواد أمر الإنتاج', style: TextStyle(fontSize: 17))),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('أمر الإنتاج: ${order.number}', style: const TextStyle(color: AppTheme.textMuted)),
+                  const SizedBox(height: 12),
+                  ...lines.map((line) => _issuanceLineRow(line)),
+                  if (hasDeficit) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'رصيد بعض المواد غير كافٍ للصرف؛ الصرف الاستثنائي مع عجز متاح للمدير فقط مع توثيق السبب، ويُنزَّل الرصيد تحت الصفر كإشارة لضرورة تسوية جرد.',
+                              style: TextStyle(fontSize: 11.5, color: Colors.red.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (auth.isAdmin) ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: reasonCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'سبب الصرف الاستثنائي *',
+                          prefixIcon: Icon(Icons.gavel_rounded),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            if (!hasDeficit)
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await erp.deductPaperForOrder(order.id);
+                  if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(result.message),
+                        backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.outbox_rounded, size: 16),
+                label: const Text('صرف المواد'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            if (hasDeficit && auth.isAdmin)
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final reason = reasonCtrl.text.trim();
+                  if (reason.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('أدخل سبب الصرف الاستثنائي أولاً')),
+                    );
+                    return;
+                  }
+                  final result = await erp.deductPaperForOrder(
+                    order.id,
+                    allowDeficit: true,
+                    deficitReason: reason,
+                    approvedBy: auth.currentUser?.displayName,
+                  );
+                  if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(result.message),
+                        backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.warning_amber_rounded, size: 16),
+                label: const Text('صرف استثنائي مع عجز'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _issuanceLineRow(PaperIssuanceLine line) {
+    final deficit = line.hasDeficit;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: deficit ? Colors.red.shade50 : Colors.green.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: deficit ? Colors.red.shade200 : Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            deficit ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+            color: deficit ? Colors.red.shade700 : Colors.green.shade700,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              line.materialName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            'المطلوب ${line.requiredQty.toStringAsFixed(0)} / المتاح ${line.availableQty.toStringAsFixed(0)}'
+            '${deficit ? ' — عجز ${line.deficit.toStringAsFixed(0)}' : ''}',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.bold,
+              color: deficit ? Colors.red.shade700 : Colors.green.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// حوار تسجيل هالك فعلي (للمدير): يوثق استهلاكاً إضافياً فعلياً على أمر
+  /// قيد الإنتاج أو مكتمل بحركة خروج مستقلة.
+  void _showActualWasteDialog(ProductionOrder order, ErpProvider erp) {
+    final issuedMaterials = order.materialRequirements
+        .where((material) => material.materialType == 'paper' && material.quantityIssued > 0)
+        .toList();
+    if (issuedMaterials.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا توجد مواد مصروفة يمكن تسجيل هالكها لهذا الأمر')),
+      );
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+
+    ProductionMaterialRequirement selectedMaterial = issuedMaterials.first;
+    final quantityCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.local_fire_department_outlined, color: Colors.deepOrange),
+              SizedBox(width: 8),
+              Expanded(child: Text('تسجيل هالك فعلي', style: TextStyle(fontSize: 17))),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('أمر الإنتاج: ${order.number}', style: const TextStyle(color: AppTheme.textMuted)),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<ProductionMaterialRequirement>(
+                    isExpanded: true,
+                    initialValue: selectedMaterial,
+                    decoration: const InputDecoration(
+                      labelText: 'المادة المصروفة',
+                      prefixIcon: Icon(Icons.inventory_2_outlined),
+                    ),
+                    items: issuedMaterials
+                        .map(
+                          (material) => DropdownMenuItem(
+                            value: material,
+                            child: Text(
+                              '${material.materialName} — المصروف ${material.quantityIssued.toStringAsFixed(0)} ${material.unit}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (material) {
+                      if (material == null) return;
+                      setDialogState(() {
+                        selectedMaterial = material;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Builder(
+                    builder: (fieldCtx) {
+                      final paperMatch = erp.papers
+                          .where((paper) => paper.id == selectedMaterial.materialId)
+                          .toList();
+                      final available =
+                          paperMatch.isNotEmpty ? paperMatch.first.balance : 0.0;
+                      return TextFormField(
+                        controller: quantityCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'كمية الهالك الفعلي',
+                          suffixText: selectedMaterial.unit,
+                          helperText: 'الرصيد الحالي: ${available.toStringAsFixed(0)} ${selectedMaterial.unit}',
+                          prefixIcon: const Icon(Icons.whatshot_rounded),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'سبب الهالك / ملاحظات *',
+                      prefixIcon: Icon(Icons.note_alt_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'سيُنشئ النظام حركة خروج موثقة ويزيد الاستهلاك الفعلي للأمر مقابل الكمية المقدرة.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await erp.recordProductionWaste(
+                  orderId: order.id,
+                  materialRequirementId: selectedMaterial.id,
+                  quantity: double.tryParse(quantityCtrl.text) ?? 0,
+                  reason: notesCtrl.text.trim(),
+                  recordedBy: auth.currentUser?.displayName,
+                );
+                if (ctx.mounted && result.isSuccess) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result.message),
+                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.local_fire_department_outlined),
+              label: const Text('تسجيل الهالك'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange.shade700,
                 foregroundColor: Colors.white,
               ),
             ),
