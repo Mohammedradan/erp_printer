@@ -1,4 +1,4 @@
-package com.example.erp_printer
+package com.matbaa.erp
 
 import io.flutter.embedding.android.FlutterActivity
 

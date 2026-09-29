@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "erp_printer" "\0"
+            VALUE "CompanyName", "Matbaa ERP" "\0"
+            VALUE "FileDescription", "نظام مطبعة ERP المتكامل" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "erp_printer" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Mohammed Radan. All rights reserved." "\0"
             VALUE "OriginalFilename", "erp_printer.exe" "\0"
-            VALUE "ProductName", "erp_printer" "\0"
+            VALUE "ProductName", "Matbaa ERP" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

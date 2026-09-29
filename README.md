@@ -1,17 +1,100 @@
-# erp_printer
+<div dir="rtl">
 
-A new Flutter project.
+# 🖨️ نظام مطبعة ERP المتكامل — Matbaa ERP
 
-## Getting Started
+نظام مؤسسي متكامل لإدارة **المطابع التجارية** (أوفست / ديجيتال / دور النشر)، مبني بـ **Flutter** ويعمل **دون اتصال بالإنترنت (Offline-First)** على الأندرويد والويندوز.
 
-This project is a starting point for a Flutter application.
+يحوّل النظام العمليات اليومية للمطبعة من سجلات يدوية وملفات إكسل مبعثرة إلى منظومة واحدة محكمة: **تسعير هندسي دقيق، عروض أسعار، أوامر إنتاج، مخزون، ذمم وتحصيلات، وتقارير ربحية** — مع مستندات PDF رسمية بالعربية.
 
-A few resources to get you started if this is your first Flutter project:
+> **المالك والمطور:** م. محمد رعدان • 775420410
+> **الإصدار الحالي:** 2.5.0 • **معرّف التطبيق:** `com.matbaa.erp`
+> 📖 التوثيق الشامل: [SYSTEM_SUMMARY.md](SYSTEM_SUMMARY.md) • التحليل والتصميم: [matbaa-erp-docs/](matbaa-erp-docs/)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## ✨ الوحدات الرئيسية
+
+| الوحدة | أبرز الإمكانات |
+|---|---|
+| 🧮 **محرك التسعير الهندسي** | كتب ومجلات، سندات NCR، فلايرات، علب وتغليف — أفرخ 100×70 و50×35 سم، هوامش قص، كعب الكتاب، الهالك الصناعي، البليتات، وساعات تشغيل الماكينات |
+| 📄 **عروض الأسعار** | دورة حياة كاملة (مسودة ← إرسال ← اعتماد ← إلغاء) مع تحويل آلي لأمر إنتاج عند الاعتماد، وتوليد PDF رسمي بالعربية مع باركود و QR |
+| 🏭 **أوامر الإنتاج** | تتبع مراحل التنفيذ (جديد ← تجهيز ← طباعة ← تشطيب ← تسليم)، متطلبات المواد لكل أمر، صرف الورق من المخزون مع فحص التوفر، وإرجاع المواد |
+| 📦 **المخزون** | ورق وأحبار، حركات (دخول / خروج / تسوية) بحركات عكسية موثقة بدل الحذف، منع الرصيد السالب، تنبيه إعادة الطلب، وواجهات بطاقات متجاوبة للجوال |
+| 👥 **العملاء والذمم** | بطاقات عملاء بأكواد تلقائية (`C-0001`)، دفتر قيود لكل عميل، كشف حساب تفصيلي، وتمييز المدينين |
+| 💰 **سندات القبض** | نقدي / تحويل بنكي / شيك / تسوية، مع خصم فوري من مديونية العميل |
+| 📊 **لوحة المؤشرات والربحية** | KPIs (المبيعات، التكاليف، صافي الربح، قيمة المخزون)، تحليل ربحية المنتجات، وكفاءة الماكينات |
+| ⚙️ **الإعدادات** | هوية المنشأة، العملة والضرائب، تصدير/استيراد نسخة احتياطية JSON، وبيانات الدعم الفني |
+| 🔐 **المستخدمون والصلاحيات** | مدير / موظف، دخول بـ PIN مشفر SHA-256، قفل مؤقت بعد 3 محاولات خاطئة، وحجب التكاليف وهوامش الربح عن الموظفين |
+
+## 🏗️ المعمارية التقنية
+
+- **Flutter 3.x / Dart** — كود واحد للأندرويد والويندوز (وواجهات ويب مهيأة)
+- **Provider** لفصل منطق الأعمال عن الواجهات
+- **SharedPreferences + محرك تسلسل JSON** (`StorageService`) — تخزين محلي offline-first (الترحيل إلى SQLite/Drift وخطة LAN موثقة في `matbaa-erp-docs/03`)
+- **`pdf` + `printing`** لمستندات عربية رسمية • **`crypto`** لتشفير SHA-256
+
+```
+lib/
+├── main.dart                 # نقطة الإقلاع وإعداد MultiProvider
+├── models/app_models.dart    # 19 نموذج بيانات (عملاء، عروض، أوامر، مخزون...)
+├── providers/                # ErpProvider (منطق الأعمال) + AuthProvider
+├── services/                 # محرك التسعير، PDF، التخزين، المصادقة
+├── theme/app_theme.dart      # الهوية البصرية (زمردي/ذهبي)
+├── views/                    # 16 شاشة
+└── widgets/                  # عناصر مشتركة
+```
+
+## 🚀 التشغيل والبناء
+
+```bash
+flutter pub get          # جلب الحزم
+flutter analyze          # فحص سلامة الأكواد
+flutter test             # تشغيل الاختبارات (تسعير، سير عمل، ضوابط سلامة، PDF)
+flutter run              # تشغيل على جهاز متصل
+
+# نسخة الإنتاج للأندرويد
+flutter build apk --release
+# المسار: build/app/outputs/flutter-apk/app-release.apk
+
+# نسخة الويندوز
+flutter build windows --release
+```
+
+## 🔑 توقيع نسخة الإصدار (Release Signing)
+
+نسخة الإصدار موقّعة بمفتاح حقيقي عند توفر ملف `android/key.properties`، وإلا fallback مؤقت على مفتاح debug (للتجربة المحلية فقط — **غير صالح للنشر على المتاجر**).
+
+**الخطوة 1 — إنشاء مفتاح (مرة واحدة فقط، واحتفظ به بأمان ولا تفقده أبداً):**
+
+```bash
+keytool -genkey -v -keystore ~/matbaa-erp-release.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias matbaa-erp
+```
+
+**الخطوة 2 — أنشئ الملف `android/key.properties`** (مستثنى من Git تلقائياً):
+
+```properties
+storePassword=<كلمة مرور المخزن>
+keyPassword=<كلمة مرور المفتاح>
+keyAlias=matbaa-erp
+storeFile=<المسار الكامل لملف matbaa-erp-release.jks>
+```
+
+**الخطوة 3 — ابنِ بشكل طبيعي:** `flutter build apk --release`
+
+> ⚠️ لا ترفع أبداً ملف `key.properties` أو ملفات `.jks` / `.keystore` إلى المستودع — هي بالفعل مستثناة في `android/.gitignore`.
+> ⚠️ فقدان مفتاح الإصدار يعني استحالة تحديث التطبيق لنفس المستخدمين على الأجهزة.
+
+## 📚 التوثيق
+
+| الملف | المحتوى |
+|---|---|
+| [SYSTEM_SUMMARY.md](SYSTEM_SUMMARY.md) | الدليل الشامل للنظام — المعمارية، الوحدات، والأمان |
+| [matbaa-erp-docs/](matbaa-erp-docs/) | 9 وثائق: تحليل النظام الحالي، المتطلبات، المعمارية، قاعدة البيانات، محرك التسعير، مواصفات الشاشات، خطة التنفيذ، الجاهزية، وتقرير التدقيق |
+| `ERP_مطبعة_متكامل.xls` | ملف الإكسل الأصلي المرجعي للمعادلات |
+
+---
+
+© 2026 م. محمد رعدان • 775420410 — جميع الحقوق محفوظة
+
+</div>

@@ -224,6 +224,12 @@ $$\text{التكلفة الكلية} = \text{تكلفة الورق الخام} +
 
 تم إعداد وتجهيز ملف التثبيت المباشر بنسخة الإصدار الرسمية (Release APK):
 
+### هوية التطبيق (App Identity):
+- **معرّف التطبيق (Application ID):** `com.matbaa.erp`
+- **الحزمة (Namespace):** `com.matbaa.erp`
+- **الإصدار:** `2.5.0` (يُدار من `pubspec.yaml`)
+- **اسم التطبيق الظاهر:** «مطبعة ERP»
+
 ### مسار ملف التثبيت:
 ```
 build\app\outputs\flutter-apk\app-release.apk
@@ -237,6 +243,26 @@ flutter analyze
 # بناء ملف APK للإنتاج بحجم مضغوط وأداء كامل
 flutter build apk --release
 ```
+
+### توقيع نسخة الإصدار (Release Signing):
+يقوم ملف `android/app/build.gradle.kts` بقراءة بيانات التوقيع من الملف `android/key.properties` (مستثنى من المستودع):
+- **عند وجود الملف:** يتم التوقيع بمفتاح الإصدار الرسمي (صالح للنشر على المتاجر).
+- **عند غيابه:** fallback مؤقت على مفتاح debug حتى لا يتعطل البناء المحلي (غير صالح للنشر).
+
+خطوات إنشاء مفتاح الإصدار (مرة واحدة فقط — يجب الاحتفاظ به بأمان ودون فقدان):
+```bash
+keytool -genkey -v -keystore ~/matbaa-erp-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias matbaa-erp
+```
+
+ثم إنشاء ملف `android/key.properties` بالمحتوى:
+```properties
+storePassword=<كلمة مرور المخزن>
+keyPassword=<كلمة مرور المفتاح>
+keyAlias=matbaa-erp
+storeFile=<المسار الكامل لملف matbaa-erp-release.jks>
+```
+
+> ⚠️ لا يُرفع ملف `key.properties` أو ملفات `.jks` إلى المستودع إطلاقاً (مستثناة في `android/.gitignore`).
 
 ---
 
