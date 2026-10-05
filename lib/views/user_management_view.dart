@@ -250,7 +250,11 @@ class _UserTile extends StatelessWidget {
     );
   }
 
-  void _handleAction(String action, BuildContext ctx, AuthProvider auth) {
+  Future<void> _handleAction(
+    String action,
+    BuildContext ctx,
+    AuthProvider auth,
+  ) async {
     switch (action) {
       case 'edit':
         showDialog(context: ctx, builder: (_) => _EditUserDialog(user: user));
@@ -259,12 +263,25 @@ class _UserTile extends StatelessWidget {
         showDialog(context: ctx, builder: (_) => _ChangePinDialog(user: user));
         break;
       case 'toggle':
-        auth.toggleUserStatus(user.id);
+        final error = await auth.toggleUserStatus(user.id);
+        if (!ctx.mounted) return;
+        if (error != null) _showError(ctx, error);
         break;
       case 'delete':
         _confirmDelete(ctx, auth);
         break;
     }
+  }
+
+  /// يعرض رفض العملية (صلاحية/آخر مدير) بدل تجاهله بصمت.
+  void _showError(BuildContext ctx, String message) {
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.red.shade700,
+      ),
+    );
   }
 
   void _confirmDelete(BuildContext ctx, AuthProvider auth) {
@@ -281,9 +298,19 @@ class _UserTile extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              auth.deleteUser(user.id);
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(dialogCtx);
+              final error = await auth.deleteUser(user.id);
               Navigator.pop(dialogCtx);
+              if (error != null) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(error),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Colors.red.shade700,
+                  ),
+                );
+              }
             },
             child: const Text('حذف الحساب', style: TextStyle(color: Colors.white)),
           ),
@@ -595,14 +622,25 @@ class _EditUserDialogState extends State<_EditUserDialog> {
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final auth = context.read<AuthProvider>();
-              auth.updateUser(widget.user.copyWith(
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              final error = await auth.updateUser(widget.user.copyWith(
                 displayName: _nameCtrl.text.trim(),
                 role: _role,
                 avatarEmoji: _colorId,
               ));
-              Navigator.pop(context);
+              navigator.pop();
+              if (error != null) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(error),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Colors.red.shade700,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryGreen,
@@ -734,8 +772,12 @@ class _ChangePinDialogState extends State<_ChangePinDialog> {
     }
 
     final auth = context.read<AuthProvider>();
-    await auth.changeUserPin(widget.user.id, _newPinCtrl.text);
+    final error = await auth.changeUserPin(widget.user.id, _newPinCtrl.text);
     if (!mounted) return;
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

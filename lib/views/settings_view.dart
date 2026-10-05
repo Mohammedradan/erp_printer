@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../services/backup_codec.dart';
 import '../theme/app_theme.dart';
 
 class SettingsView extends StatefulWidget {
@@ -785,7 +786,7 @@ class _SettingsViewState extends State<SettingsView> {
   Widget _buildBackupRestoreCard(ErpProvider erp) {
     return _buildSectionCard(
       title: 'النسخ الاحتياطي على Google Drive',
-      subtitle: 'تصدير نسخة كاملة من بيانات النظام ومشاركتها مباشرة على Google Drive، أو استيراد نسخة سابقة',
+      subtitle: 'تصدير نسخة كاملة محميّة بكلمة مرور (PBKDF2 + تشفير تدفقي + HMAC) أو استيراد نسخة سابقة',
       icon: Icons.cloud_done_rounded,
       iconColor: const Color(0xFF1A73E8),
       child: Column(
@@ -931,6 +932,186 @@ class _SettingsViewState extends State<SettingsView> {
               );
             },
           ),
+
+          const SizedBox(height: 12),
+
+          // تنبيه: هذه القاعدة ما زالت تحمل بيانات تجريبية
+          if (erp.hasDemoRecords)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.science_rounded, color: Colors.orange.shade800, size: 18),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'هذه القاعدة مزروعة ببيانات تجريبية (عملاء وعروض وأوامر إنتاج ومدفوعات وهمية)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _confirmClearDemoRecords(erp),
+                    icon: const Icon(Icons.cleaning_services_rounded, size: 16),
+                    label: const Text('تحويلها إلى تثبيت فعلي ببيانات نظيفة'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange.shade900,
+                      side: BorderSide(color: Colors.orange.shade300),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          // سجل التدقيق
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => _showAuditLog(erp),
+              icon: const Icon(Icons.history_toggle_off_rounded, size: 16),
+              label: Text('سجل التدقيق (${erp.auditLog.length} حدث)'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textMuted,
+                textStyle: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// تأكيد مسح السجلات التجارية الوهمية قبل التحويل إلى تثبيت فعلي.
+  void _confirmClearDemoRecords(ErpProvider erp) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.cleaning_services_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Expanded(child: Text('تحويل إلى تثبيت فعلي')),
+          ],
+        ),
+        content: const Text(
+          'سيتم حذف العملاء وعروض الأسعار وأوامر الإنتاج وحركات المخزون والمدفوعات التجريبية.\n'
+          'تبقى المرجعيات: أصناف الورق، الماكينات، قوالب المنتجات، التشطيبات، الأحبار، والإعدادات.\n\n'
+          'لا يمكن التراجع؛ صدّر نسخة احتياطية أولاً إن كنت تحتاج هذه البيانات.',
+          style: TextStyle(fontSize: 12.5, height: 1.6),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800),
+            onPressed: () async {
+              await erp.recordAudit(
+                action: 'demo_records_cleared',
+                targetType: 'system',
+                details: 'تحويل القاعدة من نسخة تجريبية إلى تثبيت فعلي ببيانات نظيفة',
+                severity: AuditSeverity.warning,
+              );
+              await erp.clearDemoRecords();
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('مسح البيانات التجريبية', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// يعرض سجل التدقيق: من فعل ماذا ومتى.
+  void _showAuditLog(ErpProvider erp) {
+    final entries = erp.auditLog;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        title: const Row(
+          children: [
+            Icon(Icons.history_toggle_off_rounded, color: Color(0xFF1A73E8)),
+            SizedBox(width: 8),
+            Text('سجل التدقيق'),
+          ],
+        ),
+        content: SizedBox(
+          width: MediaQuery.of(ctx).size.width < 550 ? double.maxFinite : 560,
+          child: entries.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('لا توجد أحداث مسجلة بعد.'),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: entries.length,
+                  separatorBuilder: (_, _) => const Divider(height: 18),
+                  itemBuilder: (_, i) {
+                    final e = entries[i];
+                    final color = switch (e.severity) {
+                      AuditSeverity.critical => Colors.red,
+                      AuditSeverity.warning => Colors.orange.shade800,
+                      AuditSeverity.info => AppTheme.textMuted,
+                    };
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              e.success ? Icons.check_circle_outline : Icons.block,
+                              size: 15,
+                              color: e.success ? AppTheme.primaryGreen : Colors.red,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                e.action,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              _formatDateTime(e.timestamp),
+                              style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${e.actorName} (${e.actorRole})'
+                          '${e.targetId != null ? ' • ${e.targetId}' : ''}',
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                        if (e.details.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(e.details, style: const TextStyle(fontSize: 11.5)),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق')),
         ],
       ),
     );
@@ -1108,15 +1289,207 @@ class _SettingsViewState extends State<SettingsView> {
     return '$date $time';
   }
 
+  // ─────────────────────────────────────────────────────────
+  // حماية النسخة الاحتياطية بكلمة مرور
+  // ─────────────────────────────────────────────────────────
+
+  /// يسأل المدير عن كلمة مرور (مع تأكيد) ويشفّر بها النسخة.
+  ///
+  /// يُرجع null إذا ألغى المستخدم. السماح بحقل فارغ يعني نسخة غير مشفّرة
+  /// صراحةً، لأن بعض الاستخدامات تحتاج ملفاً يقرأه الدعم الفني.
+  Future<String?> _askBackupPassword({
+    required String title,
+    required String message,
+  }) async {
+    final passCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    var errorText = '';
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.lock_outline_rounded, color: Color(0xFF1A73E8)),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message, style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: passCtrl,
+                obscureText: true,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'كلمة المرور',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: confirmCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'تأكيد كلمة المرور',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              if (errorText.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  errorText,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 10),
+              const Text(
+                'اترك الحقلين فارغين لإنشاء نسخة غير مشفّرة (غير مستحسن).',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final pass = passCtrl.text;
+                final confirm = confirmCtrl.text;
+                if (pass.isEmpty && confirm.isEmpty) {
+                  Navigator.pop(ctx, true);
+                  return;
+                }
+                if (pass.length < 6) {
+                  setLocal(() => errorText = 'كلمة المرور يجب ألا تقل عن 6 أحرف');
+                  return;
+                }
+                if (pass != confirm) {
+                  setLocal(() => errorText = 'كلمتا المرور غير متطابقتين');
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('متابعة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (accepted != true) return null;
+    return passCtrl.text;
+  }
+
+  /// ينتج نص النسخة الاحتياطية: مشفراً إن طُلبت كلمة مرور، وإلا نصاً صريحاً.
+  Future<String?> _buildBackupPayload(ErpProvider erp) async {
+    final raw = erp.exportDatabaseBackup();
+    final password = await _askBackupPassword(
+      title: 'حماية النسخة الاحتياطية',
+      message:
+          'النسخة تحتوي أسعار التكلفة والعملاء والذمم وحسابات المستخدمين. '
+          'يُنصح بتشفيرها بكلمة مرور قبل حفظها أو رفعها.',
+    );
+    if (password == null) return null;
+    if (password.isEmpty) return raw;
+    return BackupCodec.encrypt(raw, password);
+  }
+
+  /// يفك تشفير ملف مستورد إن كان محمياً. يُرجع null عند الإلغاء.
+  Future<String?> _resolveImportPayload(String raw) async {
+    if (!BackupCodec.isEncrypted(raw)) return raw;
+
+    final ctrl = TextEditingController();
+    var errorText = '';
+    while (true) {
+      if (!mounted) return null;
+      final password = await showDialog<String>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: Color(0xFF1A73E8)),
+                SizedBox(width: 10),
+                Text('النسخة مشفّرة'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'هذه النسخة محمية بكلمة مرور. أدخل كلمة المرور لفتحها.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  obscureText: true,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                if (errorText.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorText,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, ctrl.text),
+                child: const Text('فتح النسخة'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (password == null) return null;
+      try {
+        return BackupCodec.decrypt(raw, password);
+      } on BackupCryptoException catch (e) {
+        errorText = e.message;
+      }
+    }
+  }
+
   // --- رفع النسخة الاحتياطية إلى Google Drive عبر Share ---
   Future<void> _shareBackupToDrive(ErpProvider erp) async {
     setState(() => _isBackingUp = true);
     try {
-      final backupJson = erp.exportDatabaseBackup();
+      final backupJson = await _buildBackupPayload(erp);
+      if (backupJson == null) {
+        if (mounted) setState(() => _isBackingUp = false);
+        return;
+      }
+      final encrypted = BackupCodec.isEncrypted(backupJson);
       final now = DateTime.now();
       final dateStr =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final fileName = 'erp_backup_$dateStr.json';
+      final fileName =
+          'erp_backup_${encrypted ? 'encrypted_' : ''}$dateStr.json';
 
       // حفظ الملف في مجلد مؤقت
       final tmpDir = await getTemporaryDirectory();
@@ -1127,7 +1500,9 @@ class _SettingsViewState extends State<SettingsView> {
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
         subject: 'نسخة احتياطية ERP مطبعة – $dateStr',
-        text: 'ملف نسخة احتياطية كاملة من نظام ERP المطبعة. قم برفعه على Google Drive للحفاظ عليه.',
+        text: encrypted
+            ? 'نسخة احتياطية مشفّرة بكلمة مرور من نظام ERP المطبعة. قم برفعه على Google Drive، واحفظ كلمة المرور بشكل منفصل في مكان آمن.'
+            : 'نسخة احتياطية غير مشفّرة من نظام ERP المطبعة. تُقرأ أسعار التكلفة والعملاء كنص صريح؛ ارفعها على حساب موثوق فقط.',
       );
 
       if (mounted) {
@@ -1259,9 +1634,13 @@ class _SettingsViewState extends State<SettingsView> {
 
     if (result == null || result.isEmpty) return;
 
+    final payload = await _resolveImportPayload(result);
+    if (payload == null) return;
+
     setState(() => _isRestoring = true);
     try {
-      final success = await erp.importDatabaseBackup(result);
+      final importResult = await erp.importDatabaseBackup(payload);
+      final success = importResult.isSuccess;
 
       if (mounted) {
         if (success) {
@@ -1295,8 +1674,10 @@ class _SettingsViewState extends State<SettingsView> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('فشل الاستيراد: الكود غير صالح أو ليس نسخة احتياطية معتمدة.'),
+            SnackBar(
+              content: Text(
+                'فشل الاستيراد: ${importResult.errorMessage ?? 'سبب غير محدد'}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -1314,8 +1695,10 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   // --- نسخ JSON للحافظة (احتياطي) ---
-  void _exportBackupDialog(ErpProvider erp) {
-    final backupJson = erp.exportDatabaseBackup();
+  Future<void> _exportBackupDialog(ErpProvider erp) async {
+    final payload = await _buildBackupPayload(erp);
+    if (payload == null || !mounted) return;
+    final backupJson = payload;
     final ctrl = TextEditingController(text: backupJson);
 
     showDialog(
@@ -1369,7 +1752,7 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  void _confirmResetData(ErpProvider erp) {
+  void _confirmResetData(ErpProvider erp, {bool clean = false}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1381,15 +1764,36 @@ class _SettingsViewState extends State<SettingsView> {
             Text('استعادة بيانات الإكسل الأصلية'),
           ],
         ),
-        content: const Text(
-          'هل أنت متأكد من رغبتك في إعادة تعيين كافة البيانات إلى بيانات ملف ERP_مطبعة_متكامل.xls الأولية؟\nسيتم استرجاع الورق، الماكينات، والمنتجات الأصلية.',
+        content: Text(
+          clean
+              ? 'سيتم إعادة تعيين البيانات إلى مرجعيات ملف ERP_مطبعة_متكامل.xls (الورق، الماكينات، المنتجات، الأحبار) '
+                  'بدون أي عملاء أو عروض أو أوامر إنتاج أو مدفوعات تجريبية.\n\nهذا هو الخيار الصحيح للتثبيت الفعلي.'
+              : 'هل أنت متأكد من رغبتك في إعادة تعيين كافة البيانات إلى بيانات ملف ERP_مطبعة_متكامل.xls الأولية؟\n'
+                  'سيتم استرجاع الورق، الماكينات، والمنتجات الأصلية مع السجلات التجريبية.',
+          style: const TextStyle(height: 1.6),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          if (!clean)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _confirmResetData(erp, clean: true);
+              },
+              child: const Text('استعادة نظيفة بدلاً منها'),
+            ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await erp.resetToExcelDefaults();
+              await erp.recordAudit(
+                action: clean ? 'data_reset_clean' : 'data_reset_demo',
+                targetType: 'system',
+                details: clean
+                    ? 'إعادة تعيين البيانات إلى مرجعيات الإكسل بوضع نظيف'
+                    : 'إعادة تعيين البيانات إلى مرجعيات الإكسل مع السجلات التجريبية',
+                severity: AuditSeverity.critical,
+              );
+              await erp.resetToExcelDefaults(clean: clean);
               if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) {
                 final s = erp.settings;

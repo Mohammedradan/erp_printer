@@ -21,21 +21,43 @@ class StorageService {
   static const String _kActiveUserId = 'erp_active_user_id';
   static const String _kLoginAttempts = 'erp_login_attempts';
   static const String _kLockoutUntil = 'erp_lockout_until';
+  static const String _kAuditLog = 'erp_audit_log';
+  static const String _kAuditActor = 'erp_audit_actor';
+  static const String _kLastImportSafety = 'erp_last_import_safety_backup';
+  static const String _kFirstRunMode = 'erp_first_run_mode';
 
   final SharedPreferences _prefs;
 
   StorageService(this._prefs);
 
-  static Future<StorageService> init() async {
+  /// تهيئة التخزين.
+  ///
+  /// [firstRunMode] يُستخدم في أول تشغيل فقط:
+  /// - `demo`: بيانات الإكسل المرجعية + سجلات تجارية وهمية للتجربة.
+  /// - `clean`: بيانات الإكسل المرجعية (ورق/ماكينات/منتجات/أحبار) بلا عملاء
+  ///   ولا عروض ولا أوامر إنتاج ولا مدفوعات وهمية.
+  /// القيمة تُسجَّل في [_kFirstRunMode] لتظهر في الإعدادات ولتُضمَّن في النسخة.
+  static Future<StorageService> init({String? firstRunMode}) async {
     final prefs = await SharedPreferences.getInstance();
     final service = StorageService(prefs);
     if (!prefs.containsKey(_kInitialized)) {
-      await service.seedInitialData();
+      final mode = firstRunMode ?? service.getFirstRunMode() ?? 'demo';
+      await service.setFirstRunMode(mode);
+      await service.seedInitialData(includeDemoRecords: mode != 'clean');
       await prefs.setBool(_kInitialized, true);
     }
     await service.ensureCustomerLedgerFromLegacy();
     return service;
   }
+
+  /// وضع أول تشغيل المسجَّل: `demo` أو `clean` أو null إذا لم يُسجَّل بعد.
+  String? getFirstRunMode() => _prefs.getString(_kFirstRunMode);
+
+  Future<void> setFirstRunMode(String mode) =>
+      _prefs.setString(_kFirstRunMode, mode);
+
+  /// هل زُرعت بيانات تجريبية في هذه القاعدة؟ تُستخدم لتنبيه المدير.
+  bool get hasDemoRecords => getFirstRunMode() != 'clean';
 
   // --- SETTINGS ---
   AppSettings loadSettings() {
@@ -315,58 +337,226 @@ class StorageService {
     await saveCustomerLedger(entries);
   }
 
-  /// تصدير نسخة احتياطية شاملة لكافة بيانات ومحتويات النظام كـ JSON
-  String exportBackupJson() {
+  // ─────────────────────────────────────────────────────────
+  // --- النسخ الاحتياطي ---
+  // ─────────────────────────────────────────────────────────
+
+  /// إصدار صيغة النسخة الاحتياطية الحالي.
+  static const String backupVersion = '1.2';
+
+  /// إصدارات الصيغة التي يستطيع هذا البناء قراءتها.
+  static const List<String> supportedBackupVersions = ['1.0', '1.1', '1.2'];
+
+  /// المفاتيح التي تُنقل في النسخة الاحتياطية: (حقل النسخة، مفتاح التخزين).
+  static const List<List<String>> _backupKeys = [
+    ['settings', _kSettings],
+    ['papers', _kPapers],
+    ['machines', _kMachines],
+    ['products', _kProducts],
+    ['finishings', _kFinishings],
+    ['inks', _kInks],
+    ['inkMoves', _kInkMoves],
+    ['customers', _kCustomers],
+    ['quotations', _kQuotations],
+    ['productionOrders', _kProductionOrders],
+    ['stockMoves', _kStockMoves],
+    ['payments', _kPayments],
+    ['customerLedger', _kCustomerLedger],
+    ['users', _kUsers],
+    ['auditLog', _kAuditLog],
+  ];
+
+  /// تصدير نسخة احتياطية شاملة كـ JSON نصي.
+  ///
+  /// تشمل المستخدمين وسجل التدقيق. التشفير مسؤولية المستدعي عبر
+  /// `BackupCodec.encrypt` حتى لا تبقى كلمة المرور داخل طبقة التخزين.
+  ///
+  /// [includeUsers] يسمح بإخراج نسخة بلا حسابات عند الحاجة لمشاركتها مع دعم فني.
+  String exportBackupJson({bool includeUsers = true}) {
     final data = <String, dynamic>{
-      'version': '1.1',
+      'version': backupVersion,
       'exportDate': DateTime.now().toIso8601String(),
-      'settings': _prefs.getString(_kSettings),
-      'papers': _prefs.getStringList(_kPapers),
-      'machines': _prefs.getStringList(_kMachines),
-      'products': _prefs.getStringList(_kProducts),
-      'finishings': _prefs.getStringList(_kFinishings),
-      'inks': _prefs.getStringList(_kInks),
-      'inkMoves': _prefs.getStringList(_kInkMoves),
-      'customers': _prefs.getStringList(_kCustomers),
-      'quotations': _prefs.getStringList(_kQuotations),
-      'productionOrders': _prefs.getStringList(_kProductionOrders),
-      'stockMoves': _prefs.getStringList(_kStockMoves),
-      'payments': _prefs.getStringList(_kPayments),
-      'customerLedger': _prefs.getStringList(_kCustomerLedger),
+      'firstRunMode': getFirstRunMode(),
     };
+    for (final pair in _backupKeys) {
+      final field = pair[0];
+      if (field == 'users' && !includeUsers) continue;
+      final key = pair[1];
+      if (key == _kSettings) {
+        data[field] = _prefs.getString(key);
+      } else {
+        data[field] = _prefs.getStringList(key);
+      }
+    }
     return jsonEncode(data);
   }
 
-  /// استيراد نسخة احتياطية واسترجاع كافة البيانات للقاعدة المحلية
-  Future<bool> importBackupJson(String jsonStr) async {
+  /// يقرأ إصدار صيغة ملف نسخة احتياطية دون استيراده.
+  static String? readBackupVersion(String jsonStr) {
     try {
-      final Map<String, dynamic> data = jsonDecode(jsonStr);
-      if (data['settings'] != null) await _prefs.setString(_kSettings, data['settings']);
-      if (data['papers'] != null) await _prefs.setStringList(_kPapers, List<String>.from(data['papers']));
-      if (data['machines'] != null) await _prefs.setStringList(_kMachines, List<String>.from(data['machines']));
-      if (data['products'] != null) await _prefs.setStringList(_kProducts, List<String>.from(data['products']));
-      if (data['finishings'] != null) await _prefs.setStringList(_kFinishings, List<String>.from(data['finishings']));
-      if (data['inks'] != null) await _prefs.setStringList(_kInks, List<String>.from(data['inks']));
-      if (data['inkMoves'] != null) await _prefs.setStringList(_kInkMoves, List<String>.from(data['inkMoves']));
-      if (data['customers'] != null) await _prefs.setStringList(_kCustomers, List<String>.from(data['customers']));
-      if (data['quotations'] != null) await _prefs.setStringList(_kQuotations, List<String>.from(data['quotations']));
-      if (data['productionOrders'] != null) await _prefs.setStringList(_kProductionOrders, List<String>.from(data['productionOrders']));
-      if (data['stockMoves'] != null) await _prefs.setStringList(_kStockMoves, List<String>.from(data['stockMoves']));
-      if (data['payments'] != null) await _prefs.setStringList(_kPayments, List<String>.from(data['payments']));
-      if (data['customerLedger'] != null) {
-        await _prefs.setStringList(_kCustomerLedger, List<String>.from(data['customerLedger']));
-      } else {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is Map) return decoded['version']?.toString();
+    } catch (_) {
+      // يُترك null ليعالجه المستورد كملف غير صالح
+    }
+    return null;
+  }
+
+  /// يستورد نسخة احتياطية.
+  ///
+  /// الضوابط:
+  /// 1. رفض أي إصدار صيغة غير معروف بدل استيراد ناقص صامت.
+  /// 2. أخذ لقطة أمان من القاعدة الحالية قبل الكتابة، قابلة للاسترجاع
+  ///    عبر [restoreSafetySnapshot] إذا تبيّن أن الملف المستورد خاطئ.
+  /// 3. ترحيل محافظ لدفتر قيود العملاء عند استيراد نسخة أقدم لا تحتويه.
+  Future<BackupImportResult> importBackupJson(String jsonStr) async {
+    final Map<String, dynamic> data;
+    try {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is! Map) {
+        return BackupImportResult.failure('الملف ليس نسخة احتياطية صالحة');
+      }
+      data = Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return BackupImportResult.failure('تعذر قراءة محتوى الملف (JSON تالف)');
+    }
+
+    final version = data['version']?.toString();
+    if (version == null || !supportedBackupVersions.contains(version)) {
+      return BackupImportResult.failure(
+        'إصدار النسخة غير مدعوم: ${version ?? 'غير محدد'}. '
+        'الإصدارات المقبولة: ${supportedBackupVersions.join('، ')}',
+      );
+    }
+
+    // لقطة أمان قبل أي كتابة مدمّرة.
+    try {
+      await _prefs.setString(_kLastImportSafety, exportBackupJson());
+    } catch (_) {
+      // فشل اللقطة لا يوقف الاستيراد، لكنه يُسجَّل في النتيجة
+    }
+
+    try {
+      for (final pair in _backupKeys) {
+        final field = pair[0];
+        final key = pair[1];
+        if (!data.containsKey(field)) continue;
+        if (key == _kSettings) {
+          final value = data[field];
+          if (value is String) {
+            await _prefs.setString(key, value);
+          }
+        } else {
+          final raw = data[field];
+          if (raw is List) {
+            await _prefs.setStringList(key, List<String>.from(raw));
+          }
+        }
+      }
+
+      final mode = data['firstRunMode'];
+      if (mode is String && mode.isNotEmpty) {
+        await setFirstRunMode(mode);
+      }
+
+      if (data['customerLedger'] == null) {
         await _prefs.remove(_kCustomerLedger);
         await ensureCustomerLedgerFromLegacy(force: true);
       }
-      return true;
     } catch (e) {
-      return false;
+      return BackupImportResult.failure('فشل تطبيق النسخة: $e');
+    }
+
+    return BackupImportResult.success(
+      restoredUsers: data['users'] is List,
+      safetySnapshotTaken: _prefs.containsKey(_kLastImportSafety),
+    );
+  }
+
+  /// هل توجد لقطة أمان من آخر استيراد؟
+  bool get hasSafetySnapshot => _prefs.containsKey(_kLastImportSafety);
+
+  /// يعيد القاعدة إلى وضعها قبل آخر استيراد، ثم يمسح اللقطة.
+  Future<bool> restoreSafetySnapshot() async {
+    final snapshot = _prefs.getString(_kLastImportSafety);
+    if (snapshot == null) return false;
+    final result = await importBackupJson(snapshot);
+    if (result.isSuccess) {
+      // importBackupJson كتب لقطة جديدة؛ نعيد لقطة ما قبل الاستيراد كما هي.
+      await _prefs.setString(_kLastImportSafety, snapshot);
+    }
+    return result.isSuccess;
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // --- سجل التدقيق ---
+  // ─────────────────────────────────────────────────────────
+
+  /// أقصى عدد أسطر يحتفظ بها سجل التدقيق (الأقدم يُستبعد).
+  static const int auditLogCapacity = 2000;
+
+  List<AuditLogEntry> loadAuditLog() {
+    final list = _prefs.getStringList(_kAuditLog);
+    if (list == null) return [];
+    final entries = <AuditLogEntry>[];
+    for (final raw in list) {
+      try {
+        entries.add(AuditLogEntry.fromJson(jsonDecode(raw)));
+      } catch (_) {
+        // سطر تالف لا يُسقط السجل كله
+      }
+    }
+    return entries;
+  }
+
+  Future<void> saveAuditLog(List<AuditLogEntry> entries) async {
+    final trimmed = entries.length > auditLogCapacity
+        ? entries.sublist(0, auditLogCapacity)
+        : entries;
+    await _prefs.setStringList(
+      _kAuditLog,
+      trimmed.map((e) => jsonEncode(e.toJson())).toList(),
+    );
+  }
+
+  /// يضيف سطراً جديداً في أعلى السجل.
+  Future<AuditLogEntry> recordAudit(AuditLogEntry entry) async {
+    final entries = loadAuditLog()..insert(0, entry);
+    await saveAuditLog(entries);
+    return entry;
+  }
+
+  Future<void> setAuditActor(String? actorJson) async {
+    if (actorJson == null) {
+      await _prefs.remove(_kAuditActor);
+    } else {
+      await _prefs.setString(_kAuditActor, actorJson);
     }
   }
 
-  /// تهيئة البيانات الافتراضية الأولية المستخرجة حرفياً من ملف الإكسل ERP_مطبعة_متكامل.xls
-  Future<void> seedInitialData() async {
+  /// بصمة المستخدم الحالي التي تُختم بها أسطر التدقيق، حتى تكتبها طبقة
+  /// التخزين دون أن تحمل مرجعاً لخدمة المصادقة.
+  ({String? id, String name, String role}) getAuditActor() {
+    final raw = _prefs.getString(_kAuditActor);
+    if (raw == null) return (id: null, name: 'غير مسجّل', role: 'unknown');
+    try {
+      final map = Map<String, dynamic>.from(jsonDecode(raw));
+      return (
+        id: map['id']?.toString(),
+        name: map['name']?.toString() ?? 'غير معروف',
+        role: map['role']?.toString() ?? 'unknown',
+      );
+    } catch (_) {
+      return (id: null, name: 'غير معروف', role: 'unknown');
+    }
+  }
+
+  /// تهيئة البيانات الافتراضية الأولية المستخرجة حرفياً من ملف الإكسل ERP_مطبعة_متكامل.xls.
+  ///
+  /// [includeDemoRecords] يتحكم في البيانات التجارية الوهمية (عملاء، عروض أسعار،
+  /// أوامر إنتاج، مدفوعات). يُترك `true` للتجربة، ويجب أن يكون `false` عند
+  /// التثبيت الفعلي حتى لا تُحسب مبيعات وهمية في لوحة المؤشرات والذمم.
+  Future<void> seedInitialData({bool includeDemoRecords = true}) async {
     await _prefs.remove(_kCustomerLedger);
     final settings = AppSettings(
       sheetSize: '100x70',
@@ -448,7 +638,29 @@ class StorageService {
       InkItem(id: 'INK05', name: 'أسود ديجيتال', colorCode: 'Black', kind: 'Digital', unitPrice: 7000, balance: 4, reorderLevel: 1, supplier: 'إبسون الشرق الأوسط'),
     ];
     await saveInks(inks);
+    if (includeDemoRecords) {
+      await _seedDemoRecords();
+    }
 
+    await ensureCustomerLedgerFromLegacy(force: true);
+  }
+
+  /// يمسح السجلات التجارية الوهمية (عملاء، عروض، أوامر إنتاج، حركات،
+  /// مدفوعات، دفتر قيود) ويُبقي المرجعيات: الورق، الماكينات، المنتجات،
+  /// التشطيبات، الأحبار، والإعدادات.
+  Future<void> clearDemoRecords() async {
+    await _prefs.remove(_kCustomers);
+    await _prefs.remove(_kQuotations);
+    await _prefs.remove(_kProductionOrders);
+    await _prefs.remove(_kStockMoves);
+    await _prefs.remove(_kPayments);
+    await _prefs.remove(_kCustomerLedger);
+    await setFirstRunMode('clean');
+  }
+
+  /// بيانات تجارية وهمية للتجربة والعرض فقط. تُزرع عند اختيار «نسخة تجريبية»
+  /// في أول تشغيل، وتُتجاوز عند اختيار «تثبيت فعلي ببيانات نظيفة».
+  Future<void> _seedDemoRecords() async {
     // عملاء تجريبيين
     final customers = [
       Customer(id: 'C01', code: 'C-0001', name: 'دار المعرفة للنشر والتوزيع', phone: '+967 771 111 222', address: 'صنعاء - شارع الزبيري', openingBalance: 0, totalSales: 485000, paid: 350000),
@@ -612,7 +824,6 @@ class StorageService {
       ),
     ];
     await savePayments(payments);
-    await ensureCustomerLedgerFromLegacy(force: true);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -690,6 +901,11 @@ class StorageService {
     await _prefs.setInt('${_kLoginAttempts}_$userId', count);
   }
 
+  /// قراءة/كتابة عدد صحيح بمفتاح حر (يستخدمه عدّاد جولات القفل).
+  int? getIntPref(String key) => _prefs.getInt(key);
+
+  Future<void> setIntPref(String key, int value) => _prefs.setInt(key, value);
+
   DateTime? getLockoutUntil(String userId) {
     final str = _prefs.getString('${_kLockoutUntil}_$userId');
     if (str == null) return null;
@@ -706,3 +922,31 @@ class StorageService {
   }
 }
 
+
+/// نتيجة استيراد نسخة احتياطية: نجاح أو فشل بسبب معلن، بدل `bool` غامض.
+class BackupImportResult {
+  final bool isSuccess;
+  final String? errorMessage;
+  final bool restoredUsers;
+  final bool safetySnapshotTaken;
+
+  const BackupImportResult._({
+    required this.isSuccess,
+    this.errorMessage,
+    this.restoredUsers = false,
+    this.safetySnapshotTaken = false,
+  });
+
+  factory BackupImportResult.success({
+    bool restoredUsers = false,
+    bool safetySnapshotTaken = false,
+  }) =>
+      BackupImportResult._(
+        isSuccess: true,
+        restoredUsers: restoredUsers,
+        safetySnapshotTaken: safetySnapshotTaken,
+      );
+
+  factory BackupImportResult.failure(String message) =>
+      BackupImportResult._(isSuccess: false, errorMessage: message);
+}

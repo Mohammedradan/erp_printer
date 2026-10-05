@@ -1145,7 +1145,8 @@ class UserAccount {
   String id;
   String username;       // اسم الدخول
   String displayName;    // الاسم الكامل
-  String pinHash;        // PIN مشفّر SHA-256
+  String pinHash;        // تجزئة PIN (salted عند إنشائها، أو SHA-256 قديمة)
+  String? pinSalt;       // Salt عشوائي؛ وجوده يعني أن pinHash من النوع المقوّى
   UserRole role;
   bool isActive;
   DateTime createdAt;
@@ -1156,6 +1157,7 @@ class UserAccount {
     required this.username,
     required this.displayName,
     required this.pinHash,
+    this.pinSalt,
     this.role = UserRole.employee,
     this.isActive = true,
     required this.createdAt,
@@ -1167,6 +1169,7 @@ class UserAccount {
         'username': username,
         'displayName': displayName,
         'pinHash': pinHash,
+        'pinSalt': pinSalt,
         'role': role.toJson,
         'isActive': isActive,
         'createdAt': createdAt.toIso8601String(),
@@ -1178,6 +1181,7 @@ class UserAccount {
         username: json['username'],
         displayName: json['displayName'],
         pinHash: json['pinHash'],
+        pinSalt: json['pinSalt'],
         role: UserRoleExtension.fromJson(json['role']),
         isActive: json['isActive'] ?? true,
         createdAt: DateTime.parse(json['createdAt']),
@@ -1187,6 +1191,7 @@ class UserAccount {
   UserAccount copyWith({
     String? displayName,
     String? pinHash,
+    String? pinSalt,
     UserRole? role,
     bool? isActive,
     String? avatarEmoji,
@@ -1196,6 +1201,7 @@ class UserAccount {
         username: username,
         displayName: displayName ?? this.displayName,
         pinHash: pinHash ?? this.pinHash,
+        pinSalt: pinSalt ?? this.pinSalt,
         role: role ?? this.role,
         isActive: isActive ?? this.isActive,
         createdAt: createdAt,
@@ -1203,3 +1209,83 @@ class UserAccount {
       );
 }
 
+
+// ─────────────────────────────────────────────────────────
+// سجل التدقيق — أثر غير قابل للحذف لكل عملية حساسة
+// ─────────────────────────────────────────────────────────
+
+/// مستوى أهمية الحدث في سجل التدقيق.
+enum AuditSeverity { info, warning, critical }
+
+extension AuditSeverityX on AuditSeverity {
+  String get toJson => name;
+
+  String get label => switch (this) {
+        AuditSeverity.info => 'معلومة',
+        AuditSeverity.warning => 'تحذير',
+        AuditSeverity.critical => 'حرج',
+      };
+
+  static AuditSeverity fromJson(String? value) => AuditSeverity.values.firstWhere(
+        (s) => s.name == value,
+        orElse: () => AuditSeverity.info,
+      );
+}
+
+/// سطر واحد في سجل التدقيق: من فعل ماذا، ومتى، وعلى أي كيان، وما النتيجة.
+class AuditLogEntry {
+  final String id;
+  final DateTime timestamp;
+  final String? actorId;
+  final String actorName;
+  final String actorRole;
+  final String action;
+  final String? targetType;
+  final String? targetId;
+  final String details;
+  final bool success;
+  final AuditSeverity severity;
+
+  AuditLogEntry({
+    required this.id,
+    required this.timestamp,
+    this.actorId,
+    required this.actorName,
+    required this.actorRole,
+    required this.action,
+    this.targetType,
+    this.targetId,
+    this.details = '',
+    this.success = true,
+    this.severity = AuditSeverity.info,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'timestamp': timestamp.toIso8601String(),
+        'actorId': actorId,
+        'actorName': actorName,
+        'actorRole': actorRole,
+        'action': action,
+        'targetType': targetType,
+        'targetId': targetId,
+        'details': details,
+        'success': success,
+        'severity': severity.toJson,
+      };
+
+  factory AuditLogEntry.fromJson(Map<String, dynamic> json) => AuditLogEntry(
+        id: json['id'] ?? '',
+        timestamp:
+            DateTime.tryParse('${json['timestamp']}') ?? DateTime.fromMillisecondsSinceEpoch(0),
+        actorId: json['actorId'],
+        actorName: json['actorName'] ?? 'غير معروف',
+        actorRole: json['actorRole'] ?? 'unknown',
+        action: json['action'] ?? '',
+        targetType: json['targetType'],
+        targetId: json['targetId'],
+        details: json['details'] ?? '',
+        success: json['success'] ?? true,
+        severity: AuditSeverityX.fromJson(json['severity']),
+      );
+}

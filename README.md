@@ -1,17 +1,114 @@
-# erp_printer
+# نظام مطبعة ERP المتكامل
 
-A new Flutter project.
+نظام إدارة عمليات للمطابع التجارية (أوفست / ديجيتال / دور نشر) مبني بـ Flutter:
+تسعير هندسي، عروض أسعار، أوامر إنتاج، مخزون الورق والأحبار، ذمم العملاء،
+سندات القبض، تقارير الربحية، وتصدير PDF عربي.
 
-## Getting Started
+**المنصات المستهدفة:** Android و Windows.
+**التشغيل الحالي:** جهاز واحد وتخزين محلي (`SharedPreferences`). تشغيل عدة أجهزة
+عبر LAN يحتاج ترحيل قاعدة البيانات أولاً — انظر «القيود» أدناه.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## التشغيل
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter pub get
+flutter run                 # تطوير
+flutter build apk --release # إصدار (يلزم توقيع، انظر أدناه)
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+أول تشغيل ينشئ قاعدة بالبيانات المرجعية المستخرجة من ملف الإكسل الأصلي
+(18 صنف ورق، 3 ماكينات، 4 قوالب منتجات، 12 تشطيباً، 5 أحبار) **مع سجلات تجارية
+تجريبية** (عملاء، عروض، أوامر إنتاج، مدفوعات). لتحويلها إلى تثبيت فعلي ببيانات
+نظيفة: `الإعدادات ← بطاقة النسخ الاحتياطي ← «تحويلها إلى تثبيت فعلي ببيانات نظيفة»`.
+
+أول مستخدم تنشئه من شاشة الإعداد الأول يكون مدير النظام.
+
+## الفحص قبل أي تعديل
+
+```bash
+flutter analyze --fatal-infos --fatal-warnings
+flutter test
+```
+
+ملف CI جاهز في `matbaa-erp-docs/ci/ci.yml` لكنه **غير مفعّل بعد** — رمز
+المصادقة المتاح لا يملك صلاحية `workflows` على GitHub. لتفعيله:
+
+```bash
+mkdir -p .github/workflows
+cp matbaa-erp-docs/ci/ci.yml .github/workflows/ci.yml
+git add .github/workflows/ci.yml && git commit -m "ci: enable analyze+test" && git push
+```
+
+بعدها يعمل الفحص تلقائياً عند كل push أو Pull Request.
+
+---
+
+## البنية
+
+```
+lib/
+  main.dart                      تهيئة التخزين والمصادقة وربط المزودات
+  models/app_models.dart         كل الكيانات + دفتر القيود + متطلبات مواد الإنتاج + سجل التدقيق
+  providers/erp_provider.dart    منطق الأعمال: التسعير، الصرف، القيود، الذمم، النسخ الاحتياطي
+  providers/auth_provider.dart   الجلسة والمستخدمون والصلاحيات وسجل التدقيق
+  services/pricing_engine_service.dart  محرك التسعير الهندسي
+  services/storage_service.dart  التخزين + النسخ الاحتياطي + سجل التدقيق
+  services/auth_service.dart     PIN، القفل المتصاعد، الصلاحيات، التدقيق
+  services/backup_codec.dart     تشفير النسخة الاحتياطية
+  services/pdf_export_service.dart  توليد PDF عربي لعرض السعر
+  views/                         13 شاشة
+  theme/app_theme.dart
+```
+
+## الأمان المطبق حالياً
+
+| الجانب | التنفيذ |
+|---|---|
+| تجزئة PIN | PBKDF2-HMAC-SHA256 (20,000 دورة) + Salt مستقل لكل حساب. الحسابات القديمة (SHA-256) تُرقّى تلقائياً عند أول دخول ناجح |
+| المحاولات الخاطئة | 5 محاولات ثم قفل متصاعد: 1 ← 5 ← 30 دقيقة |
+| الصلاحيات | مفروضة في `AuthService`/`AuthProvider` لا في الواجهة فقط؛ كل رفض يُسجَّل كحدث حرج |
+| حماية المدير | لا يمكن حذف آخر مدير نشط، ولا تعطيله، ولا تخفيضه، ولا حذف الحساب الجاري استخدامه |
+| سجل التدقيق | كل عملية حساسة تترك أثراً (من، متى، على أي كيان، النتيجة). يُعرض من `الإعدادات` ويُحفظ داخل النسخة الاحتياطية |
+| النسخة الاحتياطية | تشمل المستخدمين وسجل التدقيق، وتُشفَّر بكلمة مرور اختيارية، ويُفحص إصدار صيغتها قبل الاستيراد، وتؤخذ لقطة أمان قبل الكتابة تسمح بالتراجع |
+
+## إصدار Android
+
+`android/app/build.gradle.kts` يوقّع release بمفتاح الإنتاج عند توفر
+`android/key.properties` (انسخه من `android/key.properties.example`) أو متغيرات
+البيئة `ERP_STORE_PASSWORD` / `ERP_KEY_PASSWORD` / `ERP_KEY_ALIAS` / `ERP_STORE_FILE`.
+بدونها يبقى التوقيع بمفتاح debug — صالح للتطوير فقط.
+
+**قبل النشر يلزم أيضاً تغيير `applicationId`** من `com.example.erp_printer` إلى
+معرّف نهائي (مثلاً `com.mohammedradan.matbaa_erp`).
+
+---
+
+## القيود المعروفة
+
+1. **التخزين محلي وبلا معاملات (transactions).** لا حماية تعارض بين مستخدمين؛
+   ترحيل SQLite/Drift خطوة لازمة قبل أي تشغيل شبكي.
+2. **خط PDF العربي يُنزَّل من الإنترنت** عند كل توليد (`PdfGoogleFonts.cairoRegular()`).
+   في بيئة غير متصلة قد يفشل توليد عرض السعر. الحل: تنزيل `Cairo-Regular.ttf` و
+   `Cairo-Bold.ttf` إلى `assets/fonts/`، وإعلان المجلد في `pubspec.yaml`:
+   ```yaml
+   flutter:
+     assets:
+       - assets/fonts/
+   ```
+   ثم تحميلهما من الأصول بدل `PdfGoogleFonts` في `lib/services/pdf_export_service.dart`.
+3. **مستند PDF واحد فقط** (عرض السعر). لا فاتورة ولا سند قبض ولا أمر تشغيل مطبوع.
+4. **الأحبار لا تُستهلك بأوامر الإنتاج**؛ حركات الحبر يدوية فقط.
+5. **لا موردون ولا مشتريات ولا جرد**، ولا تنبيهات آلية.
+6. **لا `locale` عربي** لودجات Material (منتقي التاريخ وأدوات النظام بالإنجليزية).
+
+## التوثيق
+
+| الملف | المحتوى |
+|---|---|
+| `SYSTEM_SUMMARY.md` | الدليل المرجعي الشامل للنظام |
+| `matbaa-erp-docs/01…08` | تحليل الإكسل، المتطلبات، المعمارية، قاعدة البيانات، محرك التسعير، مواصفات الشاشات، خطة التنفيذ، قائمة الجاهزية |
+| `matbaa-erp-docs/09-application-audit-and-improvement-plan.md` | تقرير التدقيق الأول وخطة التحسين |
+| `matbaa-erp-docs/10-gap-and-dead-code-audit.md` | تقرير الفجوات والكود الميت مع أدلة الأسطر |
+| `matbaa-erp-docs/11-implementation-status.md` | ما نُفِّذ فعلاً من التقريرين، وما بقي |

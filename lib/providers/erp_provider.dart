@@ -1337,25 +1337,87 @@ class ErpProvider with ChangeNotifier {
     }
   }
 
-  /// إعادة تعيين البيانات إلى البيانات الأولية للإكسل
-  Future<void> resetToExcelDefaults() async {
-    await _storage.seedInitialData();
+  /// إعادة تحميل كل القوائم من التخزين (بعد تغييرات تجريها طبقة أخرى).
+  void reload() {
     _loadAll();
     notifyListeners();
   }
 
-  /// تصدير نسخة احتياطية من كافة جداول وبيانات النظام بصيغة JSON
-  String exportDatabaseBackup() {
-    return _storage.exportBackupJson();
+  /// هل هذه القاعدة مزروعة ببيانات تجارية وهمية؟
+  bool get hasDemoRecords => _storage.hasDemoRecords;
+
+  /// إعادة تعيين البيانات إلى البيانات الأولية للإكسل.
+  ///
+  /// [clean] = true يعيد المرجعيات فقط (ورق/ماكينات/منتجات/أحبار) بلا عملاء
+  /// ولا عروض ولا أوامر إنتاج ولا مدفوعات وهمية.
+  Future<void> resetToExcelDefaults({bool clean = false}) async {
+    await _storage.seedInitialData(includeDemoRecords: !clean);
+    await _storage.setFirstRunMode(clean ? 'clean' : 'demo');
+    _loadAll();
+    notifyListeners();
   }
 
-  /// استيراد نسخة احتياطية واستعادة كافة البيانات
-  Future<bool> importDatabaseBackup(String jsonStr) async {
-    final success = await _storage.importBackupJson(jsonStr);
-    if (success) {
+  /// يمسح السجلات التجارية الوهمية من قاعدة مزروعة بوضع `demo`.
+  Future<void> clearDemoRecords() async {
+    await _storage.clearDemoRecords();
+    _loadAll();
+    notifyListeners();
+  }
+
+  /// تصدير نسخة احتياطية من كافة جداول وبيانات النظام بصيغة JSON.
+  ///
+  /// الناتج نص صريح؛ التشفير يتم في طبقة الواجهة عبر `BackupCodec.encrypt`.
+  String exportDatabaseBackup({bool includeUsers = true}) {
+    return _storage.exportBackupJson(includeUsers: includeUsers);
+  }
+
+  /// استيراد نسخة احتياطية مع فحص الإصدار ولقطة أمان قبل الكتابة.
+  Future<BackupImportResult> importDatabaseBackup(String jsonStr) async {
+    final result = await _storage.importBackupJson(jsonStr);
+    if (result.isSuccess) {
       _loadAll();
       notifyListeners();
     }
-    return success;
+    return result;
+  }
+
+  /// التراجع عن آخر استيراد بالعودة إلى لقطة الأمان.
+  Future<bool> restorePreImportSnapshot() async {
+    final ok = await _storage.restoreSafetySnapshot();
+    if (ok) {
+      _loadAll();
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  /// سجل التدقيق (الأحدث أولاً).
+  List<AuditLogEntry> get auditLog => _storage.loadAuditLog();
+
+  /// يسجل حدثاً حساساً في سجل التدقيق ببصمة الجلسة الحالية.
+  Future<void> recordAudit({
+    required String action,
+    String? targetType,
+    String? targetId,
+    String details = '',
+    bool success = true,
+    AuditSeverity severity = AuditSeverity.info,
+  }) async {
+    final actor = _storage.getAuditActor();
+    await _storage.recordAudit(
+      AuditLogEntry(
+        id: 'AUD_${DateTime.now().microsecondsSinceEpoch}',
+        timestamp: DateTime.now(),
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        action: action,
+        targetType: targetType,
+        targetId: targetId,
+        details: details,
+        success: success,
+        severity: severity,
+      ),
+    );
   }
 }
