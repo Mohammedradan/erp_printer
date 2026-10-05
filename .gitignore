@@ -49,3 +49,8 @@ app.*.map.json
 
 # Archive files
 *.zip
+
+# Release signing — لا يرفع للمستودع أبداً
+android/key.properties
+*.jks
+*.keystore

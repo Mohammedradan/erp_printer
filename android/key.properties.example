@@ -1,0 +1,14 @@
+# توقيع إصدار Android — انسخ هذا الملف إلى android/key.properties واملأه.
+# ملف key.properties الحقيقي مُدرج في .gitignore ولا يجب رفعه للمستودع أبداً.
+#
+# إنشاء المفتاح:
+#   keytool -genkey -v -keystore matbaa-erp-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias matbaa-erp
+#
+# احفظ ملف .jks خارج المستودع (نسخة على قرص خارجي + نسخة سحابية خاصة)،
+# لأن فقدانه يعني عدم القدرة على تحديث التطبيق لدى العملاء.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=matbaa-erp
+storeFile=/absolute/path/to/matbaa-erp-release.jks

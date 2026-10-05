@@ -85,58 +85,115 @@ class AuthProvider extends ChangeNotifier {
     required UserRole role,
     String avatarEmoji = '👤',
   }) async {
-    // التحقق من عدم تكرار اسم المستخدم
     if (_users.any((u) => u.username.toLowerCase() == username.toLowerCase())) {
       return 'اسم المستخدم موجود مسبقاً';
     }
-    if (pin.length < 4) {
+    if (pin.trim().length < 4) {
       return 'PIN يجب أن يكون 4 أرقام على الأقل';
     }
 
-    await _authService.createUser(
+    final error = await _authService.createUser(
       username: username,
       displayName: displayName,
       pin: pin,
       role: role,
       avatarEmoji: avatarEmoji,
     );
-    _users = _storage.loadUsers();
-    notifyListeners();
-    return null; // نجاح
-  }
-
-  Future<void> updateUser(UserAccount updated) async {
-    await _storage.updateUser(updated);
-    _users = _storage.loadUsers();
-    // تحديث المستخدم الحالي إذا كان هو نفسه
-    if (_currentUser?.id == updated.id) {
-      _currentUser = updated;
+    if (error != null) {
+      _error = error;
+      notifyListeners();
+      return error;
     }
-    notifyListeners();
-  }
-
-  Future<String?> changeUserPin(String userId, String newPin) async {
-    if (newPin.length < 4) return 'PIN يجب أن يكون 4 أرقام على الأقل';
-    await _authService.updateUserPin(userId, newPin);
     _users = _storage.loadUsers();
     notifyListeners();
     return null;
   }
 
-  Future<void> toggleUserStatus(String userId) async {
-    final users = _storage.loadUsers();
-    final idx = users.indexWhere((u) => u.id == userId);
-    if (idx >= 0) {
-      users[idx] = users[idx].copyWith(isActive: !users[idx].isActive);
-      await _storage.saveUsers(users);
-      _users = users;
+  Future<String?> updateUser(UserAccount updated) async {
+    final denied = await _authService.requireAdmin('تعديل بيانات مستخدم');
+    if (denied != null) {
+      _error = denied;
       notifyListeners();
+      return denied;
     }
+    await _storage.updateUser(updated);
+    _users = _storage.loadUsers();
+    if (_currentUser?.id == updated.id) {
+      _currentUser = updated;
+      await _authService.attachSession(updated);
+    }
+    notifyListeners();
+    return null;
   }
 
-  Future<void> deleteUser(String userId) async {
-    await _storage.deleteUser(userId);
+  Future<String?> changeUserPin(String userId, String newPin) async {
+    if (newPin.trim().length < 4) return 'PIN يجب أن يكون 4 أرقام على الأقل';
+    final error = await _authService.updateUserPin(userId, newPin);
+    if (error != null) {
+      _error = error;
+      notifyListeners();
+      return error;
+    }
     _users = _storage.loadUsers();
+    notifyListeners();
+    return null;
+  }
+
+  Future<String?> changeUserRole(String userId, UserRole newRole) =>
+      _runGuarded(() => _authService.changeUserRole(userId, newRole));
+
+  Future<String?> toggleUserStatus(String userId) =>
+      _runGuarded(() => _authService.toggleUserStatus(userId));
+
+  Future<String?> deleteUser(String userId) =>
+      _runGuarded(() => _authService.deleteUser(userId));
+
+  /// ينفّذ عملية محمية: يمرر رسالة الرفض للواجهة ويحدّث القائمة عند النجاح.
+  Future<String?> _runGuarded(Future<String?> Function() action) async {
+    final error = await action();
+    if (error != null) {
+      _error = error;
+      notifyListeners();
+      return error;
+    }
+    _users = _storage.loadUsers();
+    _currentUser = _authService.getCurrentUser();
+    notifyListeners();
+    return null;
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // سجل التدقيق
+  // ─────────────────────────────────────────────────────────
+
+  /// سجل التدقيق كاملاً (الأحدث أولاً).
+  List<AuditLogEntry> get auditLog => _storage.loadAuditLog();
+
+  /// يسجل حدثاً من طبقة الأعمال (يستخدمه ErpProvider للعمليات الحساسة).
+  Future<void> audit({
+    required String action,
+    String? targetType,
+    String? targetId,
+    String details = '',
+    bool success = true,
+    AuditSeverity severity = AuditSeverity.info,
+  }) async {
+    final actor = _storage.getAuditActor();
+    await _storage.recordAudit(
+      AuditLogEntry(
+        id: 'AUD_${DateTime.now().microsecondsSinceEpoch}',
+        timestamp: DateTime.now(),
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        action: action,
+        targetType: targetType,
+        targetId: targetId,
+        details: details,
+        success: success,
+        severity: severity,
+      ),
+    );
     notifyListeners();
   }
 

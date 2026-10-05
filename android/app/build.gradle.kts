@@ -1,8 +1,39 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// توقيع الإصدار
+//
+// أنشئ `android/key.properties` (غير مرفوع للمستودع) بهذا الشكل:
+//   storePassword=...
+//   keyPassword=...
+//   keyAlias=matbaa-erp
+//   storeFile=/absolute/path/to/matbaa-erp-release.jks
+//
+// أو مرّر نفس القيم عبر متغيرات البيئة:
+//   ERP_STORE_PASSWORD / ERP_KEY_PASSWORD / ERP_KEY_ALIAS / ERP_STORE_FILE
+//
+// بدون هذا الملف يبقى release بمفتاح debug حتى يعمل `flutter run --release`
+// محلياً، لكنه غير صالح للنشر أو التسليم التجاري.
+// ─────────────────────────────────────────────────────────────────────────────
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+fun signingValue(key: String, envKey: String): String? =
+    keystoreProperties.getProperty(key) ?: System.getenv(envKey)
+
+val releaseStoreFile = signingValue("storeFile", "ERP_STORE_FILE")
+val hasReleaseSigning = !releaseStoreFile.isNullOrBlank() &&
+    file(releaseStoreFile!!).exists()
 
 android {
     namespace = "com.example.erp_printer"
@@ -29,11 +60,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = signingValue("storePassword", "ERP_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "ERP_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "ERP_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // يوقَّع بمفتاح الإنتاج عند توفر key.properties، وإلا بمفتاح debug
+            // حتى تبقى builds التطوير تعمل. لا تسلّم نسخة موقعة بمفتاح debug.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
