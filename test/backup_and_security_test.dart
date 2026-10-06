@@ -113,6 +113,28 @@ void main() {
       );
     });
 
+    test('بيانات KDF غير المدعومة تُرفض قبل اشتقاق المفتاح', () {
+      final payload = BackupCodec.encrypt(sample, 'pw123456');
+      final json = jsonDecode(payload) as Map<String, dynamic>
+        ..['iterations'] = 0x7fffffff;
+
+      expect(
+        () => BackupCodec.decrypt(jsonEncode(json), 'pw123456'),
+        throwsA(isA<BackupCryptoException>()),
+      );
+    });
+
+    test('أطوال salt و IV و HMAC غير الصحيحة تُرفض', () {
+      final payload = BackupCodec.encrypt(sample, 'pw123456');
+      final json = jsonDecode(payload) as Map<String, dynamic>
+        ..['salt'] = base64Encode([1]);
+
+      expect(
+        () => BackupCodec.decrypt(jsonEncode(json), 'pw123456'),
+        throwsA(isA<BackupCryptoException>()),
+      );
+    });
+
     test('اشتقاق مفتاح PIN يطابق PBKDF2-HMAC-SHA256 القياسي', () {
       // متجه اختبار مولَّد خارج Dart من hashlib.pbkdf2_hmac('sha256', ...):
       // password='1234', salt='0123456789abcdef', iterations=1000, dklen=32
@@ -491,6 +513,41 @@ void main() {
       expect(storage.hasSafetySnapshot, isTrue);
     });
 
+    test('النسخة الحالية الناقصة تُرفض قبل اللقطة أو أي تغيير', () async {
+      await bootstrap(demo: true);
+      final originalCustomerCount = storage.loadCustomers().length;
+      final backup = jsonDecode(storage.exportBackupJson()) as Map<String, dynamic>
+        ..remove('papers');
+
+      final result = await storage.importBackupJson(jsonEncode(backup));
+
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, contains('papers'));
+      expect(storage.hasSafetySnapshot, isFalse);
+      expect(storage.loadCustomers(), hasLength(originalCustomerCount));
+    });
+
+    test('القائمة null في النسخة تمسح بياناتها القديمة بدلاً من إبقائها', () async {
+      await bootstrap(demo: true);
+      final backup = jsonDecode(storage.exportBackupJson()) as Map<String, dynamic>
+        ..['customers'] = null
+        ..['quotations'] = null
+        ..['productionOrders'] = null
+        ..['stockMoves'] = null
+        ..['payments'] = null
+        ..['customerLedger'] = null;
+
+      final result = await storage.importBackupJson(jsonEncode(backup));
+
+      expect(result.isSuccess, isTrue);
+      expect(storage.loadCustomers(), isEmpty);
+      expect(storage.loadQuotations(), isEmpty);
+      expect(storage.loadProductionOrders(), isEmpty);
+      expect(storage.loadStockMoves(), isEmpty);
+      expect(storage.loadPayments(), isEmpty);
+      expect(storage.loadCustomerLedger(), isEmpty);
+    });
+
     test('لقطة الأمان تعيد القاعدة إلى وضعها قبل الاستيراد', () async {
       await bootstrap(mode: 'clean');
       final cleanState = storage.exportBackupJson();
@@ -513,6 +570,19 @@ void main() {
   });
 
   group('StorageService — وضع أول تشغيل', () {
+    test('التهيئة الافتراضية تبدأ ببيانات نظيفة', () async {
+      SharedPreferences.setMockInitialValues({});
+      final storage = await StorageService.init();
+
+      expect(storage.getFirstRunMode(), 'clean');
+      expect(storage.hasDemoRecords, isFalse);
+      expect(storage.loadCustomers(), isEmpty);
+      expect(storage.loadQuotations(), isEmpty);
+      expect(storage.loadProductionOrders(), isEmpty);
+      expect(storage.loadPayments(), isEmpty);
+      expect(storage.loadPapers(), isNotEmpty);
+    });
+
     test('demo يزرع سجلات تجارية وهمية', () async {
       SharedPreferences.setMockInitialValues({});
       final storage = await StorageService.init(firstRunMode: 'demo');

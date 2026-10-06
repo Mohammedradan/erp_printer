@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/pdf_export_service.dart';
 
@@ -35,6 +36,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   @override
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
+    final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     var filtered = erp.quotations.where((q) {
       final matchesStatus = _filterStatus == 'الكل' || q.status == _filterStatus;
@@ -48,7 +50,8 @@ class _QuotationsViewState extends State<QuotationsView> {
     }).toList();
 
     // فرز النتائج
-    switch (_sortBy) {
+    final effectiveSortBy = !isAdmin && _sortBy == 'profit_desc' ? 'date_desc' : _sortBy;
+    switch (effectiveSortBy) {
       case 'date_asc':
         filtered.sort((a, b) => a.date.compareTo(b.date));
         break;
@@ -74,15 +77,15 @@ class _QuotationsViewState extends State<QuotationsView> {
           const SizedBox(height: 18),
 
           // 2. كروت المؤشرات الإحصائية المتقدمة (KPI Grid)
-          _buildMetricsGrid(erp),
+          _buildMetricsGrid(erp, isAdmin),
           const SizedBox(height: 18),
 
           // 3. شريط الفلاتر والبحث والترتيب المتقدم
-          _buildFilterBar(erp),
+          _buildFilterBar(erp, isAdmin),
           const SizedBox(height: 16),
 
           // 4. جدول / بطاقات عروض الأسعار المتجاوبة
-          _buildQuotationsContent(filtered, erp),
+          _buildQuotationsContent(filtered, erp, isAdmin),
         ],
       ),
     );
@@ -292,10 +295,10 @@ class _QuotationsViewState extends State<QuotationsView> {
   }
 
   // --- كروت المؤشرات الإحصائية المتقدمة (KPI Grid) ---
-  Widget _buildMetricsGrid(ErpProvider erp) {
-    final approvedProfit = erp.quotations
+  Widget _buildMetricsGrid(ErpProvider erp, bool isAdmin) {
+    final approvedProfit = isAdmin ? erp.quotations
         .where((q) => q.status == 'معتمد')
-        .fold<double>(0, (sum, q) => sum + q.profit);
+        .fold<double>(0, (sum, q) => sum + q.profit) : 0.0;
     final winRate = erp.quotations.isNotEmpty
         ? (erp.approvedQuotationsCount / erp.quotations.length * 100)
         : 0.0;
@@ -306,7 +309,7 @@ class _QuotationsViewState extends State<QuotationsView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 650;
-        final crossAxisCount = constraints.maxWidth > 1050 ? 4 : 2;
+        final crossAxisCount = constraints.maxWidth > 1050 ? (isAdmin ? 4 : 3) : 2;
         final aspect = constraints.maxWidth > 1200
             ? 1.75
             : (constraints.maxWidth > 1050
@@ -341,16 +344,17 @@ class _QuotationsViewState extends State<QuotationsView> {
               onTap: null,
               isCompact: isMobile,
             ),
-            _buildMetricCard(
-              title: 'صافي أرباح العروض',
-              value: AppTheme.formatCurrency(approvedProfit, erp.settings.currency),
-              subtitle: 'العائد المتوقع للتسليم',
-              icon: Icons.trending_up_rounded,
-              color: const Color(0xFF7C3AED),
-              bgColor: const Color(0xFFEDE9FE),
-              onTap: null,
-              isCompact: isMobile,
-            ),
+            if (isAdmin)
+              _buildMetricCard(
+                title: 'صافي أرباح العروض',
+                value: AppTheme.formatCurrency(approvedProfit, erp.settings.currency),
+                subtitle: 'العائد المتوقع للتسليم',
+                icon: Icons.trending_up_rounded,
+                color: const Color(0xFF7C3AED),
+                bgColor: const Color(0xFFEDE9FE),
+                onTap: null,
+                isCompact: isMobile,
+              ),
             _buildMetricCard(
               title: 'عروض قيد المتابعة',
               value: '$pendingCount عرض',
@@ -484,7 +488,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   }
 
   // --- شريط الفلاتر والبحث والترتيب المتقدم ---
-  Widget _buildFilterBar(ErpProvider erp) {
+  Widget _buildFilterBar(ErpProvider erp, bool isAdmin) {
     final allCount = erp.quotations.length;
     final draftCount = erp.quotations.where((q) => q.status == 'مسودة').length;
     final sentCount = erp.quotations.where((q) => q.status == 'مرسل').length;
@@ -561,14 +565,15 @@ class _QuotationsViewState extends State<QuotationsView> {
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
-                                value: _sortBy,
+                                value: !isAdmin && _sortBy == 'profit_desc' ? 'date_desc' : _sortBy,
                                 isExpanded: true,
                                 icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                                items: const [
-                                  DropdownMenuItem(value: 'date_desc', child: Text('الأحدث تاريخاً')),
-                                  DropdownMenuItem(value: 'date_asc', child: Text('الأقدم تاريخاً')),
-                                  DropdownMenuItem(value: 'amount_desc', child: Text('الأعلى قيمة')),
-                                  DropdownMenuItem(value: 'profit_desc', child: Text('الأعلى ربحية')),
+                                items: [
+                                  const DropdownMenuItem(value: 'date_desc', child: Text('الأحدث تاريخاً')),
+                                  const DropdownMenuItem(value: 'date_asc', child: Text('الأقدم تاريخاً')),
+                                  const DropdownMenuItem(value: 'amount_desc', child: Text('الأعلى قيمة')),
+                                  if (isAdmin)
+                                    const DropdownMenuItem(value: 'profit_desc', child: Text('الأعلى ربحية')),
                                 ],
                                 onChanged: (val) => setState(() => _sortBy = val ?? 'date_desc'),
                               ),
@@ -630,13 +635,14 @@ class _QuotationsViewState extends State<QuotationsView> {
                         const SizedBox(width: 8),
                         DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _sortBy,
+                            value: !isAdmin && _sortBy == 'profit_desc' ? 'date_desc' : _sortBy,
                             icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                            items: const [
-                              DropdownMenuItem(value: 'date_desc', child: Text('الأحدث تاريخاً')),
-                              DropdownMenuItem(value: 'date_asc', child: Text('الأقدم تاريخاً')),
-                              DropdownMenuItem(value: 'amount_desc', child: Text('الأعلى قيمة')),
-                              DropdownMenuItem(value: 'profit_desc', child: Text('الأعلى ربحية')),
+                            items: [
+                              const DropdownMenuItem(value: 'date_desc', child: Text('الأحدث تاريخاً')),
+                              const DropdownMenuItem(value: 'date_asc', child: Text('الأقدم تاريخاً')),
+                              const DropdownMenuItem(value: 'amount_desc', child: Text('الأعلى قيمة')),
+                              if (isAdmin)
+                                const DropdownMenuItem(value: 'profit_desc', child: Text('الأعلى ربحية')),
                             ],
                             onChanged: (val) => setState(() => _sortBy = val ?? 'date_desc'),
                           ),
@@ -737,7 +743,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   }
 
   // --- محتوى عروض الأسعار المتجاوب (Table vs Cards) ---
-  Widget _buildQuotationsContent(List<Quotation> filtered, ErpProvider erp) {
+  Widget _buildQuotationsContent(List<Quotation> filtered, ErpProvider erp, bool isAdmin) {
     if (filtered.isEmpty) {
       return _buildEmptyState();
     }
@@ -745,9 +751,9 @@ class _QuotationsViewState extends State<QuotationsView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 750) {
-          return _buildMobileQuotationCards(filtered, erp);
+          return _buildMobileQuotationCards(filtered, erp, isAdmin);
         } else {
-          return _buildDesktopQuotationTable(filtered, erp);
+          return _buildDesktopQuotationTable(filtered, erp, isAdmin);
         }
       },
     );
@@ -820,7 +826,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   }
 
   // جدول سطح المكتب الفخم
-  Widget _buildDesktopQuotationTable(List<Quotation> filtered, ErpProvider erp) {
+  Widget _buildDesktopQuotationTable(List<Quotation> filtered, ErpProvider erp, bool isAdmin) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -879,7 +885,7 @@ class _QuotationsViewState extends State<QuotationsView> {
               ),
             )
           else if (MediaQuery.of(context).size.width < 750)
-            _buildMobileQuotationCards(filtered, erp)
+            _buildMobileQuotationCards(filtered, erp, isAdmin)
           else
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -888,19 +894,21 @@ class _QuotationsViewState extends State<QuotationsView> {
               columnSpacing: 20,
               dataRowMinHeight: 52,
               dataRowMaxHeight: 56,
-              columns: const [
-                DataColumn(label: Text('رقم العرض', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('المنتج', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('الورق والماكينة', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('التكلفة الكلية', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('قيمة العرض', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('الربح المتوقع', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
+              columns: [
+                const DataColumn(label: Text('رقم العرض', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('المنتج', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('الورق والماكينة', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
+                if (isAdmin)
+                  const DataColumn(label: Text('التكلفة الكلية', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('قيمة العرض', style: TextStyle(fontWeight: FontWeight.bold))),
+                if (isAdmin)
+                  const DataColumn(label: Text('الربح المتوقع', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
+                const DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
               rows: filtered.map((q) {
                 return DataRow(cells: [
@@ -914,15 +922,17 @@ class _QuotationsViewState extends State<QuotationsView> {
                   DataCell(Text('${q.qty}')),
                   DataCell(Text('${q.paper} / ${q.machine}')),
                   DataCell(Text(AppTheme.formatCurrency(q.unitPrice, erp.settings.currency))),
-                  DataCell(Text(AppTheme.formatCurrency(q.totalCost, erp.settings.currency))),
+                  if (isAdmin)
+                    DataCell(Text(AppTheme.formatCurrency(q.totalCost, erp.settings.currency))),
                   DataCell(Text(
                     AppTheme.formatCurrency(q.quoteAmount, erp.settings.currency),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
                   )),
-                  DataCell(Text(
-                    AppTheme.formatCurrency(q.profit, erp.settings.currency),
-                    style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold),
-                  )),
+                  if (isAdmin)
+                    DataCell(Text(
+                      AppTheme.formatCurrency(q.profit, erp.settings.currency),
+                      style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                    )),
                   DataCell(AppTheme.statusBadge(q.status)),
                   DataCell(Row(
                     mainAxisSize: MainAxisSize.min,
@@ -964,7 +974,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   }
 
   // بطاقات الجوال للشاشات الصغيرة
-  Widget _buildMobileQuotationCards(List<Quotation> filtered, ErpProvider erp) {
+  Widget _buildMobileQuotationCards(List<Quotation> filtered, ErpProvider erp, bool isAdmin) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1086,7 +1096,8 @@ class _QuotationsViewState extends State<QuotationsView> {
                   children: [
                     _buildMobileMetricCol('سعر الوحدة', AppTheme.formatCurrency(q.unitPrice, erp.settings.currency), AppTheme.darkSlate),
                     _buildMobileMetricCol('قيمة العرض', AppTheme.formatCurrency(q.quoteAmount, erp.settings.currency), AppTheme.primaryGreen, isBold: true),
-                    _buildMobileMetricCol('الربح المتوقع', AppTheme.formatCurrency(q.profit, erp.settings.currency), const Color(0xFF059669), isBold: true),
+                    if (isAdmin)
+                      _buildMobileMetricCol('الربح المتوقع', AppTheme.formatCurrency(q.profit, erp.settings.currency), const Color(0xFF059669), isBold: true),
                   ],
                 ),
               ),
@@ -1215,6 +1226,7 @@ class _QuotationsViewState extends State<QuotationsView> {
 
   void _showQuoteDetails(Quotation q) {
     final erp = context.read<ErpProvider>();
+    final isAdmin = context.read<AuthProvider>().isAdmin;
 
     showDialog(
       context: context,
@@ -1324,19 +1336,20 @@ class _QuotationsViewState extends State<QuotationsView> {
                     ),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.toll_outlined, size: 16, color: AppTheme.textMuted),
-                                SizedBox(width: 6),
-                                Text('التكلفة الكلية:', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
-                              ],
-                            ),
-                            Text(AppTheme.formatCurrency(q.totalCost, erp.settings.currency), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                        if (isAdmin)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.toll_outlined, size: 16, color: AppTheme.textMuted),
+                                  SizedBox(width: 6),
+                                  Text('التكلفة الكلية:', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                                ],
+                              ),
+                              Text(AppTheme.formatCurrency(q.totalCost, erp.settings.currency), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1354,23 +1367,25 @@ class _QuotationsViewState extends State<QuotationsView> {
                             ),
                           ],
                         ),
-                        const Divider(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.trending_up_rounded, size: 18, color: Color(0xFF059669)),
-                                SizedBox(width: 6),
-                                Text('صافي الربح المتوقع:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
-                              ],
-                            ),
-                            Text(
-                              AppTheme.formatCurrency(q.profit, erp.settings.currency),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
-                            ),
-                          ],
-                        ),
+                        if (isAdmin) ...[
+                          const Divider(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.trending_up_rounded, size: 18, color: Color(0xFF059669)),
+                                  SizedBox(width: 6),
+                                  Text('صافي الربح المتوقع:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                                ],
+                              ),
+                              Text(
+                                AppTheme.formatCurrency(q.profit, erp.settings.currency),
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

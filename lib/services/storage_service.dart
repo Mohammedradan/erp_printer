@@ -41,7 +41,7 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final service = StorageService(prefs);
     if (!prefs.containsKey(_kInitialized)) {
-      final mode = firstRunMode ?? service.getFirstRunMode() ?? 'demo';
+      final mode = firstRunMode ?? service.getFirstRunMode() ?? 'clean';
       await service.setFirstRunMode(mode);
       await service.seedInitialData(includeDemoRecords: mode != 'clean');
       await prefs.setBool(_kInitialized, true);
@@ -410,6 +410,10 @@ class StorageService {
   ///    عبر [restoreSafetySnapshot] إذا تبيّن أن الملف المستورد خاطئ.
   /// 3. ترحيل محافظ لدفتر قيود العملاء عند استيراد نسخة أقدم لا تحتويه.
   Future<BackupImportResult> importBackupJson(String jsonStr) async {
+    if (jsonStr.length > 50 * 1024 * 1024) {
+      return BackupImportResult.failure('حجم ملف النسخة الاحتياطية يتجاوز الحد المسموح');
+    }
+
     final Map<String, dynamic> data;
     try {
       final decoded = jsonDecode(jsonStr);
@@ -429,6 +433,11 @@ class StorageService {
       );
     }
 
+    final validationError = _validateBackupPayload(data, version);
+    if (validationError != null) {
+      return BackupImportResult.failure(validationError);
+    }
+
     // لقطة أمان قبل أي كتابة مدمّرة.
     try {
       await _prefs.setString(_kLastImportSafety, exportBackupJson());
@@ -443,13 +452,25 @@ class StorageService {
         if (!data.containsKey(field)) continue;
         if (key == _kSettings) {
           final value = data[field];
-          if (value is String) {
+          if (value == null) {
+            await _prefs.remove(key);
+          } else if (value is String) {
             await _prefs.setString(key, value);
+          } else if (value is Map) {
+            await _prefs.setString(key, jsonEncode(value));
           }
         } else {
           final raw = data[field];
-          if (raw is List) {
-            await _prefs.setStringList(key, List<String>.from(raw));
+          if (raw == null) {
+            // null في التصدير الحالي يعني أن القائمة فارغة، لا أن نحتفظ
+            // ببيانات القاعدة السابقة بصمت.
+            await _prefs.setStringList(key, <String>[]);
+          } else if (raw is List) {
+            final serialized = raw
+                .map((item) => item is String ? item : jsonEncode(item))
+                .cast<String>()
+                .toList();
+            await _prefs.setStringList(key, serialized);
           }
         }
       }
@@ -457,6 +478,8 @@ class StorageService {
       final mode = data['firstRunMode'];
       if (mode is String && mode.isNotEmpty) {
         await setFirstRunMode(mode);
+      } else if (data.containsKey('firstRunMode') && version == backupVersion) {
+        await setFirstRunMode('clean');
       }
 
       if (data['customerLedger'] == null) {
@@ -471,6 +494,73 @@ class StorageService {
       restoredUsers: data['users'] is List,
       safetySnapshotTaken: _prefs.containsKey(_kLastImportSafety),
     );
+  }
+
+  /// يتحقق من بنية النسخة ومحتوى سجلاتها قبل أخذ لقطة الأمان أو الكتابة.
+  String? _validateBackupPayload(Map<String, dynamic> data, String version) {
+    final requiredFields = version == backupVersion
+        ? _backupKeys.map((pair) => pair[0]).where((field) => field != 'users').toList()
+        : const ['settings', 'papers', 'machines', 'products', 'finishings', 'inks', 'customers', 'quotations'];
+
+    for (final field in requiredFields) {
+      if (!data.containsKey(field)) {
+        return 'النسخة $version ناقصة للحقل المطلوب: $field';
+      }
+    }
+
+    if (version == backupVersion) {
+      if (!data.containsKey('firstRunMode') ||
+          !data.containsKey('exportDate') ||
+          (data['firstRunMode'] != 'clean' && data['firstRunMode'] != 'demo')) {
+        return 'بيانات إصدار النسخة الحالية غير مكتملة';
+      }
+    }
+
+    final mode = data['firstRunMode'];
+    if (mode != null && mode != 'clean' && mode != 'demo') {
+      return 'وضع التهيئة في النسخة الاحتياطية غير صالح';
+    }
+
+    for (final pair in _backupKeys) {
+      final field = pair[0];
+      if (!data.containsKey(field)) continue; // users مستثنى اختيارياً، وحقول الإصدارات القديمة تُرحّل.
+      final value = data[field];
+      if (field == 'settings') {
+        if (value == null) continue;
+        dynamic decodedSettings = value;
+        if (value is String) {
+          try {
+            decodedSettings = jsonDecode(value);
+          } catch (_) {
+            return 'إعدادات النسخة الاحتياطية تالفة';
+          }
+        } else if (version == backupVersion || value is! Map) {
+          return 'صيغة إعدادات النسخة الاحتياطية غير صالحة';
+        }
+        if (decodedSettings is! Map) {
+          return 'صيغة إعدادات النسخة الاحتياطية غير صالحة';
+        }
+        continue;
+      }
+
+      if (value == null) continue; // null يمثل قائمة فارغة في التصدير.
+      if (value is! List) return 'قائمة النسخة الاحتياطية غير صالحة: $field';
+      for (final item in value) {
+        dynamic decodedItem = item;
+        if (item is String) {
+          try {
+            decodedItem = jsonDecode(item);
+          } catch (_) {
+            return 'سجل تالف في الحقل: $field';
+          }
+        } else if (version == backupVersion || item is! Map) {
+          return 'صيغة سجل غير صالحة في الحقل: $field';
+        }
+        if (decodedItem is! Map) return 'صيغة سجل غير صالحة في الحقل: $field';
+      }
+    }
+
+    return null;
   }
 
   /// هل توجد لقطة أمان من آخر استيراد؟

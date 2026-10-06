@@ -37,6 +37,21 @@ class ErpProvider with ChangeNotifier {
     _loadAll();
   }
 
+  bool get _hasAdminPermission =>
+      !_storage.hasUsers() || _storage.getActiveUser()?.role == UserRole.admin;
+
+  Future<DomainOperationResult?> _requireAdminForOperation(String action) async {
+    if (_hasAdminPermission) return null;
+    await recordAudit(
+      action: 'authorization_denied',
+      targetType: 'permission',
+      details: 'تم رفض العملية الإدارية: $action',
+      success: false,
+      severity: AuditSeverity.warning,
+    );
+    return DomainOperationResult.failure('هذه العملية متاحة للمدير فقط');
+  }
+
   void _loadAll() {
     _settings = _storage.loadSettings();
     _papers = _storage.loadPapers();
@@ -131,10 +146,13 @@ class ErpProvider with ChangeNotifier {
   List<InkItem> get lowStockInks => _inks.where((i) => i.isUnderReorder).toList();
 
   // --- SETTINGS ACTIONS ---
-  Future<void> updateSettings(AppSettings newSettings) async {
+  Future<DomainOperationResult> updateSettings(AppSettings newSettings) async {
+    final permission = await _requireAdminForOperation('update_settings');
+    if (permission != null) return permission;
     _settings = newSettings;
     await _storage.saveSettings(_settings);
     notifyListeners();
+    return DomainOperationResult.success('تم تحديث الإعدادات');
   }
 
   // --- PRICING ENGINE LIVE CALCULATION ---
@@ -300,55 +318,80 @@ class ErpProvider with ChangeNotifier {
   }
 
   // --- ACTIONS FOR DIRECT PRICE MANAGEMENT (قسم إدارة الأسعار الفوري) ---
-  /// تعديل سعر فرخ الورق
-  Future<void> updatePaperPrice(String paperId, double newPrice) async {
-    final idx = _papers.indexWhere((p) => p.id == paperId);
-    if (idx != -1) {
-      _papers[idx].sheetPrice = newPrice;
-      await _storage.savePapers(_papers);
-      notifyListeners();
+  /// تعديل سعر فرخ الورق (للمدير فقط).
+  Future<DomainOperationResult> updatePaperPrice(String paperId, double newPrice) async {
+    final permission = await _requireAdminForOperation('update_paper_price');
+    if (permission != null) return permission;
+    if (!newPrice.isFinite || newPrice < 0) {
+      return DomainOperationResult.failure('سعر الورق غير صالح');
     }
+    final idx = _papers.indexWhere((p) => p.id == paperId);
+    if (idx == -1) return DomainOperationResult.failure('صنف الورق غير موجود');
+    _papers[idx].sheetPrice = newPrice;
+    await _storage.savePapers(_papers);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث سعر الورق');
   }
 
-  /// تعديل معايير وأسعار الماكينة (تكلفة الساعة، السرعة، الهالك)
-  Future<void> updateMachineRates({
+  /// تعديل معايير وأسعار الماكينة (تكلفة الساعة، السرعة، الهالك) للمدير فقط.
+  Future<DomainOperationResult> updateMachineRates({
     required String machineId,
     double? hourlyCost,
     int? speedPerHour,
     double? wastePct,
   }) async {
+    final permission = await _requireAdminForOperation('update_machine_rates');
+    if (permission != null) return permission;
+    if ((hourlyCost != null && (!hourlyCost.isFinite || hourlyCost < 0)) ||
+        (speedPerHour != null && speedPerHour <= 0) ||
+        (wastePct != null && (!wastePct.isFinite || wastePct < 0))) {
+      return DomainOperationResult.failure('قيم تسعير الماكينة غير صالحة');
+    }
     final idx = _machines.indexWhere((m) => m.id == machineId);
-    if (idx != -1) {
-      if (hourlyCost != null) _machines[idx].hourlyCost = hourlyCost;
-      if (speedPerHour != null) _machines[idx].speedPerHour = speedPerHour;
-      if (wastePct != null) _machines[idx].wastePct = wastePct;
-      await _storage.saveMachines(_machines);
-      notifyListeners();
-    }
+    if (idx == -1) return DomainOperationResult.failure('الماكينة غير موجودة');
+    if (hourlyCost != null) _machines[idx].hourlyCost = hourlyCost;
+    if (speedPerHour != null) _machines[idx].speedPerHour = speedPerHour;
+    if (wastePct != null) _machines[idx].wastePct = wastePct;
+    await _storage.saveMachines(_machines);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث أسعار ومعايير الماكينة');
   }
 
-  /// تعديل سعر خدمة التشطيب
-  Future<void> updateFinishingPrice(String finishingId, double newPrice, [String? unit]) async {
+  /// تعديل سعر خدمة التشطيب للمدير فقط.
+  Future<DomainOperationResult> updateFinishingPrice(String finishingId, double newPrice, [String? unit]) async {
+    final permission = await _requireAdminForOperation('update_finishing_price');
+    if (permission != null) return permission;
+    if (!newPrice.isFinite || newPrice < 0) {
+      return DomainOperationResult.failure('سعر التشطيب غير صالح');
+    }
     final idx = _finishings.indexWhere((f) => f.id == finishingId);
-    if (idx != -1) {
-      _finishings[idx].price = newPrice;
-      if (unit != null) _finishings[idx].unit = unit;
-      await _storage.saveFinishings(_finishings);
-      notifyListeners();
-    }
+    if (idx == -1) return DomainOperationResult.failure('خدمة التشطيب غير موجودة');
+    _finishings[idx].price = newPrice;
+    if (unit != null) _finishings[idx].unit = unit;
+    await _storage.saveFinishings(_finishings);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث سعر التشطيب');
   }
 
-  /// تعديل الثوابت العامة للتسعير (سعر البليت، هامش الربح، الضريبة)
-  Future<void> updatePricingConstants({
+  /// تعديل الثوابت العامة للتسعير (سعر البليت، هامش الربح، الضريبة) للمدير فقط.
+  Future<DomainOperationResult> updatePricingConstants({
     double? platePrice,
     double? profitMarginPct,
     double? taxPct,
   }) async {
+    final permission = await _requireAdminForOperation('update_pricing_constants');
+    if (permission != null) return permission;
+    if ((platePrice != null && (!platePrice.isFinite || platePrice < 0)) ||
+        (profitMarginPct != null && (!profitMarginPct.isFinite || profitMarginPct < 0)) ||
+        (taxPct != null && (!taxPct.isFinite || taxPct < 0))) {
+      return DomainOperationResult.failure('ثوابت التسعير غير صالحة');
+    }
     if (platePrice != null) _settings.defaultPlatePrice = platePrice;
     if (profitMarginPct != null) _settings.defaultProfitMarginPct = profitMarginPct;
     if (taxPct != null) _settings.taxPct = taxPct;
     await _storage.saveSettings(_settings);
     notifyListeners();
+    return DomainOperationResult.success('تم تحديث ثوابت التسعير');
   }
 
   // --- QUOTATIONS ACTIONS ---
@@ -913,7 +956,7 @@ class ErpProvider with ChangeNotifier {
     if (!allowedMoves.contains(moveType)) {
       return DomainOperationResult.failure('نوع حركة المخزون غير صالح');
     }
-    if (qtySheets <= 0) {
+    if (!qtySheets.isFinite || qtySheets <= 0) {
       return DomainOperationResult.failure('يجب أن تكون كمية حركة المخزون أكبر من صفر');
     }
 
@@ -922,6 +965,11 @@ class ErpProvider with ChangeNotifier {
       return DomainOperationResult.failure('صنف الورق غير موجود');
     }
     final paper = _papers[pIndex];
+    final isAdmin = _hasAdminPermission;
+    final recordedUnitPrice = isAdmin ? unitPrice : paper.sheetPrice;
+    if (!recordedUnitPrice.isFinite || recordedUnitPrice < 0) {
+      return DomainOperationResult.failure('سعر حركة المخزون غير صالح');
+    }
     if (moveType == 'خروج' && paper.balance + 0.0001 < qtySheets) {
       return DomainOperationResult.failure(
         'رصيد ${paper.displayName} غير كافٍ. المتاح ${paper.balance.toStringAsFixed(0)} فرخ فقط',
@@ -930,7 +978,7 @@ class ErpProvider with ChangeNotifier {
 
     if (moveType == 'دخول') {
       paper.balance += qtySheets;
-      if (unitPrice > 0) paper.sheetPrice = unitPrice;
+      if (isAdmin && recordedUnitPrice > 0) paper.sheetPrice = recordedUnitPrice;
     } else if (moveType == 'خروج') {
       paper.balance -= qtySheets;
     } else {
@@ -947,8 +995,8 @@ class ErpProvider with ChangeNotifier {
       paperType: paper.paperType,
       gsm: paper.gsm,
       qtySheets: qtySheets,
-      unitPrice: unitPrice,
-      totalValue: qtySheets * unitPrice,
+      unitPrice: recordedUnitPrice,
+      totalValue: qtySheets * recordedUnitPrice,
       reference: reference,
       reversalOfId: reversalOfId,
       supplier: supplier ?? paper.supplier,
@@ -1009,8 +1057,11 @@ class ErpProvider with ChangeNotifier {
   }
 
   Future<DomainOperationResult> addPaper(PaperItem paper) async {
-    if (paper.balance < 0) {
-      return DomainOperationResult.failure('لا يمكن إنشاء صنف ورق برصيد سالب');
+    final permission = await _requireAdminForOperation('add_paper');
+    if (permission != null) return permission;
+    if (!paper.balance.isFinite || paper.balance < 0 ||
+        !paper.sheetPrice.isFinite || paper.sheetPrice < 0) {
+      return DomainOperationResult.failure('يجب أن يكون رصيد الورق وسعره صالحين وغير سالبين');
     }
     _papers.add(paper);
     await _storage.savePapers(_papers);
@@ -1019,8 +1070,11 @@ class ErpProvider with ChangeNotifier {
   }
 
   Future<DomainOperationResult> updatePaper(PaperItem paper) async {
-    if (paper.balance < 0) {
-      return DomainOperationResult.failure('لا يمكن حفظ رصيد ورق سالب');
+    final permission = await _requireAdminForOperation('update_paper');
+    if (permission != null) return permission;
+    if (!paper.balance.isFinite || paper.balance < 0 ||
+        !paper.sheetPrice.isFinite || paper.sheetPrice < 0) {
+      return DomainOperationResult.failure('يجب أن يكون رصيد الورق وسعره صالحين وغير سالبين');
     }
     final index = _papers.indexWhere((p) => p.id == paper.id);
     if (index == -1) {
@@ -1040,6 +1094,8 @@ class ErpProvider with ChangeNotifier {
   }
 
   Future<DomainOperationResult> deletePaper(String id) async {
+    final permission = await _requireAdminForOperation('delete_paper');
+    if (permission != null) return permission;
     final paper = _papers.where((item) => item.id == id).toList();
     if (paper.isEmpty) return DomainOperationResult.failure('صنف الورق غير موجود');
     final isReferencedByMove = _stockMoves.any((move) => move.paperId == id);
@@ -1072,13 +1128,18 @@ class ErpProvider with ChangeNotifier {
     if (!allowedMoves.contains(moveType)) {
       return DomainOperationResult.failure('نوع حركة الحبر غير صالح');
     }
-    if (qty <= 0) {
+    if (!qty.isFinite || qty <= 0) {
       return DomainOperationResult.failure('يجب أن تكون كمية الحبر أكبر من صفر');
     }
 
     final iIndex = _inks.indexWhere((ink) => ink.id == inkId);
     if (iIndex == -1) return DomainOperationResult.failure('صنف الحبر غير موجود');
     final ink = _inks[iIndex];
+    final isAdmin = _hasAdminPermission;
+    final recordedUnitPrice = isAdmin ? unitPrice : ink.unitPrice;
+    if (!recordedUnitPrice.isFinite || recordedUnitPrice < 0) {
+      return DomainOperationResult.failure('سعر حركة الحبر غير صالح');
+    }
     if (moveType == 'خروج' && ink.balance + 0.0001 < qty) {
       return DomainOperationResult.failure(
         'رصيد ${ink.name} غير كافٍ. المتاح ${ink.balance.toStringAsFixed(2)} فقط',
@@ -1087,7 +1148,7 @@ class ErpProvider with ChangeNotifier {
 
     if (moveType == 'دخول') {
       ink.balance += qty;
-      if (unitPrice > 0) ink.unitPrice = unitPrice;
+      if (isAdmin && recordedUnitPrice > 0) ink.unitPrice = recordedUnitPrice;
     } else if (moveType == 'خروج') {
       ink.balance -= qty;
     } else {
@@ -1102,8 +1163,8 @@ class ErpProvider with ChangeNotifier {
       inkId: ink.id,
       inkName: '${ink.name} (${ink.kind})',
       qty: qty,
-      unitPrice: unitPrice,
-      totalValue: qty * unitPrice,
+      unitPrice: recordedUnitPrice,
+      totalValue: qty * recordedUnitPrice,
       reference: reference,
       notes: notes,
     );
@@ -1115,13 +1176,19 @@ class ErpProvider with ChangeNotifier {
     return DomainOperationResult.success('تم تسجيل حركة الحبر');
   }
 
-  Future<void> updateInk(InkItem ink) async {
-    final idx = _inks.indexWhere((item) => item.id == ink.id);
-    if (idx != -1) {
-      _inks[idx] = ink;
-      await _storage.saveInks(_inks);
-      notifyListeners();
+  Future<DomainOperationResult> updateInk(InkItem ink) async {
+    final permission = await _requireAdminForOperation('update_ink');
+    if (permission != null) return permission;
+    if (!ink.unitPrice.isFinite || ink.unitPrice < 0 ||
+        !ink.balance.isFinite || ink.balance < 0) {
+      return DomainOperationResult.failure('بيانات الحبر غير صالحة');
     }
+    final idx = _inks.indexWhere((item) => item.id == ink.id);
+    if (idx == -1) return DomainOperationResult.failure('صنف الحبر غير موجود');
+    _inks[idx] = ink;
+    await _storage.saveInks(_inks);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث صنف الحبر');
   }
 
   // --- CUSTOMERS & PAYMENTS / CUSTOMER LEDGER ACTIONS ---
@@ -1304,37 +1371,46 @@ class ErpProvider with ChangeNotifier {
   }
 
   // --- MACHINES, PRODUCTS, FINISHINGS ACTIONS ---
-  Future<void> updateMachine(MachineItem m) async {
+  Future<DomainOperationResult> updateMachine(MachineItem m) async {
+    final permission = await _requireAdminForOperation('update_machine');
+    if (permission != null) return permission;
     final idx = _machines.indexWhere((x) => x.id == m.id);
-    if (idx != -1) {
-      _machines[idx] = m;
-      await _storage.saveMachines(_machines);
-      notifyListeners();
-    }
+    if (idx == -1) return DomainOperationResult.failure('الماكينة غير موجودة');
+    _machines[idx] = m;
+    await _storage.saveMachines(_machines);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث الماكينة');
   }
 
-  Future<void> updateFinishing(FinishingItem f) async {
+  Future<DomainOperationResult> updateFinishing(FinishingItem f) async {
+    final permission = await _requireAdminForOperation('update_finishing');
+    if (permission != null) return permission;
     final idx = _finishings.indexWhere((x) => x.id == f.id);
-    if (idx != -1) {
-      _finishings[idx] = f;
-      await _storage.saveFinishings(_finishings);
-      notifyListeners();
-    }
+    if (idx == -1) return DomainOperationResult.failure('خدمة التشطيب غير موجودة');
+    _finishings[idx] = f;
+    await _storage.saveFinishings(_finishings);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث خدمة التشطيب');
   }
 
-  Future<void> addProduct(ProductTemplate p) async {
+  Future<DomainOperationResult> addProduct(ProductTemplate p) async {
+    final permission = await _requireAdminForOperation('add_product');
+    if (permission != null) return permission;
     _products.add(p);
     await _storage.saveProducts(_products);
     notifyListeners();
+    return DomainOperationResult.success('تمت إضافة المنتج');
   }
 
-  Future<void> updateProduct(ProductTemplate p) async {
+  Future<DomainOperationResult> updateProduct(ProductTemplate p) async {
+    final permission = await _requireAdminForOperation('update_product');
+    if (permission != null) return permission;
     final idx = _products.indexWhere((x) => x.id == p.id);
-    if (idx != -1) {
-      _products[idx] = p;
-      await _storage.saveProducts(_products);
-      notifyListeners();
-    }
+    if (idx == -1) return DomainOperationResult.failure('المنتج غير موجود');
+    _products[idx] = p;
+    await _storage.saveProducts(_products);
+    notifyListeners();
+    return DomainOperationResult.success('تم تحديث المنتج');
   }
 
   /// إعادة تحميل كل القوائم من التخزين (بعد تغييرات تجريها طبقة أخرى).
@@ -1350,29 +1426,42 @@ class ErpProvider with ChangeNotifier {
   ///
   /// [clean] = true يعيد المرجعيات فقط (ورق/ماكينات/منتجات/أحبار) بلا عملاء
   /// ولا عروض ولا أوامر إنتاج ولا مدفوعات وهمية.
-  Future<void> resetToExcelDefaults({bool clean = false}) async {
+  Future<DomainOperationResult> resetToExcelDefaults({bool clean = false}) async {
+    final permission = await _requireAdminForOperation('reset_to_defaults');
+    if (permission != null) return permission;
     await _storage.seedInitialData(includeDemoRecords: !clean);
     await _storage.setFirstRunMode(clean ? 'clean' : 'demo');
     _loadAll();
     notifyListeners();
+    return DomainOperationResult.success('تمت إعادة تهيئة البيانات');
   }
 
   /// يمسح السجلات التجارية الوهمية من قاعدة مزروعة بوضع `demo`.
-  Future<void> clearDemoRecords() async {
+  Future<DomainOperationResult> clearDemoRecords() async {
+    final permission = await _requireAdminForOperation('clear_demo_records');
+    if (permission != null) return permission;
     await _storage.clearDemoRecords();
     _loadAll();
     notifyListeners();
+    return DomainOperationResult.success('تم مسح السجلات التجريبية');
   }
 
   /// تصدير نسخة احتياطية من كافة جداول وبيانات النظام بصيغة JSON.
   ///
   /// الناتج نص صريح؛ التشفير يتم في طبقة الواجهة عبر `BackupCodec.encrypt`.
   String exportDatabaseBackup({bool includeUsers = true}) {
+    if (!_hasAdminPermission) {
+      throw StateError('تصدير النسخ الاحتياطية متاح للمدير فقط');
+    }
     return _storage.exportBackupJson(includeUsers: includeUsers);
   }
 
   /// استيراد نسخة احتياطية مع فحص الإصدار ولقطة أمان قبل الكتابة.
   Future<BackupImportResult> importDatabaseBackup(String jsonStr) async {
+    final permission = await _requireAdminForOperation('import_backup');
+    if (permission != null) {
+      return BackupImportResult.failure(permission.message);
+    }
     final result = await _storage.importBackupJson(jsonStr);
     if (result.isSuccess) {
       _loadAll();
@@ -1383,6 +1472,8 @@ class ErpProvider with ChangeNotifier {
 
   /// التراجع عن آخر استيراد بالعودة إلى لقطة الأمان.
   Future<bool> restorePreImportSnapshot() async {
+    final permission = await _requireAdminForOperation('restore_backup_snapshot');
+    if (permission != null) return false;
     final ok = await _storage.restoreSafetySnapshot();
     if (ok) {
       _loadAll();

@@ -57,6 +57,17 @@ class MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildCurrentView() {
+    final isAdmin = context.read<AuthProvider>().isAdmin;
+    const adminOnlyTabs = {8, 9, 10, 11, 12};
+    if (!isAdmin && adminOnlyTabs.contains(_selectedIndex)) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('هذه الصفحة متاحة للمدير فقط', textAlign: TextAlign.center),
+        ),
+      );
+    }
+
     switch (_selectedIndex) {
       case 0:
         return DashboardView(onNavigate: (idx) => setState(() => _selectedIndex = idx));
@@ -150,7 +161,8 @@ class MainLayoutState extends State<MainLayout> {
           NavItem(index: 9, title: 'تقارير الربحية والتحليل', icon: Icons.analytics_outlined),
       ]),
       NavSection(title: 'البيانات المرجعية والنظام', items: [
-        NavItem(index: 8, title: 'الماكينات والقوالب والتشطيب', icon: Icons.settings_suggest_outlined),
+        if (isAdmin)
+          NavItem(index: 8, title: 'الماكينات والقوالب والتشطيب', icon: Icons.settings_suggest_outlined),
         if (isAdmin)
           NavItem(index: 10, title: 'إعدادات النظام', icon: Icons.settings_outlined),
         if (isAdmin)

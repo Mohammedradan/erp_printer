@@ -6,12 +6,10 @@ import 'package:crypto/crypto.dart';
 
 /// ترميز وفك ترميز النسخ الاحتياطية المشفّرة.
 ///
-/// يبني الحماية من مواد أولية موجودة فعلاً في `pubspec.lock` (حزمة `crypto`
-/// فقط) لأن إضافة حزمة جديدة تتطلب `flutter pub get` على شبكة:
-/// - اشتقاق المفتاح: PBKDF2-HMAC-SHA256 بعدد [kdfIterations] دورة.
-/// - السرية: AES-CTR منفذة كمُولِّد تدفق HMAC-SHA256 (counter mode) بمفتاح مستقل.
-/// - السلامة: HMAC-SHA256 بمفتاح مستقل على (الرأس ‖ المُلح ‖ IV ‖ النص المشفّر).
-/// - الترتيب: Encrypt-then-MAC، ويُتحقق من الوسم قبل أي فك تشفير.
+/// تنسيق قديم مبني على مواد أولية من حزمة `crypto` الموجودة. اسم التنسيق
+/// التاريخي يذكر AES خطأً؛ التنفيذ الفعلي تيار HMAC-SHA256 مخصص وليس AES.
+/// يُبقى الاسم لتوافق النسخ السابقة، ويجب استبدال هذا التنسيق بمكتبة تشفير
+/// مدققة عند ترقية الإصدار. اشتقاق المفاتيح PBKDF2-HMAC-SHA256.
 ///
 /// صيغة الملف (JSON واحد):
 /// ```json
@@ -29,6 +27,8 @@ class BackupCodec {
   static const int _saltBytes = 16;
   static const int _ivBytes = 16;
   static const int _blockBytes = 32; // طول خرج HMAC-SHA256
+  static const int _maxPayloadBytes = 50 * 1024 * 1024;
+  static const int _maxPlaintextBytes = 32 * 1024 * 1024;
 
   static final Random _random = Random.secure();
 
@@ -47,11 +47,14 @@ class BackupCodec {
     if (password.isEmpty) {
       throw ArgumentError('كلمة مرور النسخة الاحتياطية مطلوبة');
     }
+    final data = Uint8List.fromList(utf8.encode(plaintext));
+    if (data.length > _maxPlaintextBytes) {
+      throw ArgumentError('حجم النسخة الاحتياطية يتجاوز الحد المسموح');
+    }
     final salt = _randomBytes(_saltBytes);
     final iv = _randomBytes(_ivBytes);
     final keys = _deriveKeys(password, salt);
 
-    final data = Uint8List.fromList(utf8.encode(plaintext));
     final ct = _xorKeystream(data, keys.encKey, iv);
     final header = utf8.encode('MATBAAERP1');
 
@@ -76,6 +79,9 @@ class BackupCodec {
 
   /// يفك تشفير نسخة محمية. يرمي [BackupCryptoException] عند أي فشل.
   static String decrypt(String payload, String password) {
+    if (payload.length > _maxPayloadBytes) {
+      throw const BackupCryptoException('حجم النسخة المشفّرة يتجاوز الحد المسموح');
+    }
     late final Map<String, dynamic> json;
     try {
       final decoded = jsonDecode(payload);
@@ -87,15 +93,16 @@ class BackupCodec {
       throw const BackupCryptoException('الملف ليس نسخة احتياطية صالحة');
     }
 
-    if (json['format'] != formatName) {
+    if (json['format'] != formatName || json['v'] != 1 ||
+        json['kdf'] != 'pbkdf2-hmac-sha256') {
       throw const BackupCryptoException('صيغة تشفير غير مدعومة');
     }
 
     final iterations = json['iterations'] is int
         ? json['iterations'] as int
         : int.tryParse('${json['iterations']}') ?? 0;
-    if (iterations < 1000) {
-      throw const BackupCryptoException('عدد دورات اشتقاق المفتاح غير صالح');
+    if (iterations != kdfIterations) {
+      throw const BackupCryptoException('عدد دورات اشتقاق المفتاح غير مدعوم');
     }
 
     final Uint8List salt;
@@ -109,6 +116,13 @@ class BackupCodec {
       mac = base64Decode('${json['mac']}');
     } catch (_) {
       throw const BackupCryptoException('حقول النسخة المشفّرة تالفة');
+    }
+
+    if (salt.length != _saltBytes || iv.length != _ivBytes || mac.length != 32) {
+      throw const BackupCryptoException('أطوال حقول النسخة المشفّرة غير صالحة');
+    }
+    if (ct.length > _maxPlaintextBytes) {
+      throw const BackupCryptoException('حجم محتوى النسخة المشفّرة يتجاوز الحد المسموح');
     }
 
     final keys = _deriveKeys(password, salt, iterations: iterations);
