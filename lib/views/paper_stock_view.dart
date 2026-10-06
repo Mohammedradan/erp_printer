@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
 class PaperStockView extends StatefulWidget {
@@ -39,6 +40,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
+    final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
@@ -46,11 +48,11 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. ترويسة تنفيذية فخمة (Executive Hero Header)
-          _buildHeader(erp),
+          _buildHeader(erp, isAdmin),
           const SizedBox(height: 18),
 
           // 2. كروت المؤشرات الإحصائية المتقدمة
-          _buildMetricsGrid(erp),
+          _buildMetricsGrid(erp, isAdmin),
           const SizedBox(height: 20),
 
           // 3. شريط التبويبات المتجاوب
@@ -137,9 +139,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
             animation: _tabController,
             builder: (context, _) {
               if (_tabController.index == 0) {
-                return _buildPaperBalancesSection(erp);
+                return _buildPaperBalancesSection(erp, isAdmin);
               } else {
-                return _buildStockMovesSection(erp);
+                return _buildStockMovesSection(erp, isAdmin);
               }
             },
           ),
@@ -149,7 +151,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   }
 
   // --- ترويسة تنفيذية فخمة (Executive Hero Header) ---
-  Widget _buildHeader(ErpProvider erp) {
+  Widget _buildHeader(ErpProvider erp, bool isAdmin) {
     final totalSheets = erp.papers.fold<double>(0, (s, p) => s + p.balance).toInt();
     final lowStockCount = erp.lowStockPapers.length;
 
@@ -243,7 +245,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               if (!isMobile) ...[
                                 const SizedBox(height: 3),
                                 Text(
-                                  'متابعة حية للأرصدة، كروت الأصناف، أسعار الأفرخ، والوارد والمنصرف لأوامر الإنتاج',
+                                  isAdmin
+                                      ? 'متابعة الأرصدة وأسعار الأفرخ وحركات التوريد والصرف للإنتاج'
+                                      : 'متابعة أرصدة الورق وحركات التوريد والصرف للإنتاج',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.85),
                                     fontSize: 12.5,
@@ -311,8 +315,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                             ),
-                            ElevatedButton.icon(
-                              onPressed: () => _showPaperDialog(null),
+                            if (isAdmin)
+                              ElevatedButton.icon(
+                                onPressed: () => _showPaperDialog(null),
                               icon: const Icon(Icons.add_rounded, size: 16),
                               label: Text(
                                 isMobile ? 'إضافة صنف' : 'إضافة صنف ورق جديد',
@@ -368,14 +373,14 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   }
 
   // --- كروت المؤشرات الإحصائية المتقدمة ---
-  Widget _buildMetricsGrid(ErpProvider erp) {
+  Widget _buildMetricsGrid(ErpProvider erp, bool isAdmin) {
     final totalSheets = erp.papers.fold<double>(0, (s, p) => s + p.balance).toInt();
     final lowStockCount = erp.lowStockPapers.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 650;
-        final crossAxisCount = constraints.maxWidth > 1050 ? 4 : 2;
+        final crossAxisCount = constraints.maxWidth > 1050 ? (isAdmin ? 4 : 3) : 2;
         final aspect = constraints.maxWidth > 1200
             ? 1.75
             : (constraints.maxWidth > 1050
@@ -390,16 +395,17 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: aspect,
           children: [
-            _buildMetricCard(
-              title: 'إجمالي قيمة المخزون',
-              value: AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency),
-              subtitle: '$totalSheets فرخ 100x70',
-              icon: Icons.account_balance_wallet_rounded,
-              color: AppTheme.primaryGreen,
-              bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
-              onTap: null,
-              isCompact: isMobile,
-            ),
+            if (isAdmin)
+              _buildMetricCard(
+                title: 'إجمالي قيمة المخزون',
+                value: AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency),
+                subtitle: '$totalSheets فرخ 100x70',
+                icon: Icons.account_balance_wallet_rounded,
+                color: AppTheme.primaryGreen,
+                bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                onTap: null,
+                isCompact: isMobile,
+              ),
             _buildMetricCard(
               title: 'أصناف تحت حد الطلب',
               value: '$lowStockCount صنف',
@@ -557,7 +563,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // ==========================================
   // تبويب 1: أرصدة وخامات الورق
   // ==========================================
-  Widget _buildPaperBalancesSection(ErpProvider erp) {
+  Widget _buildPaperBalancesSection(ErpProvider erp, bool isAdmin) {
     final categories = ['الكل', ...erp.papers.map((p) => p.category).toSet()];
 
     final filtered = erp.papers.where((p) {
@@ -578,7 +584,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
       filtered.sort((a, b) => b.balance.compareTo(a.balance));
     } else if (_paperSortBy == 'balance_asc') {
       filtered.sort((a, b) => a.balance.compareTo(b.balance));
-    } else if (_paperSortBy == 'price_desc') {
+    } else if (isAdmin && _paperSortBy == 'price_desc') {
       filtered.sort((a, b) => b.sheetPrice.compareTo(a.sheetPrice));
     } else {
       filtered.sort((a, b) => a.displayName.compareTo(b.displayName));
@@ -643,14 +649,15 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _paperSortBy,
+                    value: !isAdmin && _paperSortBy == 'price_desc' ? 'name' : _paperSortBy,
                     isExpanded: isCompact,
                     icon: const Icon(Icons.sort_rounded, size: 18, color: AppTheme.primaryGreen),
-                    items: const [
-                      DropdownMenuItem(value: 'name', child: Text('الاسم أبجدياً')),
-                      DropdownMenuItem(value: 'balance_desc', child: Text('الأعلى رصيداً')),
-                      DropdownMenuItem(value: 'balance_asc', child: Text('الأقل رصيداً')),
-                      DropdownMenuItem(value: 'price_desc', child: Text('الأعلى سعراً')),
+                    items: [
+                      const DropdownMenuItem(value: 'name', child: Text('الاسم أبجدياً')),
+                      const DropdownMenuItem(value: 'balance_desc', child: Text('الأعلى رصيداً')),
+                      const DropdownMenuItem(value: 'balance_asc', child: Text('الأقل رصيداً')),
+                      if (isAdmin)
+                        const DropdownMenuItem(value: 'price_desc', child: Text('الأعلى سعراً')),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _paperSortBy = val);
@@ -746,7 +753,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               ),
             )
           else if (MediaQuery.of(context).size.width < 750)
-            _buildMobilePaperCards(filtered, erp)
+            _buildMobilePaperCards(filtered, erp, isAdmin)
           else
             Container(
               decoration: BoxDecoration(
@@ -761,18 +768,18 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   headingRowHeight: 48,
                   dataRowMinHeight: 52,
                   dataRowMaxHeight: 58,
-                  columns: const [
-                    DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('النوع والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('مقاس الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('ملازم 50x35', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('سعر الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  columns: [
+                    const DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('النوع والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('مقاس الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('ملازم 50x35', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    if (isAdmin) const DataColumn(label: Text('سعر الفرخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('حالة المخزون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    if (isAdmin) const DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
                   ],
                   rows: filtered.map((p) {
                     final status = p.balance <= 0
@@ -796,7 +803,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       DataCell(Text('${p.paperType} (${p.gsm} جم)', style: const TextStyle(fontWeight: FontWeight.w600))),
                       DataCell(Text(p.sheetSize)),
                       DataCell(Text('${p.sheetsPerUnit}')),
-                      DataCell(Text(AppTheme.formatCurrency(p.sheetPrice))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.sheetPrice))),
                       DataCell(
                         Text(
                           '${p.balance.toInt()} فرخ',
@@ -808,7 +815,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       ),
                       DataCell(Text('${p.reorderLevel}')),
                       DataCell(AppTheme.statusBadge(status)),
-                      DataCell(Text(AppTheme.formatCurrency(p.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
                       DataCell(Text(p.supplier ?? '—')),
                       DataCell(
                         Row(
@@ -826,6 +833,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               tooltip: 'كارت الصنف وسجل الحركات',
                               onPressed: () => _showItemStockCardDialog(p, erp),
                             ),
+                            if (isAdmin) ...[
                             // تعديل
                             IconButton(
                               icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.accentGold),
@@ -838,6 +846,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               tooltip: 'حذف الصنف',
                               onPressed: () => _confirmDeletePaper(p, erp),
                             ),
+                            ],
                           ],
                         ),
                       ),
@@ -854,7 +863,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // ==========================================
   // تبويب 2: سجل الحركات المخزنية
   // ==========================================
-  Widget _buildStockMovesSection(ErpProvider erp) {
+  Widget _buildStockMovesSection(ErpProvider erp, bool isAdmin) {
     final filteredMoves = erp.stockMoves.where((m) {
       final matchesType = _moveTypeFilter == 'الكل' || m.moveType == _moveTypeFilter;
       final q = _moveSearchQuery.trim().toLowerCase();
@@ -1033,7 +1042,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               ),
             )
           else if (MediaQuery.of(context).size.width < 750)
-            _buildMobileStockMoveCards(filteredMoves, erp)
+            _buildMobileStockMoveCards(filteredMoves, erp, isAdmin)
           else
             Container(
               decoration: BoxDecoration(
@@ -1048,18 +1057,18 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   headingRowHeight: 48,
                   dataRowMinHeight: 52,
                   dataRowMaxHeight: 58,
-                  columns: const [
-                    DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('الخامة والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('المورد / الجهة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                    DataColumn(label: Text('عكس الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  columns: [
+                    const DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('الخامة والجرام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    if (isAdmin) const DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    if (isAdmin) const DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('المورد / الجهة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                    const DataColumn(label: Text('عكس الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
                   ],
                   rows: filteredMoves.map((m) {
                     return DataRow(cells: [
@@ -1074,8 +1083,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                           color: m.moveType == 'خروج' ? Colors.red : Colors.green.shade800,
                         ),
                       )),
-                      DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                      DataCell(Text(AppTheme.formatCurrency(m.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
                       DataCell(Text(m.reference ?? '—')),
                       DataCell(Text(m.supplier ?? '—')),
                       DataCell(Text(m.notes ?? '—')),
@@ -1151,6 +1160,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // نافذة كارت الصنف وسجل الحركات الخاص به
   // ==========================================
   void _showItemStockCardDialog(PaperItem paper, ErpProvider erp) {
+    final isAdmin = context.read<AuthProvider>().isAdmin;
     final itemMoves = erp.stockMoves.where((m) => m.paperId == paper.id).toList();
     itemMoves.sort((a, b) => a.date.compareTo(b.date)); // ترتيب زمني
 
@@ -1224,8 +1234,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   runSpacing: 8,
                   children: [
                     _buildLedgerMetric('الرصيد الحالي', '${paper.balance.toInt()} فرخ', paper.isUnderReorder ? Colors.red : AppTheme.primaryGreen),
-                    _buildLedgerMetric('سعر الفرخ', AppTheme.formatCurrency(paper.sheetPrice), AppTheme.darkSlate),
-                    _buildLedgerMetric('قيمة المخزون', AppTheme.formatCurrency(paper.totalValue), const Color(0xFF0284C7)),
+                    if (isAdmin) _buildLedgerMetric('سعر الفرخ', AppTheme.formatCurrency(paper.sheetPrice), AppTheme.darkSlate),
+                    if (isAdmin) _buildLedgerMetric('قيمة المخزون', AppTheme.formatCurrency(paper.totalValue), const Color(0xFF0284C7)),
                     _buildLedgerMetric('حالة الصنف', paper.isUnderReorder ? 'إعادة طلب' : 'طبيعي', paper.isUnderReorder ? Colors.red : Colors.green),
                   ],
                 ),
@@ -1248,15 +1258,15 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
                             headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
-                            columns: const [
-                              DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('المرجع / البيان', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('المورد / المستلم', style: TextStyle(fontWeight: FontWeight.bold))),
+                            columns: [
+                              const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                              const DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                              const DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                              const DataColumn(label: Text('الكمية (فرخ)', style: TextStyle(fontWeight: FontWeight.bold))),
+                              if (isAdmin) const DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
+                              if (isAdmin) const DataColumn(label: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold))),
+                              const DataColumn(label: Text('المرجع / البيان', style: TextStyle(fontWeight: FontWeight.bold))),
+                              const DataColumn(label: Text('المورد / المستلم', style: TextStyle(fontWeight: FontWeight.bold))),
                             ],
                             rows: itemMoves.map((m) {
                               return DataRow(cells: [
@@ -1270,8 +1280,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                     color: m.moveType == 'خروج' ? Colors.red : Colors.green.shade800,
                                   ),
                                 )),
-                                DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                                DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
+                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
+                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
                                 DataCell(Text(m.reference ?? '—')),
                                 DataCell(Text(m.supplier ?? '—')),
                               ]);
@@ -1317,6 +1327,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // ==========================================
   void _showPaperDialog(PaperItem? paperToEdit) {
     final isEditing = paperToEdit != null;
+    final isAdmin = context.read<AuthProvider>().isAdmin;
+    if (!isAdmin) return;
     final erp = context.read<ErpProvider>();
 
     final categoriesList = ['أوفست', 'كوشيه', 'بريستول', 'دوبلكس', 'كرافت', 'NCR', 'ورق مكربن'];
@@ -1463,17 +1475,19 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: priceCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'سعر الفرخ الواحد',
-                              prefixIcon: Icon(Icons.payments_outlined, size: 18),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: priceCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'سعر الفرخ الواحد',
+                                prefixIcon: Icon(Icons.payments_outlined, size: 18),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -1723,10 +1737,11 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // ==========================================
   void _showNewMovementDialog(PaperItem? defaultPaper) {
     final erp = context.read<ErpProvider>();
+    final isAdmin = context.read<AuthProvider>().isAdmin;
     PaperItem? selectedPaper = defaultPaper ?? (erp.papers.isNotEmpty ? erp.papers.first : null);
     String moveType = 'دخول';
     final qtyCtrl = TextEditingController(text: '1000');
-    final priceCtrl = TextEditingController(text: '${selectedPaper?.sheetPrice.toInt() ?? 0}');
+    final priceCtrl = TextEditingController(text: isAdmin ? '${selectedPaper?.sheetPrice.toInt() ?? 0}' : '0');
     final refCtrl = TextEditingController();
     final supplierCtrl = TextEditingController(text: selectedPaper?.supplier ?? '');
     final notesCtrl = TextEditingController();
@@ -1797,7 +1812,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         setDialogState(() {
                           selectedPaper = p;
                           if (p != null) {
-                            priceCtrl.text = '${p.sheetPrice.toInt()}';
+                            if (isAdmin) priceCtrl.text = '${p.sheetPrice.toInt()}';
                             supplierCtrl.text = p.supplier ?? '';
                           }
                         });
@@ -1833,17 +1848,19 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: priceCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'سعر الفرخ الواحد',
-                              prefixIcon: Icon(Icons.payments_outlined, size: 18),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: priceCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'سعر الفرخ الواحد',
+                                prefixIcon: Icon(Icons.payments_outlined, size: 18),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -1896,7 +1913,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             onPressed: () async {
                               if (selectedPaper == null) return;
                               final qty = double.tryParse(qtyCtrl.text) ?? 0;
-                              final price = double.tryParse(priceCtrl.text) ?? selectedPaper!.sheetPrice;
+                              final price = isAdmin ? (double.tryParse(priceCtrl.text) ?? selectedPaper!.sheetPrice) : selectedPaper!.sheetPrice;
 
                               final result = await erp.addStockMove(
                                 moveType: moveType,
@@ -2046,7 +2063,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
   // ==========================================
   // العرض المتجاوب للهاتف المحمول (Mobile Cards)
   // ==========================================
-  Widget _buildMobilePaperCards(List<PaperItem> papers, ErpProvider erp) {
+  Widget _buildMobilePaperCards(List<PaperItem> papers, ErpProvider erp, bool isAdmin) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -2164,10 +2181,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     const Divider(height: 12, thickness: 0.5),
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice), isBold: true),
-                        ),
-                        const SizedBox(width: 8),
+                        if (isAdmin) ...[
+                          Expanded(
+                            child: _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice), isBold: true),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         Expanded(
                           child: _buildMobileField('مقاس الفرخ:', p.sheetSize),
                         ),
@@ -2179,10 +2198,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         Expanded(
                           child: _buildMobileField('ملازم 50x35:', '${p.sheetsPerUnit} ملازم'),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue)),
-                        ),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue)),
+                          ),
+                        ],
                       ],
                     ),
                     if (p.supplier != null && p.supplier!.isNotEmpty) ...[
@@ -2230,18 +2251,20 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _showItemStockCardDialog(p, erp),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 19, color: AppTheme.accentGold),
-                    tooltip: 'تعديل',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _showPaperDialog(p),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Colors.red),
-                    tooltip: 'حذف',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _confirmDeletePaper(p, erp),
-                  ),
+                  if (isAdmin) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit_rounded, size: 19, color: AppTheme.accentGold),
+                      tooltip: 'تعديل',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _showPaperDialog(p),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Colors.red),
+                      tooltip: 'حذف',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _confirmDeletePaper(p, erp),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -2272,7 +2295,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     );
   }
 
-  Widget _buildMobileStockMoveCards(List<StockMove> moves, ErpProvider erp) {
+  Widget _buildMobileStockMoveCards(List<StockMove> moves, ErpProvider erp, bool isAdmin) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -2335,11 +2358,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         color: isOut ? Colors.red : Colors.green.shade800,
                       ),
                     ),
-                    Text('السعر: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                    Text(
-                      'الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.darkSlate),
-                    ),
+                    if (isAdmin) ...[
+                      Text('السعر: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                      Text(
+                        'الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.darkSlate),
+                      ),
+                    ],
                   ],
                 ),
               ),

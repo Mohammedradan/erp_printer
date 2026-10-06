@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/pricing_engine_service.dart';
 import '../services/pdf_export_service.dart';
@@ -375,6 +376,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   @override
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
+    final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     if (erp.papers.isEmpty || erp.machines.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -386,8 +388,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 650;
         final isWide = constraints.maxWidth >= 950;
-        final inputsWidget = _buildInputsSection(erp);
-        final outputsWidget = _buildOutputsSection(result, erp);
+        final inputsWidget = _buildInputsSection(erp, isAdmin);
+        final outputsWidget = _buildOutputsSection(result, erp, isAdmin);
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isMobile ? 12 : 20),
@@ -423,8 +425,9 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      OutlinedButton.icon(
-                        onPressed: () {
+                      if (isAdmin)
+                        OutlinedButton.icon(
+                          onPressed: () {
                           if (widget.onNavigate != null) {
                             widget.onNavigate!(11); // فتح قسم إدارة الأسعار
                           }
@@ -455,7 +458,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               SizedBox(height: isMobile ? 12 : 16),
 
               // كرت الملخص الفوري للتسعير (يظهر بأعلى الجوال مباشرة لتحديث النتيجة الحية)
-              if (isMobile) _buildMobileLiveSummary(result, erp),
+              if (isMobile) _buildMobileLiveSummary(result, erp, isAdmin),
 
               // شريط اختيار قالب المنتج (Tabs)
               Container(
@@ -507,7 +510,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
     );
   }
 
-  Widget _buildMobileLiveSummary(PricingResult result, ErpProvider erp) {
+  Widget _buildMobileLiveSummary(PricingResult result, ErpProvider erp, bool isAdmin) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -563,31 +566,33 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Divider(color: Colors.white24, height: 1),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'التكلفة: ${AppTheme.formatCurrency(result.lineTotalCost)}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          if (isAdmin) ...[
+            const SizedBox(height: 8),
+            const Divider(color: Colors.white24, height: 1),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'التكلفة: ${AppTheme.formatCurrency(result.lineTotalCost)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'الربح: ${AppTheme.formatCurrency(result.profit)} (${result.profitMarginPct.toStringAsFixed(0)}%)',
-                  style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'الربح: ${AppTheme.formatCurrency(result.profit)} (${result.profitMarginPct.toStringAsFixed(0)}%)',
+                    style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.end,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -643,21 +648,21 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   // =========================================================================
   // قسم المدخلات التفاعلي حسب القالب
   // =========================================================================
-  Widget _buildInputsSection(ErpProvider erp) {
+  Widget _buildInputsSection(ErpProvider erp, bool isAdmin) {
     return Column(
       children: [
-        if (_activeTemplate == ProductPricingType.book) _buildBookInputs(erp),
-        if (_activeTemplate == ProductPricingType.ncr) _buildNcrInputs(erp),
-        if (_activeTemplate == ProductPricingType.card) _buildCardInputs(erp),
-        if (_activeTemplate == ProductPricingType.custom) _buildCustomInputs(erp),
+        if (_activeTemplate == ProductPricingType.book) _buildBookInputs(erp, isAdmin),
+        if (_activeTemplate == ProductPricingType.ncr) _buildNcrInputs(erp, isAdmin),
+        if (_activeTemplate == ProductPricingType.card) _buildCardInputs(erp, isAdmin),
+        if (_activeTemplate == ProductPricingType.custom) _buildCustomInputs(erp, isAdmin),
         const SizedBox(height: 16),
-        _buildPricingConstantsCard(),
+        if (isAdmin) _buildPricingConstantsCard(),
       ],
     );
   }
 
   // مدخلات قالب الكتاب
-  Widget _buildBookInputs(ErpProvider erp) {
+  Widget _buildBookInputs(ErpProvider erp, bool isAdmin) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -716,7 +721,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'ورق المتن الداخلي'),
               items: erp.papers.map((p) {
-                return DropdownMenuItem(value: p, child: Text('${p.displayName} (${p.sheetPrice} ر.ي)'));
+                return DropdownMenuItem(value: p, child: Text(isAdmin ? '${p.displayName} (${p.sheetPrice} ر.ي)' : p.displayName));
               }).toList(),
               onChanged: (p) => setState(() => _bookInnerPaper = p),
             );
@@ -1071,7 +1076,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   }
 
   // مدخلات قالب الـ NCR
-  Widget _buildNcrInputs(ErpProvider erp) {
+  Widget _buildNcrInputs(ErpProvider erp, bool isAdmin) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -1314,7 +1319,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                                     labelText: 'خامة النسخة ${i + 1}',
                                   ),
                                   items: erp.papers.where((p) => p.category == 'NCR' || p.category == 'ورق مكربن').map((p) {
-                                    return DropdownMenuItem(value: p, child: Text('${p.displayName} (${p.sheetPrice} ر.ي)'));
+                                    return DropdownMenuItem(value: p, child: Text(isAdmin ? '${p.displayName} (${p.sheetPrice} ر.ي)' : p.displayName));
                                   }).toList(),
                                   onChanged: (p) => setState(() => _ncrPapers[i] = p),
                                 ),
@@ -1415,7 +1420,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   }
 
   // مدخلات قالب الكرت
-  Widget _buildCardInputs(ErpProvider erp) {
+  Widget _buildCardInputs(ErpProvider erp, bool isAdmin) {
     final imposition = PricingEngineService.calculateImposition(
       sheetWidthCm: _cardSheetSize.contains('50') ? 50.0 : 100.0,
       sheetHeightCm: _cardSheetSize.contains('35') ? 35.0 : 70.0,
@@ -1568,7 +1573,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     isExpanded: true,
                     decoration: const InputDecoration(labelText: 'خامة ورق الكرت'),
                     items: erp.papers.map((p) {
-                      return DropdownMenuItem(value: p, child: Text('${p.displayName} (${p.sheetPrice} ر.ي)'));
+                      return DropdownMenuItem(value: p, child: Text(isAdmin ? '${p.displayName} (${p.sheetPrice} ر.ي)' : p.displayName));
                     }).toList(),
                     onChanged: (p) => setState(() => _cardPaper = p),
                   ),
@@ -1632,7 +1637,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                           isExpanded: true,
                           decoration: const InputDecoration(labelText: 'خامة ورق الكرت'),
                           items: erp.papers.map((p) {
-                            return DropdownMenuItem(value: p, child: Text('${p.displayName} (${p.sheetPrice} ر.ي)'));
+                            return DropdownMenuItem(value: p, child: Text(isAdmin ? '${p.displayName} (${p.sheetPrice} ر.ي)' : p.displayName));
                           }).toList(),
                           onChanged: (p) => setState(() => _cardPaper = p),
                         ),
@@ -1722,7 +1727,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   }
 
   // مدخلات قالب مخصص
-  Widget _buildCustomInputs(ErpProvider erp) {
+  Widget _buildCustomInputs(ErpProvider erp, bool isAdmin) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -1898,7 +1903,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
   // =========================================================================
   // قسم النتائج ومسار الحساب التفصيلي
   // =========================================================================
-  Widget _buildOutputsSection(PricingResult result, ErpProvider erp) {
+  Widget _buildOutputsSection(PricingResult result, ErpProvider erp, bool isAdmin) {
     return Column(
       children: [
         // كرت الإجماليات الكبرى
@@ -1970,8 +1975,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                   runSpacing: 10,
                   alignment: WrapAlignment.spaceBetween,
                   children: [
-                    _buildMiniMetric('التكلفة الصناعية', AppTheme.formatCurrency(result.lineTotalCost)),
-                    _buildMiniMetric('صافي الربح', AppTheme.formatCurrency(result.profit), valueColor: const Color(0xFF4ADE80)),
+                    if (isAdmin) _buildMiniMetric('التكلفة الصناعية', AppTheme.formatCurrency(result.lineTotalCost)),
+                    if (isAdmin) _buildMiniMetric('صافي الربح', AppTheme.formatCurrency(result.profit), valueColor: const Color(0xFF4ADE80)),
                     if (result.taxPct > 0)
                       _buildMiniMetric('الضريبة (${result.taxPct}%)', AppTheme.formatCurrency(result.taxAmount)),
                     if (result.taxPct > 0)
@@ -1982,10 +1987,10 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        if (isAdmin) const SizedBox(height: 16),
 
-        // بطاقة مسار الحساب المتسلسل (Step-by-Step Pipeline)
-        Card(
+        // بطاقة مسار الحساب المتسلسل (Step-by-Step Pipeline) — للمدير فقط.
+        if (isAdmin) Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -2345,26 +2350,28 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                                 ),
                               ],
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1, color: Color(0xFFDCFCE7)),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(Icons.trending_up_rounded, color: Color(0xFF16A34A), size: 18),
-                                    SizedBox(width: 8),
-                                    Text('صافي الربح المتوقع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF16A34A))),
-                                  ],
-                                ),
-                                Text(
-                                  AppTheme.formatCurrency(result.profit, erp.settings.currency),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF16A34A)),
-                                ),
-                              ],
-                            ),
+                            if (context.read<AuthProvider>().isAdmin) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Divider(height: 1, color: Color(0xFFDCFCE7)),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.trending_up_rounded, color: Color(0xFF16A34A), size: 18),
+                                      SizedBox(width: 8),
+                                      Text('صافي الربح المتوقع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF16A34A))),
+                                    ],
+                                  ),
+                                  Text(
+                                    AppTheme.formatCurrency(result.profit, erp.settings.currency),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF16A34A)),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

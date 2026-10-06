@@ -10,7 +10,7 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      final storage = await StorageService.init();
+      final storage = await StorageService.init(firstRunMode: 'demo');
       erp = ErpProvider(storage);
     });
 

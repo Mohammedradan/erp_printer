@@ -185,45 +185,7 @@ class PdfExportService {
 
             pw.SizedBox(height: 16),
 
-            // جدول تفصيل التكاليف والمراحل (إذا كان متوفراً)
-            if (pricing != null && pricing.stepDetails.isNotEmpty) ...[
-              pw.Text(
-                'تفصيل المواصفات والمراحل التشغيلية',
-                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaryColor),
-              ),
-              pw.SizedBox(height: 6),
-              pw.Table(
-                border: pw.TableBorder.all(color: borderLight, width: 0.5),
-                children: [
-                  // ترويسة الجدول
-                  pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: primaryColor),
-                    children: [
-                      _buildHeaderCell('م', width: 25),
-                      _buildHeaderCell('المرحلة / البند'),
-                      _buildHeaderCell('المواصفات والكميات المحتسبة'),
-                      _buildHeaderCell('التكلفة ($currency)', width: 100),
-                    ],
-                  ),
-                  ...pricing.stepDetails.asMap().entries.map((entry) {
-                    final idx = entry.key + 1;
-                    final step = entry.value;
-                    return pw.TableRow(
-                      decoration: pw.BoxDecoration(
-                        color: idx.isEven ? bgLight : PdfColors.white,
-                      ),
-                      children: [
-                        _buildDataCell('$idx', align: pw.TextAlign.center),
-                        _buildDataCell(step.title, bold: true),
-                        _buildDataCell(step.description),
-                        _buildDataCell('${numFormat.format(step.cost)} $currency', align: pw.TextAlign.left),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-              pw.SizedBox(height: 14),
-            ],
+            // لا تُصدّر تفاصيل التكلفة أو خطوات الإنتاج إلى نسخة العميل.
 
             // بطاقة الملخص المالي النهائي
             pw.Row(
@@ -237,8 +199,6 @@ class PdfExportService {
                   ),
                   child: pw.Column(
                     children: [
-                      _buildSummaryRow('إجمالي تكلفة الإنتاج:', '${numFormat.format(quotation.totalCost)} $currency'),
-                      _buildSummaryRow('هامش الربح التشغيلي:', '${numFormat.format(quotation.profit)} $currency'),
                       _buildSummaryRow('المبلغ قبل الضريبة:', '${numFormat.format(quotation.quoteAmount)} $currency', isBold: true),
                       if (pricing != null && pricing.taxAmount > 0) ...[
                         _buildSummaryRow('ضريبة القيمة المضافة (${pricing.taxPct.toInt()}%):', '${numFormat.format(pricing.taxAmount)} $currency'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
 class InkStockView extends StatefulWidget {
@@ -15,6 +16,7 @@ class _InkStockViewState extends State<InkStockView> {
   @override
   Widget build(BuildContext context) {
     final erp = context.watch<ErpProvider>();
+    final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     final isMobile = MediaQuery.of(context).size.width < 600;
     final underReorderCount = erp.inks.where((i) => i.isUnderReorder).length;
@@ -121,17 +123,18 @@ class _InkStockViewState extends State<InkStockView> {
                               style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(20),
+                          if (isAdmin)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'القيمة: ${AppTheme.formatCurrency(totalInkValue, erp.settings.currency)}',
+                                style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
+                              ),
                             ),
-                            child: Text(
-                              'القيمة: ${AppTheme.formatCurrency(totalInkValue, erp.settings.currency)}',
-                              style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
-                            ),
-                          ),
                           if (underReorderCount > 0)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -193,7 +196,7 @@ class _InkStockViewState extends State<InkStockView> {
                     mainAxisSpacing: 12,
                     childAspectRatio: aspectRatio,
                   ),
-                  itemBuilder: (context, idx) => _buildInkCard(erp.inks[idx]),
+                  itemBuilder: (context, idx) => _buildInkCard(erp.inks[idx], isAdmin),
                 );
               }
 
@@ -213,11 +216,11 @@ class _InkStockViewState extends State<InkStockView> {
                       mainAxisSpacing: 10,
                       childAspectRatio: 1.25,
                     ),
-                    itemBuilder: (context, idx) => _buildInkCard(erp.inks[idx]),
+                    itemBuilder: (context, idx) => _buildInkCard(erp.inks[idx], isAdmin),
                   ),
                   if (hasOddRemainder) ...[
                     const SizedBox(height: 10),
-                    _buildHorizontalInkCard(erp.inks.last),
+                    _buildHorizontalInkCard(erp.inks.last, isAdmin),
                   ],
                 ],
               );
@@ -243,33 +246,33 @@ class _InkStockViewState extends State<InkStockView> {
                   ),
                   const Divider(),
                   if (MediaQuery.of(context).size.width < 750)
-                    _buildMobileInkDetails(erp.inks)
+                    _buildMobileInkDetails(erp.inks, isAdmin)
                   else
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
                         headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                        columns: const [
-                          DataColumn(label: Text('الحبر واللون', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('الرمز', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('قيمة المخزون', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold))),
+                        columns: [
+                          const DataColumn(label: Text('الحبر واللون', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('الرمز', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (isAdmin) const DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('حد الطلب', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (isAdmin) const DataColumn(label: Text('قيمة المخزون', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: erp.inks.map((i) {
                           return DataRow(cells: [
                             DataCell(Text(i.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                             DataCell(Text(i.colorCode)),
                             DataCell(Text(i.kind)),
-                            DataCell(Text(AppTheme.formatCurrency(i.unitPrice))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.unitPrice))),
                             DataCell(Text('${i.balance} كجم', style: TextStyle(fontWeight: FontWeight.bold, color: i.isUnderReorder ? Colors.red : Colors.black87))),
                             DataCell(Text('${i.reorderLevel}')),
                             DataCell(AppTheme.statusBadge(i.isUnderReorder ? 'إعادة طلب' : 'طبيعي')),
-                            DataCell(Text(AppTheme.formatCurrency(i.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
                             DataCell(Text(i.supplier ?? '—')),
                           ]);
                         }).toList(),
@@ -304,22 +307,22 @@ class _InkStockViewState extends State<InkStockView> {
                       child: Center(child: Text('لا توجد حركات أحبار مسجلة بعد')),
                     )
                   else if (MediaQuery.of(context).size.width < 750)
-                    _buildMobileInkMoveCards(erp.inkMoves)
+                    _buildMobileInkMoveCards(erp.inkMoves, isAdmin)
                   else
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
                         headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                        columns: const [
-                          DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('الحبر', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold))),
+                        columns: [
+                          const DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('الحبر', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (isAdmin) const DataColumn(label: Text('سعر الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (isAdmin) const DataColumn(label: Text('القيمة الإجمالية', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('ملاحظات', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: erp.inkMoves.map((m) {
                           return DataRow(cells: [
@@ -328,8 +331,8 @@ class _InkStockViewState extends State<InkStockView> {
                             DataCell(AppTheme.statusBadge(m.moveType)),
                             DataCell(Text(m.inkName)),
                             DataCell(Text('${m.qty}')),
-                            DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                            DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
                             DataCell(Text(m.reference ?? '—')),
                             DataCell(Text(m.notes ?? '—')),
                           ]);
@@ -345,7 +348,7 @@ class _InkStockViewState extends State<InkStockView> {
     );
   }
 
-  Widget _buildHorizontalInkCard(InkItem ink) {
+  Widget _buildHorizontalInkCard(InkItem ink, bool isAdmin) {
     Color inkColor = Colors.black87;
     if (ink.colorCode == 'C') inkColor = Colors.cyan.shade700;
     if (ink.colorCode == 'M') inkColor = Colors.pink.shade600;
@@ -373,12 +376,13 @@ class _InkStockViewState extends State<InkStockView> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
-                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  if (isAdmin)
+                    Text(
+                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
+                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -404,7 +408,7 @@ class _InkStockViewState extends State<InkStockView> {
     );
   }
 
-  Widget _buildInkCard(InkItem ink) {
+  Widget _buildInkCard(InkItem ink, bool isAdmin) {
     Color inkColor = Colors.black87;
     if (ink.colorCode == 'C') inkColor = Colors.cyan.shade700;
     if (ink.colorCode == 'M') inkColor = Colors.pink.shade600;
@@ -453,12 +457,13 @@ class _InkStockViewState extends State<InkStockView> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  if (isAdmin)
+                    Text(
+                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -468,7 +473,7 @@ class _InkStockViewState extends State<InkStockView> {
     );
   }
 
-  Widget _buildMobileInkDetails(List<InkItem> inks) {
+  Widget _buildMobileInkDetails(List<InkItem> inks, bool isAdmin) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -508,8 +513,9 @@ class _InkStockViewState extends State<InkStockView> {
                 children: [
                   Text('${i.balance} كجم',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: i.isUnderReorder ? Colors.red : AppTheme.darkSlate)),
-                  Text(AppTheme.formatCurrency(i.totalValue),
-                      style: const TextStyle(fontSize: 11, color: AppTheme.primaryGreen, fontWeight: FontWeight.w600)),
+                  if (isAdmin)
+                    Text(AppTheme.formatCurrency(i.totalValue),
+                        style: const TextStyle(fontSize: 11, color: AppTheme.primaryGreen, fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -519,7 +525,7 @@ class _InkStockViewState extends State<InkStockView> {
     );
   }
 
-  Widget _buildMobileInkMoveCards(List<InkMove> moves) {
+  Widget _buildMobileInkMoveCards(List<InkMove> moves, bool isAdmin) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -567,13 +573,14 @@ class _InkStockViewState extends State<InkStockView> {
                 ],
               ),
               const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('سعر الوحدة: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                  Text('الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate)),
-                ],
-              ),
+              if (isAdmin)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('سعر الوحدة: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    Text('الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate)),
+                  ],
+                ),
               if (m.reference != null && m.reference!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text('المرجع: ${m.reference}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
@@ -587,10 +594,11 @@ class _InkStockViewState extends State<InkStockView> {
 
   void _showInkMoveDialog() {
     final erp = context.read<ErpProvider>();
+    final isAdmin = context.read<AuthProvider>().isAdmin;
     InkItem? selectedInk = erp.inks.isNotEmpty ? erp.inks.first : null;
     String moveType = 'دخول';
     final qtyCtrl = TextEditingController(text: '5');
-    final priceCtrl = TextEditingController(text: '${selectedInk?.unitPrice.toInt() ?? 0}');
+    final priceCtrl = TextEditingController(text: isAdmin ? '${selectedInk?.unitPrice.toInt() ?? 0}' : '0');
     final refCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
 
@@ -615,7 +623,7 @@ class _InkStockViewState extends State<InkStockView> {
                     onChanged: (i) {
                       setDialogState(() {
                         selectedInk = i;
-                        if (i != null) priceCtrl.text = '${i.unitPrice.toInt()}';
+                        if (isAdmin && i != null) priceCtrl.text = '${i.unitPrice.toInt()}';
                       });
                     },
                   ),
@@ -641,14 +649,16 @@ class _InkStockViewState extends State<InkStockView> {
                           decoration: const InputDecoration(labelText: 'الكمية (علبة/كجم)'),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: priceCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'سعر الوحدة'),
+                      if (isAdmin) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: priceCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'سعر الوحدة'),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -671,7 +681,7 @@ class _InkStockViewState extends State<InkStockView> {
               onPressed: () async {
                 if (selectedInk == null) return;
                 final qty = double.tryParse(qtyCtrl.text) ?? 0;
-                final price = double.tryParse(priceCtrl.text) ?? selectedInk!.unitPrice;
+                final price = isAdmin ? (double.tryParse(priceCtrl.text) ?? selectedInk!.unitPrice) : selectedInk!.unitPrice;
 
                 final result = await erp.addInkMove(
                   moveType: moveType,

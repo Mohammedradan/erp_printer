@@ -64,7 +64,7 @@ class DashboardView extends StatelessWidget {
           ],
 
           // 3. شبكة المؤشرات الحيوية الرئيسية (KPI Cards)
-          _buildKpiSection(erp, totalCollected, collectionPct),
+          _buildKpiSection(erp, totalCollected, collectionPct, auth.isAdmin),
           const SizedBox(height: 20),
 
           // 4. شريط نبض خط الإنتاج والماكينات (Production Pulse)
@@ -86,7 +86,7 @@ class DashboardView extends StatelessWidget {
               final ordersCard = _buildActiveOrdersSection(erp);
               final rightColumn = Column(
                 children: [
-                  _buildQuickActionsCard(),
+                  _buildQuickActionsCard(isAdmin: auth.isAdmin),
                   const SizedBox(height: 18),
                   _buildRecentQuotationsCard(erp),
                 ],
@@ -410,11 +410,11 @@ class DashboardView extends StatelessWidget {
   // =========================================================================
   // 3. كروت المؤشرات الحيوية الرئيسية
   // =========================================================================
-  Widget _buildKpiSection(ErpProvider erp, double totalCollected, double collectionPct) {
+  Widget _buildKpiSection(ErpProvider erp, double totalCollected, double collectionPct, bool isAdmin) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 650;
-        final crossAxisCount = constraints.maxWidth > 1100 ? 4 : 2;
+        final crossAxisCount = constraints.maxWidth > 1100 ? (isAdmin ? 4 : 2) : 2;
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
@@ -435,30 +435,32 @@ class DashboardView extends StatelessWidget {
               onTap: () => onNavigate(2),
               isCompact: isMobile,
             ),
-            _buildModernStatCard(
-              title: 'إجمالي الأرباح الصافية',
-              value: AppTheme.formatCurrency(erp.totalProfit, erp.settings.currency),
-              subtext: 'بعد خصم الخامات',
-              badgeText: '${erp.overallMarginPct.toStringAsFixed(1)}%',
-              icon: Icons.trending_up_rounded,
-              accentColor: const Color(0xFF059669),
-              gradientColors: const [Color(0xFFECFDF5), Color(0xFFD1FAE5)],
-              onTap: () => onNavigate(9),
-              isCompact: isMobile,
-            ),
-            _buildModernStatCard(
-              title: 'قيمة المخزون الإجمالي',
-              value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
-              subtext: isMobile
-                  ? 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)}'
-                  : 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)} | أحبار: ${AppTheme.formatCurrency(erp.totalInkInventoryValue)}',
-              badgeText: '${erp.papers.length + erp.inks.length} صنف',
-              icon: Icons.inventory_2_rounded,
-              accentColor: const Color(0xFF0284C7),
-              gradientColors: const [Color(0xFFF0F9FF), Color(0xFFE0F2FE)],
-              onTap: () => onNavigate(4),
-              isCompact: isMobile,
-            ),
+            if (isAdmin)
+              _buildModernStatCard(
+                title: 'إجمالي الأرباح الصافية',
+                value: AppTheme.formatCurrency(erp.totalProfit, erp.settings.currency),
+                subtext: 'بعد خصم الخامات',
+                badgeText: '${erp.overallMarginPct.toStringAsFixed(1)}%',
+                icon: Icons.trending_up_rounded,
+                accentColor: const Color(0xFF059669),
+                gradientColors: const [Color(0xFFECFDF5), Color(0xFFD1FAE5)],
+                onTap: () => onNavigate(9),
+                isCompact: isMobile,
+              ),
+            if (isAdmin)
+              _buildModernStatCard(
+                title: 'قيمة المخزون الإجمالي',
+                value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
+                subtext: isMobile
+                    ? 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)}'
+                    : 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)} | أحبار: ${AppTheme.formatCurrency(erp.totalInkInventoryValue)}',
+                badgeText: '${erp.papers.length + erp.inks.length} صنف',
+                icon: Icons.inventory_2_rounded,
+                accentColor: const Color(0xFF0284C7),
+                gradientColors: const [Color(0xFFF0F9FF), Color(0xFFE0F2FE)],
+                onTap: () => onNavigate(4),
+                isCompact: isMobile,
+              ),
             _buildModernStatCard(
               title: 'ذمم العملاء المستحقة',
               value: AppTheme.formatCurrency(erp.totalReceivables, erp.settings.currency),
@@ -862,7 +864,7 @@ class DashboardView extends StatelessWidget {
   // =========================================================================
   // 6. مركز العمليات السريعة الحديث
   // =========================================================================
-  Widget _buildQuickActionsCard() {
+  Widget _buildQuickActionsCard({required bool isAdmin}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -932,12 +934,13 @@ class DashboardView extends StatelessWidget {
                   color: const Color(0xFF059669),
                   onTap: () => onNavigate(7),
                 ),
-                _buildActionButton(
-                  icon: Icons.insights_rounded,
-                  title: 'تقارير الأرباح',
-                  color: const Color(0xFFDC2626),
-                  onTap: () => onNavigate(9),
-                ),
+                if (isAdmin)
+                  _buildActionButton(
+                    icon: Icons.insights_rounded,
+                    title: 'تقارير الأرباح',
+                    color: const Color(0xFFDC2626),
+                    onTap: () => onNavigate(9),
+                  ),
               ],
             ),
           ),
