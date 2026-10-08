@@ -4,6 +4,7 @@ import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/erp_components.dart';
 import '../services/pricing_engine_service.dart';
 import '../services/pdf_export_service.dart';
 
@@ -396,62 +397,21 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // شريط العنوان وأزرار الإجراءات
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 10,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'محرك التسعير الذكي وقوالب المنتجات',
-                        style: TextStyle(
-                          fontSize: isMobile ? 17 : 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.darkSlate,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'مسار حساب تخصصي: كتب، دفاتر، كروت، وقوالب مخصصة',
-                        style: TextStyle(fontSize: isMobile ? 11.5 : 13, color: AppTheme.textMuted),
-                      ),
-                    ],
-                  ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if (isAdmin)
-                        OutlinedButton.icon(
-                          onPressed: () {
-                          if (widget.onNavigate != null) {
-                            widget.onNavigate!(11); // فتح قسم إدارة الأسعار
-                          }
-                        },
-                        icon: const Icon(Icons.price_change_outlined, size: 16),
-                        label: Text(isMobile ? 'الأسعار' : 'إدارة وتعديل الأسعار', style: TextStyle(fontSize: isMobile ? 12 : 13)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primaryGreen,
-                          side: const BorderSide(color: AppTheme.primaryGreen),
-                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 8 : 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => _showSaveQuotationDialog(result),
-                        icon: const Icon(Icons.note_add_outlined, size: 16),
-                        label: Text(isMobile ? 'إنشاء عرض سعر' : 'إنشاء عرض سعر من الحسبة', style: TextStyle(fontSize: isMobile ? 12 : 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryGreen,
-                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
+              ErpPageHeader(
+                title: 'محرك التسعير',
+                subtitle: 'احسب تكلفة منتجات المطبعة ثم أنشئ عرضاً بالسعر الناتج',
+                icon: Icons.calculate_outlined,
+                actions: [
+                  if (isAdmin)
+                    OutlinedButton.icon(
+                      onPressed: () => widget.onNavigate?.call(11),
+                      icon: const Icon(Icons.price_change_outlined, size: 17),
+                      label: const Text('الأسعار والتكاليف'),
+                    ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showSaveQuotationDialog(result),
+                    icon: const Icon(Icons.note_add_outlined, size: 17),
+                    label: const Text('إنشاء عرض سعر'),
                   ),
                 ],
               ),
@@ -464,7 +424,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -515,8 +475,9 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.darkSlate,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -533,14 +494,14 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('سعر بيع النسخة', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text('سعر بيع النسخة', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                     const SizedBox(height: 2),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,
                       child: Text(
                         '${result.unitPrice.toStringAsFixed(2)} ${erp.settings.currency}',
-                        style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: AppTheme.success, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -551,14 +512,14 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('إجمالي البيع المقترح', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text('إجمالي البيع المقترح', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                     const SizedBox(height: 2),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        '${AppTheme.formatCurrency(result.lineAmount)} ${erp.settings.currency}',
-                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                        AppTheme.formatCurrency(result.lineAmount, erp.settings.currency),
+                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -568,14 +529,14 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
           ),
           if (isAdmin) ...[
             const SizedBox(height: 8),
-            const Divider(color: Colors.white24, height: 1),
+            const Divider(color: AppTheme.borderColor, height: 1),
             const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'التكلفة: ${AppTheme.formatCurrency(result.lineTotalCost)}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    'التكلفة: ${AppTheme.formatCurrency(result.lineTotalCost, erp.settings.currency)}',
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -583,8 +544,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'الربح: ${AppTheme.formatCurrency(result.profit)} (${result.profitMarginPct.toStringAsFixed(0)}%)',
-                    style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.bold),
+                    'الربح: ${AppTheme.formatCurrency(result.profit, erp.settings.currency)} (${result.profitMarginPct.toStringAsFixed(0)}%)',
+                    style: const TextStyle(color: AppTheme.success, fontSize: 11, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.end,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -606,16 +567,16 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 14, vertical: isMobile ? 8 : 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryGreen.withValues(alpha: 0.12) : Colors.transparent,
+          color: isSelected ? AppTheme.primaryLight.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          border: isSelected ? Border.all(color: AppTheme.primaryGreen, width: 1.5) : Border.all(color: Colors.transparent),
+          border: isSelected ? Border.all(color: AppTheme.primaryLight, width: 1.5) : Border.all(color: Colors.transparent),
         ),
         child: isMobile
             ? Text(
                 title,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                  color: isSelected ? AppTheme.primaryLight : AppTheme.darkSlate,
                   fontSize: 13,
                 ),
               )
@@ -627,7 +588,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     title,
                     style: TextStyle(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                      color: isSelected ? AppTheme.primaryLight : AppTheme.darkSlate,
                       fontSize: 14,
                     ),
                   ),
@@ -635,7 +596,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: isSelected ? AppTheme.primaryGreen : AppTheme.textMuted,
+                      color: isSelected ? AppTheme.primaryLight : AppTheme.textMuted,
                       fontSize: 11,
                     ),
                   ),
@@ -688,7 +649,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('صفحات الملزمة (من الفرخ 50×35)',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
@@ -697,8 +658,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     label: Text('$v${v == autoSigVal ? ' ✓' : ''}',
                         style: TextStyle(fontSize: 12, fontWeight: v == autoSigVal ? FontWeight.bold : FontWeight.normal)),
                     selected: v == _bookPagesPerSig,
-                    selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.15),
-                    checkmarkColor: AppTheme.primaryGreen,
+                    selectedColor: AppTheme.selectedSurface,
+                    checkmarkColor: AppTheme.primaryLight,
                     onSelected: (_) => setState(() => _bookPagesPerSig = v),
                   )).toList(),
                 ),
@@ -754,7 +715,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('أغلفة/فرخ 100×70', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text('أغلفة/فرخ 100×70', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
@@ -763,8 +724,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     label: Text('$v${v == autoCoverFits ? ' ✓' : ''}',
                         style: TextStyle(fontSize: 12, fontWeight: v == autoCoverFits ? FontWeight.bold : FontWeight.normal)),
                     selected: v == _bookCoverFitsPerSheet,
-                    selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.15),
-                    checkmarkColor: AppTheme.primaryGreen,
+                    selectedColor: AppTheme.selectedSurface,
+                    checkmarkColor: AppTheme.primaryLight,
                     onSelected: (_) => setState(() => _bookCoverFitsPerSheet = v),
                   )).toList(),
                 ),
@@ -776,7 +737,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.menu_book, color: AppTheme.primaryGreen),
+                    Icon(Icons.menu_book, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('مدخلات الكتاب: المقاس والصفحات والغلاف والتجليد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -790,12 +751,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryGreen.withValues(alpha: 0.07), Colors.white],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.35)),
+                    color: AppTheme.surfaceSecondary,
+                    border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.35)),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -804,7 +761,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.straighten_outlined, color: AppTheme.primaryGreen, size: 18),
+                          Icon(Icons.straighten_outlined, color: AppTheme.primaryLight, size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -830,11 +787,11 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                             ActionChip(
                               label: Text(p.$1, style: const TextStyle(fontSize: 11)),
                               backgroundColor: (_bookWidthCm == p.$2 && _bookHeightCm == p.$3)
-                                  ? AppTheme.primaryGreen.withValues(alpha: 0.15)
+                                  ? AppTheme.selectedSurface
                                   : null,
                               side: BorderSide(
                                 color: (_bookWidthCm == p.$2 && _bookHeightCm == p.$3)
-                                    ? AppTheme.primaryGreen
+                                    ? AppTheme.primaryLight
                                     : AppTheme.borderColor,
                                 width: (_bookWidthCm == p.$2 && _bookHeightCm == p.$3) ? 1.5 : 1,
                               ),
@@ -910,19 +867,19 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
+                          color: AppTheme.successSurface,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.auto_fix_high, size: 16, color: AppTheme.primaryGreen),
+                            const Icon(Icons.auto_fix_high, size: 16, color: AppTheme.primaryLight),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'حساب تلقائي: من فرخ 50×35 ← '
                                 '${_calcBookPagesPerSig(_bookWidthCm, _bookHeightCm)} صفحة/ملزمة  |  '
                                 '${_calcCoverFitsPerSheet(_bookWidthCm, _bookHeightCm)} غلاف/فرخ 100×70',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.primaryGreen, fontWeight: FontWeight.w500),
+                                style: const TextStyle(fontSize: 12, color: AppTheme.primaryLight, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -977,7 +934,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppTheme.surfaceSecondary,
                     border: Border.all(color: AppTheme.borderColor),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1127,7 +1084,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.receipt_long, color: AppTheme.primaryGreen),
+                    Icon(Icons.receipt_long, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('مدخلات دفاتر NCR: النسخ وأوراق الدفتر وتوزيع الألوان والترقيم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -1141,12 +1098,8 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue.withValues(alpha: 0.07), Colors.white],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    border: Border.all(color: Colors.blue.withValues(alpha: 0.35)),
+                    color: AppTheme.surfaceSecondary,
+                    border: Border.all(color: AppTheme.info.withValues(alpha: 0.35)),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -1155,7 +1108,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.straighten_outlined, color: Colors.blue, size: 18),
+                          Icon(Icons.straighten_outlined, color: AppTheme.info, size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1179,10 +1132,10 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                             ActionChip(
                               label: Text(p.$1, style: const TextStyle(fontSize: 11)),
                               backgroundColor: (_ncrWidthCm == p.$2 && _ncrHeightCm == p.$3)
-                                  ? Colors.blue.withValues(alpha: 0.15) : null,
+                                  ? AppTheme.info.withValues(alpha: 0.15) : null,
                               side: BorderSide(
                                 color: (_ncrWidthCm == p.$2 && _ncrHeightCm == p.$3)
-                                    ? Colors.blue : AppTheme.borderColor,
+                                    ? AppTheme.info : AppTheme.borderColor,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -1247,16 +1200,16 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.08),
+                          color: AppTheme.info.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.auto_fix_high, size: 16, color: Colors.blue),
+                            const Icon(Icons.auto_fix_high, size: 16, color: AppTheme.info),
                             const SizedBox(width: 8),
                             Text(
                               'حساب تلقائي: $_ncrSetsPerSheet وصل/فرخ 50×35',
-                              style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
+                              style: const TextStyle(fontSize: 12, color: AppTheme.info, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -1289,7 +1242,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppTheme.surfaceSecondary,
                     border: Border.all(color: AppTheme.borderColor),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1306,7 +1259,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                               Container(
                                 width: 95,
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6), border: Border.all(color: AppTheme.borderColor)),
+                                decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(6), border: Border.all(color: AppTheme.borderColor)),
                                 child: Text(i == 0 ? 'الأصل (الأولى)' : 'صورة رقم $i', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                               ),
                               const SizedBox(width: 8),
@@ -1461,7 +1414,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.credit_card, color: AppTheme.primaryGreen),
+                    Icon(Icons.credit_card, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('مدخلات الكرت: المقاس والتوزيع في الفرخ والقص والتشطيب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -1547,18 +1500,18 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    border: Border.all(color: const Color(0xFF86EFAC)),
+                    color: AppTheme.successSurface,
+                    border: Border.all(color: AppTheme.borderColor),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.grid_view, color: AppTheme.primaryGreen, size: 20),
+                      const Icon(Icons.grid_view, color: AppTheme.primaryLight, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'توزيع الفرخ (${imposition.layoutDirection}): الفرخ ينتج ${imposition.totalItemsPerSheet} كرت (${imposition.itemsAlongWidth} × ${imposition.itemsAlongHeight})',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.success),
                         ),
                       ),
                     ],
@@ -1784,7 +1737,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.dashboard_customize, color: AppTheme.primaryGreen),
+                    Icon(Icons.dashboard_customize, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('مدخلات قالب مخصص: منتجات مفتوحة وقابلة للإضافة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -1866,7 +1819,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.tune, color: AppTheme.primaryGreen),
+                    Icon(Icons.tune, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('ثوابت التسعير والربح والضريبة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -1908,7 +1861,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
       children: [
         // كرت الإجماليات الكبرى
         Card(
-          color: AppTheme.darkSlate,
+          color: AppTheme.cardBg,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -1920,16 +1873,16 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('سعر بيع الوحدة', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                          Text('سعر بيع الوحدة', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                           Text(
                             '${result.unitPrice.toStringAsFixed(2)} ${erp.settings.currency}',
-                            style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 20, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: AppTheme.success, fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          Text('إجمالي البيع المقترح', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                          Text('إجمالي البيع المقترح', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                           Text(
-                            '${AppTheme.formatCurrency(result.lineAmount)} ${erp.settings.currency}',
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            AppTheme.formatCurrency(result.lineAmount, erp.settings.currency),
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ],
                       );
@@ -1941,11 +1894,11 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('سعر بيع الوحدة', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                              Text('سعر بيع الوحدة', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                               const SizedBox(height: 4),
                               Text(
                                 '${result.unitPrice.toStringAsFixed(2)} ${erp.settings.currency}',
-                                style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 22, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: AppTheme.success, fontSize: 22, fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -1955,11 +1908,11 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('إجمالي البيع المقترح', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                              Text('إجمالي البيع المقترح', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                               const SizedBox(height: 4),
                               Text(
-                                '${AppTheme.formatCurrency(result.lineAmount)} ${erp.settings.currency}',
-                                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                AppTheme.formatCurrency(result.lineAmount, erp.settings.currency),
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -1969,18 +1922,18 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     );
                   },
                 ),
-                const Divider(color: Colors.white24, height: 24),
+                const Divider(color: AppTheme.borderColor, height: 24),
                 Wrap(
                   spacing: 16,
                   runSpacing: 10,
                   alignment: WrapAlignment.spaceBetween,
                   children: [
-                    if (isAdmin) _buildMiniMetric('التكلفة الصناعية', AppTheme.formatCurrency(result.lineTotalCost)),
-                    if (isAdmin) _buildMiniMetric('صافي الربح', AppTheme.formatCurrency(result.profit), valueColor: const Color(0xFF4ADE80)),
+                    if (isAdmin) _buildMiniMetric('التكلفة الصناعية', AppTheme.formatCurrency(result.lineTotalCost, erp.settings.currency)),
+                    if (isAdmin) _buildMiniMetric('صافي الربح', AppTheme.formatCurrency(result.profit, erp.settings.currency), valueColor: AppTheme.success),
                     if (result.taxPct > 0)
-                      _buildMiniMetric('الضريبة (${result.taxPct}%)', AppTheme.formatCurrency(result.taxAmount)),
+                      _buildMiniMetric('الضريبة (${result.taxPct}%)', AppTheme.formatCurrency(result.taxAmount, erp.settings.currency)),
                     if (result.taxPct > 0)
-                      _buildMiniMetric('الإجمالي مع الضريبة', AppTheme.formatCurrency(result.grandTotalAmount), valueColor: const Color(0xFFFBBF24)),
+                      _buildMiniMetric('الإجمالي مع الضريبة', AppTheme.formatCurrency(result.grandTotalAmount, erp.settings.currency), valueColor: AppTheme.warning),
                   ],
                 ),
               ],
@@ -1998,7 +1951,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.route, color: AppTheme.primaryGreen),
+                    Icon(Icons.route, color: AppTheme.primaryLight),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text('مسار الحساب التفصيلي خطوة بخطوة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -2021,7 +1974,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: AppTheme.surfaceSecondary,
                         border: Border.all(color: AppTheme.borderColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -2033,7 +1986,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                               CircleAvatar(
                                 radius: 11,
                                 backgroundColor: AppTheme.primaryGreen,
-                                child: Text('${idx + 1}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                child: Text('${idx + 1}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -2043,12 +1996,12 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                                    color: AppTheme.primaryLight.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     '${step.cost.toStringAsFixed(1)} ${erp.settings.currency}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen, fontSize: 11),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight, fontSize: 11),
                                   ),
                                 ),
                             ],
@@ -2064,7 +2017,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                                 return Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppTheme.cardBg,
                                     border: Border.all(color: AppTheme.borderColor),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
@@ -2129,7 +2082,9 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
               icon: const Icon(Icons.print_outlined, size: 18),
               label: const Text('معاينة وطباعة PDF'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.darkSlate,
+                backgroundColor: AppTheme.surfaceSecondary,
+                foregroundColor: AppTheme.textPrimary,
+                side: const BorderSide(color: AppTheme.borderColor),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
@@ -2175,11 +2130,11 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+        Text(title, style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
         const SizedBox(height: 2),
         Text(
           val,
-          style: TextStyle(color: valueColor ?? Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          style: TextStyle(color: valueColor ?? AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ],
     );
@@ -2200,7 +2155,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
           final isMobile = MediaQuery.of(ctx).size.width < 600;
 
           return Dialog(
-            backgroundColor: Colors.white,
+            backgroundColor: AppTheme.cardBg,
             surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -2219,10 +2174,10 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                              color: AppTheme.primaryLight.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.request_quote_rounded, color: AppTheme.primaryGreen, size: 24),
+                            child: const Icon(Icons.request_quote_rounded, color: AppTheme.primaryLight, size: 24),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -2243,10 +2198,10 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(ctx),
-                            icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                            icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
                             tooltip: 'إغلاق',
                             style: IconButton.styleFrom(
-                              backgroundColor: const Color(0xFFF1F5F9),
+                              backgroundColor: AppTheme.surfaceSecondary,
                               padding: const EdgeInsets.all(6),
                             ),
                           ),
@@ -2262,7 +2217,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                         initialValue: selectedCustomer,
                         decoration: const InputDecoration(
                           labelText: 'اختر العميل',
-                          prefixIcon: Icon(Icons.person_outline_rounded, color: AppTheme.primaryGreen, size: 20),
+                          prefixIcon: Icon(Icons.person_outline_rounded, color: AppTheme.primaryLight, size: 20),
                         ),
                         items: erp.customers.map((c) {
                           return DropdownMenuItem(
@@ -2293,7 +2248,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                         initialValue: status,
                         decoration: const InputDecoration(
                           labelText: 'حالة العرض والاعتماد',
-                          prefixIcon: Icon(Icons.verified_outlined, color: AppTheme.primaryGreen, size: 20),
+                          prefixIcon: Icon(Icons.verified_outlined, color: AppTheme.primaryLight, size: 20),
                         ),
                         items: const [
                           DropdownMenuItem(
@@ -2318,7 +2273,7 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                         controller: notesCtrl,
                         decoration: const InputDecoration(
                           labelText: 'ملاحظات وتفاصيل العرض',
-                          prefixIcon: Icon(Icons.note_alt_outlined, color: AppTheme.primaryGreen, size: 20),
+                          prefixIcon: Icon(Icons.note_alt_outlined, color: AppTheme.primaryLight, size: 20),
                         ),
                         maxLines: 2,
                       ),
@@ -2328,9 +2283,9 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
+                          color: AppTheme.successSurface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                          border: Border.all(color: AppTheme.borderColor),
                         ),
                         child: Column(
                           children: [
@@ -2353,21 +2308,21 @@ class _PricingCalculatorViewState extends State<PricingCalculatorView> {
                             if (context.read<AuthProvider>().isAdmin) ...[
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8),
-                                child: Divider(height: 1, color: Color(0xFFDCFCE7)),
+                                child: Divider(height: 1, color: AppTheme.successSurface),
                               ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Row(
                                     children: [
-                                      Icon(Icons.trending_up_rounded, color: Color(0xFF16A34A), size: 18),
+                                      Icon(Icons.trending_up_rounded, color: AppTheme.success, size: 18),
                                       SizedBox(width: 8),
-                                      Text('صافي الربح المتوقع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF16A34A))),
+                                      Text('صافي الربح المتوقع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.success)),
                                     ],
                                   ),
                                   Text(
                                     AppTheme.formatCurrency(result.profit, erp.settings.currency),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF16A34A)),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.success),
                                   ),
                                 ],
                               ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/erp_provider.dart';
 import '../theme/app_theme.dart';
+import '../services/pdf_export_service.dart';
+import '../widgets/erp_components.dart';
 
 class ProfitabilityView extends StatelessWidget {
   const ProfitabilityView({super.key});
@@ -11,12 +13,12 @@ class ProfitabilityView extends StatelessWidget {
     final erp = context.watch<ErpProvider>();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 12 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // شريط العنوان الرئيسي
-          _buildHeader(context),
+          _buildHeader(context, erp),
           const SizedBox(height: 20),
 
           // كروت المؤشرات السريعة KPI
@@ -56,65 +58,38 @@ class ProfitabilityView extends StatelessWidget {
     );
   }
 
-  // شريط العنوان
-  Widget _buildHeader(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 10,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.analytics_rounded, color: AppTheme.primaryGreen, size: 22),
-                ),
-                const Text(
-                  'تقارير الربحية والمؤشرات المالية',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'تحليل دقيق للإيرادات، تكاليف الإنتاج، هوامش الأرباح، وكفاءة تشغيل الماكينات',
-              style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-            ),
-          ],
-        ),
+  Widget _buildHeader(BuildContext context, ErpProvider erp) {
+    return ErpPageHeader(
+      title: 'تقارير الربحية والمؤشرات المالية',
+      subtitle: 'الإيرادات والتكاليف المسجلة، هامش الربح، وقيمة مخزون المطبعة',
+      icon: Icons.analytics_outlined,
+      actions: [
         OutlinedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('تم تجهيز التقرير المالي وتصديره بنجاح'),
-                  ],
+          onPressed: () async {
+            try {
+              await PdfExportService.printOrPreviewProfitabilityReport(
+                context,
+                settings: erp.settings,
+                approvedSales: erp.totalApprovedSales,
+                approvedCost: erp.totalApprovedCost,
+                profit: erp.totalProfit,
+                marginPct: erp.overallMarginPct,
+                inventoryValue: erp.totalInventoryValue,
+                approvedQuotationCount: erp.approvedQuotationsCount,
+                inventoryItemCount: erp.papers.length + erp.inks.length,
+              );
+            } catch (error) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('تعذر تجهيز تقرير PDF: $error'),
+                  backgroundColor: AppTheme.danger,
                 ),
-                backgroundColor: AppTheme.primaryGreen,
-              ),
-            );
+              );
+            }
           },
-          icon: const Icon(Icons.download_rounded, size: 18),
-          label: const Text('تصدير التقرير المالي'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.primaryGreen,
-            side: const BorderSide(color: AppTheme.primaryGreen),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+          icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+          label: const Text('طباعة / حفظ PDF'),
         ),
       ],
     );
@@ -141,8 +116,7 @@ class ProfitabilityView extends StatelessWidget {
               value: AppTheme.formatCurrency(erp.totalApprovedSales, erp.settings.currency),
               subtitle: '${erp.approvedQuotationsCount} عروض مؤكدة',
               icon: Icons.payments_outlined,
-              badgeColor: const Color(0xFF059669),
-              gradientColors: [Colors.white, const Color(0xFFF0FDF4)],
+              badgeColor: AppTheme.success,
               isCompact: isMobile,
             ),
             _buildKpiCard(
@@ -150,8 +124,7 @@ class ProfitabilityView extends StatelessWidget {
               value: AppTheme.formatCurrency(erp.totalApprovedCost, erp.settings.currency),
               subtitle: 'خامات + تشغيل + هالك',
               icon: Icons.receipt_long_outlined,
-              badgeColor: const Color(0xFFD97706),
-              gradientColors: [Colors.white, const Color(0xFFFFFBEB)],
+              badgeColor: AppTheme.warning,
               isCompact: isMobile,
             ),
             _buildKpiCard(
@@ -159,8 +132,7 @@ class ProfitabilityView extends StatelessWidget {
               value: AppTheme.formatCurrency(erp.totalProfit, erp.settings.currency),
               subtitle: 'هامش ${erp.overallMarginPct.toStringAsFixed(1)}%',
               icon: Icons.trending_up_rounded,
-              badgeColor: AppTheme.primaryGreen,
-              gradientColors: [Colors.white, const Color(0xFFECFDF5)],
+              badgeColor: AppTheme.primaryLight,
               isCompact: isMobile,
             ),
             _buildKpiCard(
@@ -168,8 +140,7 @@ class ProfitabilityView extends StatelessWidget {
               value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
               subtitle: '${erp.papers.length + erp.inks.length} صنف مسجل',
               icon: Icons.inventory_2_outlined,
-              badgeColor: const Color(0xFF0284C7),
-              gradientColors: [Colors.white, const Color(0xFFF0F9FF)],
+              badgeColor: AppTheme.info,
               isCompact: isMobile,
             ),
           ],
@@ -184,25 +155,13 @@ class ProfitabilityView extends StatelessWidget {
     required String subtitle,
     required IconData icon,
     required Color badgeColor,
-    required List<Color> gradientColors,
     bool isCompact = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       padding: EdgeInsets.all(isCompact ? 10 : 14),
       child: isCompact
@@ -308,10 +267,10 @@ class ProfitabilityView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.12),
+                    color: AppTheme.primaryLight.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.table_chart_outlined, color: AppTheme.primaryGreen, size: 20),
+                  child: const Icon(Icons.table_chart_outlined, color: AppTheme.primaryLight, size: 20),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
@@ -329,7 +288,7 @@ class ProfitabilityView extends StatelessWidget {
               title: 'إجمالي قيمة العروض المعتمدة',
               subtitle: 'المبيعات المؤكدة من أوامر العملاء',
               value: AppTheme.formatCurrency(erp.totalApprovedSales, erp.settings.currency),
-              color: AppTheme.primaryGreen,
+              color: AppTheme.primaryLight,
               icon: Icons.check_circle_outline,
             ),
             _buildIndicatorRow(
@@ -343,7 +302,7 @@ class ProfitabilityView extends StatelessWidget {
               title: 'صافي الربح المحقق',
               subtitle: 'الفارق الصافي بين الإيراد والتكلفة الكلية',
               value: AppTheme.formatCurrency(erp.totalProfit, erp.settings.currency),
-              color: const Color(0xFF059669),
+              color: AppTheme.success,
               isBold: true,
               icon: Icons.trending_up,
             ),
@@ -383,7 +342,7 @@ class ProfitabilityView extends StatelessWidget {
               title: 'إجمالي قيمة المخزون الكلي',
               subtitle: 'أصول المستودع الجاهزة للتشغيل (ورق + أحبار)',
               value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
-              color: const Color(0xFF0284C7),
+              color: AppTheme.info,
               isBold: true,
               icon: Icons.account_balance_outlined,
             ),
@@ -391,7 +350,7 @@ class ProfitabilityView extends StatelessWidget {
               title: 'إجمالي ذمم العملاء المستحقة',
               subtitle: 'المبالغ المتبقية للتحصيل طرف العملاء',
               value: AppTheme.formatCurrency(erp.totalReceivables, erp.settings.currency),
-              color: Colors.orange.shade800,
+              color: AppTheme.warning,
               isBold: true,
               icon: Icons.pending_actions_outlined,
             ),
@@ -450,7 +409,7 @@ class ProfitabilityView extends StatelessWidget {
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Text(
-                              AppTheme.formatCurrency(sales),
+                              AppTheme.formatCurrency(sales, erp.settings.currency),
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                             ),
                           ],
@@ -461,8 +420,8 @@ class ProfitabilityView extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: progress,
                             minHeight: 7,
-                            backgroundColor: const Color(0xFFE2E8F0),
-                            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryGreen),
+                            backgroundColor: AppTheme.borderColor,
+                            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryLight),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -471,7 +430,7 @@ class ProfitabilityView extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                'صافي الربح: ${AppTheme.formatCurrency(profit)}',
+                                'صافي الربح: ${AppTheme.formatCurrency(profit, erp.settings.currency)}',
                                 style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -480,7 +439,7 @@ class ProfitabilityView extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
-                                color: (margin >= 25 ? Colors.green : Colors.orange).withOpacity(0.12),
+                                color: (margin >= 25 ? AppTheme.success : AppTheme.warning).withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -488,7 +447,7 @@ class ProfitabilityView extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: margin >= 25 ? Colors.green.shade800 : Colors.orange.shade800,
+                                  color: margin >= 25 ? AppTheme.success : AppTheme.warning,
                                 ),
                               ),
                             ),
@@ -506,7 +465,7 @@ class ProfitabilityView extends StatelessWidget {
 
         // بطاقة كفاءة وتشغيل الماكينات
         Card(
-          color: const Color(0xFFF8FAFC),
+          color: AppTheme.surfaceSecondary,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -538,7 +497,7 @@ class ProfitabilityView extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.cardBg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
@@ -558,7 +517,7 @@ class ProfitabilityView extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('${totalHours.toStringAsFixed(1)} ساعة تشغيل', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryGreen)),
+                            Text('${totalHours.toStringAsFixed(1)} ساعة تشغيل', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryLight)),
                             Text('نسبة الهالك: ${m.wastePct}%', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                           ],
                         ),

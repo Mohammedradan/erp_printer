@@ -110,17 +110,17 @@ class MainLayoutState extends State<MainLayout> {
   NavItem _getCurrentNavItem() {
     final allItems = [
       NavItem(index: 0, title: 'لوحة المؤشرات', icon: Icons.dashboard_outlined),
-      NavItem(index: 1, title: 'محرك التسعير الحي', icon: Icons.calculate_outlined),
+      NavItem(index: 1, title: 'محرك التسعير', icon: Icons.calculate_outlined),
       NavItem(index: 2, title: 'عروض الأسعار', icon: Icons.request_quote_outlined),
       NavItem(index: 3, title: 'أوامر الإنتاج', icon: Icons.precision_manufacturing_outlined),
-      NavItem(index: 4, title: 'قاعدة الورق والمخزون', icon: Icons.inventory_2_outlined),
+      NavItem(index: 4, title: 'مخزون الورق', icon: Icons.inventory_2_outlined),
       NavItem(index: 5, title: 'مخزون الأحبار', icon: Icons.colorize_outlined),
-      NavItem(index: 6, title: 'العملاء وحسابات الذمم', icon: Icons.people_alt_outlined),
+      NavItem(index: 6, title: 'العملاء والذمم', icon: Icons.people_alt_outlined),
       NavItem(index: 7, title: 'المدفوعات وسندات القبض', icon: Icons.receipt_long_outlined),
-      NavItem(index: 8, title: 'الماكينات والقوالب والتشطيب', icon: Icons.settings_suggest_outlined),
-      NavItem(index: 9, title: 'تقارير الربحية والتحليل', icon: Icons.analytics_outlined),
+      NavItem(index: 8, title: 'الماكينات والتشطيب', icon: Icons.settings_suggest_outlined),
+      NavItem(index: 9, title: 'تقارير الربحية', icon: Icons.analytics_outlined),
       NavItem(index: 10, title: 'إعدادات النظام', icon: Icons.settings_outlined),
-      NavItem(index: 11, title: 'إدارة الأسعار والتكاليف', icon: Icons.price_change_outlined),
+      NavItem(index: 11, title: 'الأسعار والتكاليف', icon: Icons.price_change_outlined),
       NavItem(index: 12, title: 'إدارة المستخدمين', icon: Icons.manage_accounts_outlined),
     ];
     try {
@@ -136,33 +136,33 @@ class MainLayoutState extends State<MainLayout> {
     final auth = context.watch<AuthProvider>();
     final currentUser = auth.currentUser;
     final isAdmin = auth.isAdmin;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = screenWidth >= 900;
     final currentItem = _getCurrentNavItem();
-    final todayStr = AppTheme.formatDate(DateTime.now());
+    final companyName = erp.settings.companyName.trim();
+    final today = AppTheme.formatDate(DateTime.now());
+    final lowStockCount = erp.lowStockPapers.length + erp.lowStockInks.length;
 
-    // قائمة التنقل الديناميكية حسب الصلاحيات
-    final List<NavSection> navSections = [
-      NavSection(title: 'لوحة التحكم والعمليات', items: [
+    final navSections = <NavSection>[
+      NavSection(title: 'التشغيل اليومي', items: [
         NavItem(index: 0, title: 'لوحة المؤشرات', icon: Icons.dashboard_outlined),
-        NavItem(index: 1, title: 'محرك التسعير الحي', icon: Icons.calculate_outlined),
-        if (isAdmin)
-          NavItem(index: 11, title: 'إدارة الأسعار والتكاليف', icon: Icons.price_change_outlined),
+        NavItem(index: 1, title: 'محرك التسعير', icon: Icons.calculate_outlined),
         NavItem(index: 2, title: 'عروض الأسعار', icon: Icons.request_quote_outlined),
         NavItem(index: 3, title: 'أوامر الإنتاج', icon: Icons.precision_manufacturing_outlined),
+        if (isAdmin)
+          NavItem(index: 11, title: 'الأسعار والتكاليف', icon: Icons.price_change_outlined),
       ]),
-      NavSection(title: 'المخزون والمواد', items: [
-        NavItem(index: 4, title: 'قاعدة الورق والمخزون', icon: Icons.inventory_2_outlined),
+      NavSection(title: 'المخزون والعملاء', items: [
+        NavItem(index: 4, title: 'مخزون الورق', icon: Icons.inventory_2_outlined),
         NavItem(index: 5, title: 'مخزون الأحبار', icon: Icons.colorize_outlined),
+        NavItem(index: 6, title: 'العملاء والذمم', icon: Icons.people_alt_outlined),
       ]),
-      NavSection(title: 'العملاء والمالية', items: [
-        NavItem(index: 6, title: 'العملاء وحسابات الذمم', icon: Icons.people_alt_outlined),
+      NavSection(title: 'المالية والإدارة', items: [
         NavItem(index: 7, title: 'المدفوعات وسندات القبض', icon: Icons.receipt_long_outlined),
         if (isAdmin)
-          NavItem(index: 9, title: 'تقارير الربحية والتحليل', icon: Icons.analytics_outlined),
-      ]),
-      NavSection(title: 'البيانات المرجعية والنظام', items: [
+          NavItem(index: 9, title: 'تقارير الربحية', icon: Icons.analytics_outlined),
         if (isAdmin)
-          NavItem(index: 8, title: 'الماكينات والقوالب والتشطيب', icon: Icons.settings_suggest_outlined),
+          NavItem(index: 8, title: 'الماكينات والتشطيب', icon: Icons.settings_suggest_outlined),
         if (isAdmin)
           NavItem(index: 10, title: 'إعدادات النظام', icon: Icons.settings_outlined),
         if (isAdmin)
@@ -175,323 +175,147 @@ class MainLayoutState extends State<MainLayout> {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          toolbarHeight: 56,
-          elevation: 0,
-          backgroundColor: Colors.white,
+          titleSpacing: 0,
           leading: isDesktop
               ? IconButton(
-                  icon: Icon(
-                    _isSidebarCollapsed ? Icons.menu : Icons.menu_open,
-                    color: AppTheme.darkSlate,
-                    size: 22,
-                  ),
+                  icon: Icon(_isSidebarCollapsed ? Icons.menu_rounded : Icons.menu_open_rounded),
                   tooltip: _isSidebarCollapsed ? 'توسيع القائمة' : 'تصغير القائمة',
                   onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
                 )
               : IconButton(
-                  icon: const Icon(Icons.menu_rounded, color: AppTheme.darkSlate, size: 24),
+                  icon: const Icon(Icons.menu_rounded),
                   tooltip: 'القائمة الرئيسية',
                   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
+          title: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryLight.withValues(alpha: 0.34),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(currentItem.icon, size: 18, color: AppTheme.primaryLight),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      currentItem.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.darkSlate),
+                    ),
+                    if (isDesktop && screenWidth >= 1280)
+                      Text(
+                        companyName.isEmpty ? 'نظام إدارة المطبعة' : companyName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            child: Divider(height: 1, thickness: 1, color: AppTheme.borderColor),
           ),
-          title: isDesktop
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedIndex = 0),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.print_rounded, color: AppTheme.primaryGreen, size: 18),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  erp.settings.companyName.isNotEmpty ? erp.settings.companyName : 'مطبعة احترافية',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: AppTheme.primaryGreen,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.chevron_left, color: AppTheme.textMuted, size: 16),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.borderColor),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(currentItem.icon, size: 15, color: AppTheme.primaryGreen),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                currentItem.title,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.darkSlate,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Text(
-                  currentItem.title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 17.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.darkSlate,
-                  ),
-                ),
           actions: [
-            if (isDesktop) ...[
-              // التاريخ اليومي
+            if (isDesktop && screenWidth >= 1200)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsetsDirectional.only(end: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(6),
+                  color: AppTheme.scaffoldBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 13, color: AppTheme.textMuted),
-                    const SizedBox(width: 4),
-                    Text(
-                      todayStr,
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textDark, fontWeight: FontWeight.w600),
-                    ),
+                    const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textMuted),
+                    const SizedBox(width: 6),
+                    Text(today, style: const TextStyle(fontSize: 12, color: AppTheme.textDark, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-            ],
-
-            // تنبيهات إعادة الطلب
-            if (erp.lowStockPapers.isNotEmpty || erp.lowStockInks.isNotEmpty)
+            if (lowStockCount > 0)
               IconButton(
+                tooltip: 'مواد وصلت إلى حد إعادة الطلب ($lowStockCount)',
+                onPressed: () => setState(() => _selectedIndex = erp.lowStockPapers.isNotEmpty ? 4 : 5),
                 icon: Badge(
-                  label: Text(
-                    '${erp.lowStockPapers.length + erp.lowStockInks.length}',
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: Colors.red,
-                  child: const Icon(Icons.notifications_outlined, color: AppTheme.darkSlate, size: 24),
-                ),
-                tooltip: 'تنبيهات نقص المخزون',
-                onPressed: () => setState(() => _selectedIndex = 4),
-              ),
-
-            if (isDesktop) ...[
-              const SizedBox(width: 4),
-              // حالة الاتصال بالشبكة
-              Tooltip(
-                message: 'شبكة LAN متصلة',
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFBBF7D0)),
-                  ),
-                  child: const Icon(Icons.wifi, color: Color(0xFF16A34A), size: 16),
+                  label: Text('$lowStockCount', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                  backgroundColor: AppTheme.danger,
+                  child: const Icon(Icons.notifications_none_rounded),
                 ),
               ),
-            ],
-
-            const SizedBox(width: 4),
-
-            // قائمة المستخدم وتسجيل الخروج الآمن
-            if (isDesktop)
-              Center(
-                child: Container(
-                  height: 38,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.borderColor),
+            PopupMenuButton<String>(
+              tooltip: 'حساب المستخدم',
+              onSelected: (value) {
+                if (value == 'users' && isAdmin) {
+                  setState(() => _selectedIndex = 12);
+                } else if (value == 'logout') {
+                  _showLogoutConfirmationDialog(auth);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  enabled: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(currentUser?.displayName ?? 'مستخدم النظام', style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.darkSlate)),
+                      const SizedBox(height: 3),
+                      Text(currentUser?.role.label ?? '', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    ],
                   ),
-                  child: PopupMenuButton<String>(
-                    tooltip: 'حساب المستخدم',
-                    offset: const Offset(0, 46),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    onSelected: (val) async {
-                      if (val == 'users') {
-                        if (isAdmin) setState(() => _selectedIndex = 12);
-                      } else if (val == 'logout') {
-                        _showLogoutConfirmationDialog(auth);
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      PopupMenuItem(
-                        enabled: false,
+                ),
+                const PopupMenuDivider(),
+                if (isAdmin)
+                  const PopupMenuItem<String>(
+                    value: 'users',
+                    child: Row(children: [Icon(Icons.manage_accounts_outlined, size: 18, color: AppTheme.primaryLight), SizedBox(width: 9), Text('إدارة المستخدمين')]),
+                  ),
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(children: [Icon(Icons.logout_rounded, size: 18, color: AppTheme.danger), SizedBox(width: 9), Text('تسجيل الخروج')]),
+                ),
+              ],
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(start: 4, end: isDesktop ? 14 : 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (currentUser != null)
+                      UserAvatar.fromUser(currentUser, size: 32, showBadge: false)
+                    else
+                      const CircleAvatar(radius: 16, child: Icon(Icons.person_outline, size: 18)),
+                    if (isDesktop && screenWidth >= 1160) ...[
+                      const SizedBox(width: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 130),
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              currentUser?.displayName ?? 'مستخدم النظام',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark, fontSize: 13),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              currentUser?.role.label ?? '',
-                              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                            ),
+                            Text(currentUser?.displayName ?? 'المستخدم', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textDark)),
+                            Text(currentUser?.role.label ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, color: AppTheme.textMuted)),
                           ],
                         ),
                       ),
-                      const PopupMenuDivider(),
-                      if (isAdmin)
-                        const PopupMenuItem(
-                          value: 'users',
-                          child: Row(
-                            children: [
-                              Icon(Icons.manage_accounts_outlined, size: 18, color: AppTheme.primaryGreen),
-                              SizedBox(width: 8),
-                              Text('إدارة المستخدمين والصلاحيات', style: TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout_rounded, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('تسجيل الخروج', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppTheme.textMuted),
                     ],
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (currentUser != null)
-                            UserAvatar.fromUser(currentUser, size: 28, showBadge: false),
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currentUser?.displayName ?? '',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.textDark, fontWeight: FontWeight.w700),
-                              ),
-                              Text(
-                                currentUser?.role.label ?? '',
-                                style: const TextStyle(fontSize: 9, color: AppTheme.textMuted),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.textMuted),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            else
-              PopupMenuButton<String>(
-                tooltip: 'حساب المستخدم',
-                offset: const Offset(0, 46),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                onSelected: (val) async {
-                  if (val == 'users') {
-                    if (isAdmin) setState(() => _selectedIndex = 12);
-                  } else if (val == 'logout') {
-                    _showLogoutConfirmationDialog(auth);
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    enabled: false,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentUser?.displayName ?? 'مستخدم النظام',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark, fontSize: 13),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          currentUser?.role.label ?? '',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  if (isAdmin)
-                    const PopupMenuItem(
-                      value: 'users',
-                      child: Row(
-                        children: [
-                          Icon(Icons.manage_accounts_outlined, size: 18, color: AppTheme.primaryGreen),
-                          SizedBox(width: 8),
-                          Text('إدارة المستخدمين والصلاحيات', style: TextStyle(fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout_rounded, size: 18, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('تسجيل الخروج', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ],
-                child: Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 12, start: 4),
-                  child: currentUser != null
-                      ? UserAvatar.fromUser(currentUser, size: 32, showBadge: false)
-                      : const CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppTheme.primaryGreen,
-                          child: Icon(Icons.person, color: Colors.white, size: 18),
-                        ),
+                  ],
                 ),
               ),
-            const SizedBox(width: 4),
+            ),
           ],
         ),
         drawer: isDesktop ? null : _buildMobileDrawer(erp, auth, navSections),
@@ -500,10 +324,10 @@ class MainLayoutState extends State<MainLayout> {
           children: [
             if (isDesktop)
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: _isSidebarCollapsed ? 70 : 260,
+                duration: const Duration(milliseconds: 180),
+                width: _isSidebarCollapsed ? 72 : 250,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.sidebarBg,
                   border: Border(left: BorderSide(color: AppTheme.borderColor)),
                 ),
                 child: _buildSidebarContent(erp, auth, _isSidebarCollapsed, navSections),
@@ -511,7 +335,21 @@ class MainLayoutState extends State<MainLayout> {
             Expanded(
               child: Container(
                 color: AppTheme.scaffoldBg,
-                child: _buildCurrentView(),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final media = MediaQuery.of(context);
+                    final contentWidth = min(constraints.maxWidth, 1760.0);
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1760),
+                        child: MediaQuery(
+                          data: media.copyWith(size: Size(contentWidth, media.size.height)),
+                          child: _buildCurrentView(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -538,10 +376,10 @@ class MainLayoutState extends State<MainLayout> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withOpacity(0.1),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.28),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(Icons.print_rounded, color: AppTheme.primaryGreen, size: 18),
+                        child: const Icon(Icons.print_rounded, color: AppTheme.primaryLight, size: 18),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -549,7 +387,7 @@ class MainLayoutState extends State<MainLayout> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              erp.settings.companyName,
+                              erp.settings.companyName.trim().isEmpty ? 'إدارة المطبعة' : erp.settings.companyName,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
                             ),
@@ -584,56 +422,6 @@ class MainLayoutState extends State<MainLayout> {
               onPressed: () => setState(() => _isSidebarCollapsed = false),
             ),
           ),
-        if (!isDesktop) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.borderColor),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.textMuted),
-                        const SizedBox(width: 6),
-                        Text(
-                          AppTheme.formatDate(DateTime.now()),
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textDark, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFBBF7D0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.wifi, color: Color(0xFF16A34A), size: 13),
-                      const SizedBox(width: 4),
-                      Text(
-                        'LAN متصل',
-                        style: TextStyle(fontSize: 11, color: Colors.green.shade800, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         const Divider(height: 1),
         Expanded(
           child: ListView(
@@ -652,6 +440,11 @@ class MainLayoutState extends State<MainLayout> {
                     ),
                   ...section.items.map((item) {
                     final isSelected = _selectedIndex == item.index;
+                    final itemLowStockCount = switch (item.index) {
+                      4 => erp.lowStockPapers.length,
+                      5 => erp.lowStockInks.length,
+                      _ => 0,
+                    };
                     return InkWell(
                       onTap: () {
                         setState(() => _selectedIndex = item.index);
@@ -663,16 +456,19 @@ class MainLayoutState extends State<MainLayout> {
                         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primaryGreen.withOpacity(0.1) : Colors.transparent,
+                          color: isSelected ? AppTheme.selectedSurface : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
-                          border: isSelected ? Border.all(color: AppTheme.primaryLight.withOpacity(0.3)) : null,
+                          border: isSelected ? Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.32)) : null,
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              item.icon,
-                              size: 20,
-                              color: isSelected ? AppTheme.primaryGreen : AppTheme.textMuted,
+                            Tooltip(
+                              message: item.title,
+                              child: Icon(
+                                item.icon,
+                                size: 20,
+                                color: isSelected ? AppTheme.primaryLight : AppTheme.textMuted,
+                              ),
                             ),
                             if (!isCollapsed) ...[
                               const SizedBox(width: 12),
@@ -682,16 +478,16 @@ class MainLayoutState extends State<MainLayout> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? AppTheme.primaryGreen : AppTheme.textDark,
+                                    color: isSelected ? AppTheme.primaryLight : AppTheme.textDark,
                                   ),
                                 ),
                               ),
-                              if (item.index == 4 && erp.lowStockPapers.isNotEmpty)
+                              if (itemLowStockCount > 0)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                                  decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(10)),
                                   child: Text(
-                                    '${erp.lowStockPapers.length}',
+                                    '$itemLowStockCount',
                                     style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -729,13 +525,7 @@ class MainLayoutState extends State<MainLayout> {
                 IconButton(
                   icon: const Icon(Icons.logout, size: 16, color: AppTheme.textMuted),
                   tooltip: 'تسجيل الخروج',
-                  onPressed: () async {
-                    await auth.logout();
-                    if (!mounted) return;
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginView()),
-                    );
-                  },
+                  onPressed: () => _showLogoutConfirmationDialog(auth),
                 ),
               ],
             ),
@@ -747,8 +537,8 @@ class MainLayoutState extends State<MainLayout> {
   /// القائمة الجانبية المخصصة للهاتف بتصميم راقٍ وعصري
   Widget _buildMobileDrawer(ErpProvider erp, AuthProvider auth, List<NavSection> navSections) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // عرض القائمة الجانبية 80% من الشاشة (بحد أقصى 310dp) ليعطي مساحة مريحة لجميع العناوين
-    final drawerWidth = min(screenWidth * 0.80, 310.0);
+    // يظل العرض مناسباً للهاتف مع مساحة كافية لعناوين الأقسام الطويلة.
+    final drawerWidth = min(screenWidth * 0.78, 320.0);
 
     return Drawer(
       width: drawerWidth,
@@ -759,7 +549,7 @@ class MainLayoutState extends State<MainLayout> {
           bottomLeft: Radius.circular(20),
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.sidebarBg,
       child: Column(
         children: [
           _buildDrawerHeader(erp),
@@ -784,10 +574,15 @@ class MainLayoutState extends State<MainLayout> {
                     ),
                     ...section.items.map((item) {
                       final isSelected = _selectedIndex == item.index;
+                      final itemLowStockCount = switch (item.index) {
+                        4 => erp.lowStockPapers.length,
+                        5 => erp.lowStockInks.length,
+                        _ => 0,
+                      };
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
                         child: Material(
-                          color: isSelected ? const Color(0xFFF0FDF4) : Colors.transparent,
+                          color: isSelected ? AppTheme.selectedSurface : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           child: InkWell(
                             onTap: () {
@@ -799,14 +594,14 @@ class MainLayoutState extends State<MainLayout> {
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7.5),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
-                                border: isSelected ? Border.all(color: const Color(0xFFBBF7D0)) : null,
+                                border: isSelected ? Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.28)) : null,
                               ),
                               child: Row(
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(5),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? AppTheme.primaryGreen : const Color(0xFFF1F5F9),
+                                      color: isSelected ? AppTheme.primaryGreen : AppTheme.surfaceSecondary,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Icon(
@@ -822,19 +617,19 @@ class MainLayoutState extends State<MainLayout> {
                                       style: TextStyle(
                                         fontSize: 12.5,
                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                        color: isSelected ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                                        color: isSelected ? AppTheme.primaryLight : AppTheme.darkSlate,
                                       ),
                                     ),
                                   ),
-                                  if (item.index == 4 && erp.lowStockPapers.isNotEmpty)
+                                  if (itemLowStockCount > 0)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.shade600,
+                                        color: AppTheme.danger,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
-                                        '${erp.lowStockPapers.length}',
+                                        '$itemLowStockCount',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 9.5,
@@ -847,7 +642,7 @@ class MainLayoutState extends State<MainLayout> {
                                       width: 5,
                                       height: 5,
                                       decoration: const BoxDecoration(
-                                        color: AppTheme.primaryGreen,
+                                        color: AppTheme.primaryLight,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -874,14 +669,8 @@ class MainLayoutState extends State<MainLayout> {
     return Container(
       padding: EdgeInsets.fromLTRB(12, MediaQuery.of(context).padding.top + 8, 12, 10),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF1E293B),
-          ],
-        ),
+        color: AppTheme.sidebarBg,
+        border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -891,11 +680,11 @@ class MainLayoutState extends State<MainLayout> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.2),
+                  color: AppTheme.selectedSurface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
-                child: const Icon(Icons.print_rounded, color: Color(0xFF4ADE80), size: 18),
+                child: const Icon(Icons.print_rounded, color: AppTheme.primaryLight, size: 18),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -903,17 +692,17 @@ class MainLayoutState extends State<MainLayout> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      erp.settings.companyName,
+                      erp.settings.companyName.trim().isEmpty ? 'إدارة المطبعة' : erp.settings.companyName,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     const Text(
                       'ERP المطبعة المتكامل',
-                      style: TextStyle(fontSize: 9.5, color: Colors.white60),
+                      style: TextStyle(fontSize: 9.5, color: AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -924,10 +713,11 @@ class MainLayoutState extends State<MainLayout> {
                 icon: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
+                    color: AppTheme.surfaceSecondary,
                     shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
-                  child: const Icon(Icons.close, size: 14, color: Colors.white70),
+                  child: const Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
                 ),
                 onPressed: () => _scaffoldKey.currentState?.closeDrawer(),
               ),
@@ -939,38 +729,18 @@ class MainLayoutState extends State<MainLayout> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 9.5, color: Colors.white70),
+                    const Icon(Icons.calendar_today_outlined, size: 9.5, color: AppTheme.primaryLight),
                     const SizedBox(width: 3.5),
                     Text(
                       AppTheme.formatDate(DateTime.now()),
-                      style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16A34A).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: const Color(0xFF4ADE80).withOpacity(0.3)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.wifi, color: Color(0xFF4ADE80), size: 10),
-                    SizedBox(width: 3),
-                    Text(
-                      'متصل محلياً',
-                      style: TextStyle(fontSize: 9, color: Color(0xFF4ADE80), fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 9, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -989,7 +759,7 @@ class MainLayoutState extends State<MainLayout> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
+        color: AppTheme.sidebarBg,
         border: Border(top: BorderSide(color: AppTheme.borderColor)),
       ),
       child: Column(
@@ -1027,7 +797,7 @@ class MainLayoutState extends State<MainLayout> {
                     },
                   ),
                 IconButton(
-                  icon: const Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                  icon: const Icon(Icons.logout, size: 20, color: AppTheme.danger),
                   tooltip: 'تسجيل الخروج',
                   onPressed: () {
                     _scaffoldKey.currentState?.closeDrawer();
@@ -1048,7 +818,7 @@ class MainLayoutState extends State<MainLayout> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.sidebarBg,
         border: Border(top: BorderSide(color: AppTheme.borderColor, width: 0.8)),
         boxShadow: [
           BoxShadow(
@@ -1062,8 +832,8 @@ class MainLayoutState extends State<MainLayout> {
         child: NavigationBar(
           height: 62,
           elevation: 0,
-          backgroundColor: Colors.white,
-          indicatorColor: AppTheme.primaryGreen.withOpacity(0.12),
+          backgroundColor: AppTheme.sidebarBg,
+          indicatorColor: AppTheme.primaryLight.withValues(alpha: 0.55),
           selectedIndex: currentIdx,
           onDestinationSelected: (idx) {
             if (idx == 4) {
@@ -1075,27 +845,27 @@ class MainLayoutState extends State<MainLayout> {
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.dashboard_outlined, size: 22),
-              selectedIcon: Icon(Icons.dashboard, color: AppTheme.primaryGreen, size: 22),
+              selectedIcon: Icon(Icons.dashboard, color: AppTheme.primaryLight, size: 22),
               label: 'المؤشرات',
             ),
             NavigationDestination(
               icon: Icon(Icons.calculate_outlined, size: 22),
-              selectedIcon: Icon(Icons.calculate, color: AppTheme.primaryGreen, size: 22),
+              selectedIcon: Icon(Icons.calculate, color: AppTheme.primaryLight, size: 22),
               label: 'التسعير',
             ),
             NavigationDestination(
               icon: Icon(Icons.request_quote_outlined, size: 22),
-              selectedIcon: Icon(Icons.request_quote, color: AppTheme.primaryGreen, size: 22),
+              selectedIcon: Icon(Icons.request_quote, color: AppTheme.primaryLight, size: 22),
               label: 'العروض',
             ),
             NavigationDestination(
               icon: Icon(Icons.precision_manufacturing_outlined, size: 22),
-              selectedIcon: Icon(Icons.precision_manufacturing, color: AppTheme.primaryGreen, size: 22),
+              selectedIcon: Icon(Icons.precision_manufacturing, color: AppTheme.primaryLight, size: 22),
               label: 'الإنتاج',
             ),
             NavigationDestination(
               icon: Icon(Icons.menu_rounded, size: 22),
-              selectedIcon: Icon(Icons.menu_open_rounded, color: AppTheme.primaryGreen, size: 22),
+              selectedIcon: Icon(Icons.menu_open_rounded, color: AppTheme.primaryLight, size: 22),
               label: 'المزيد',
             ),
           ],
@@ -1111,7 +881,7 @@ class MainLayoutState extends State<MainLayout> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.logout_rounded, color: Colors.red, size: 22),
+            Icon(Icons.logout_rounded, color: AppTheme.danger, size: 22),
             SizedBox(width: 8),
             Text('تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
@@ -1127,7 +897,7 @@ class MainLayoutState extends State<MainLayout> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.danger,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),

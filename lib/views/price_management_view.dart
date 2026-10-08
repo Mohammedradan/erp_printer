@@ -76,7 +76,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: isSuccess ? AppTheme.primaryGreen : AppTheme.darkSlate,
+        backgroundColor: isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -132,23 +132,9 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF064E3B), // Dark emerald
-            Color(0xFF047857), // Medium emerald
-            Color(0xFF0F766E), // Teal accent
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F5132).withValues(alpha: 0.22),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Stack(
         children: [
@@ -160,7 +146,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppTheme.primaryLight.withValues(alpha: 0.035),
               ),
             ),
           ),
@@ -178,11 +164,11 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                         Container(
                           padding: EdgeInsets.all(isMobile ? 10 : 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: AppTheme.selectedSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                            border: Border.all(color: AppTheme.borderColor),
                           ),
-                          child: Icon(Icons.price_change_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                          child: Icon(Icons.price_change_rounded, color: AppTheme.primaryLight, size: isMobile ? 22 : 26),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -192,13 +178,13 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.14),
+                                  color: AppTheme.surfaceSecondary,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
                                   'محرك التسعير والتكاليف الصناعية • ERP المطبعة',
                                   style: TextStyle(
-                                    color: Color(0xFFD1FAE5),
+                                    color: AppTheme.primaryLight,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -221,7 +207,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                                 Text(
                                   'تعديل أسعار الورق والخامات، الماكينات وسرعاتها، نسب الهالك، والتشطيبات بمزامنة حية فورية',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.85),
+                                    color: AppTheme.textSecondary,
                                     fontSize: 12.5,
                                   ),
                                   maxLines: 2,
@@ -234,7 +220,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Divider(color: Colors.white12, height: 1),
+                    const Divider(color: AppTheme.borderColor, height: 1),
                     const SizedBox(height: 10),
 
                     // إحصاءات فورية وشارة المزامنة وزر المحرك
@@ -251,27 +237,27 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                             _buildHeroPill(
                               icon: Icons.sync_rounded,
                               label: 'مزامنة حية',
-                              color: const Color(0xFFD1FAE5),
-                              bgColor: Colors.black.withValues(alpha: 0.25),
+                              color: AppTheme.primaryLight,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             _buildHeroPill(
                               icon: Icons.description_rounded,
                               label: '${erp.papers.length} صنف ورق',
-                              color: const Color(0xFFBAE6FD),
-                              bgColor: Colors.black.withValues(alpha: 0.22),
+                              color: AppTheme.textSecondary,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             if (!isMobile) ...[
                               _buildHeroPill(
                                 icon: Icons.precision_manufacturing_rounded,
                                 label: '${erp.machines.length} ماكينات',
-                                color: const Color(0xFFFDE68A),
-                                bgColor: Colors.black.withValues(alpha: 0.22),
+                                color: AppTheme.warning,
+                                bgColor: AppTheme.surfaceSecondary,
                               ),
                               _buildHeroPill(
                                 icon: Icons.content_cut_rounded,
                                 label: '${erp.finishings.length} تشطيبات',
-                                color: const Color(0xFFDDD6FE),
-                                bgColor: Colors.black.withValues(alpha: 0.22),
+                                color: AppTheme.primaryLight,
+                                bgColor: AppTheme.surfaceSecondary,
                               ),
                             ],
                           ],
@@ -285,8 +271,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                               style: TextStyle(fontSize: isMobile ? 12 : 13),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppTheme.primaryGreen,
+                              foregroundColor: AppTheme.textPrimary,
                               elevation: 0,
                               padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -363,8 +349,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               value: '${erp.papers.length} خامة',
               subtitle: 'متوسط: ${avgPaperPrice.toStringAsFixed(1)} ${erp.settings.currency}',
               icon: Icons.description_rounded,
-              color: AppTheme.primaryGreen,
-              bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
+              color: AppTheme.primaryLight,
+              bgColor: AppTheme.selectedSurface,
               onTap: () => _tabController.animateTo(0),
               isCompact: isMobile,
             ),
@@ -373,8 +359,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               value: '${erp.machines.length} ماكينات',
               subtitle: 'ساعة: ${avgHourlyCost.toStringAsFixed(0)} ${erp.settings.currency}',
               icon: Icons.precision_manufacturing_rounded,
-              color: const Color(0xFF0284C7),
-              bgColor: const Color(0xFFE0F2FE),
+              color: AppTheme.info,
+              bgColor: AppTheme.infoSurface,
               onTap: () => _tabController.animateTo(1),
               isCompact: isMobile,
             ),
@@ -383,8 +369,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               value: '${erp.settings.defaultProfitMarginPct.toStringAsFixed(0)}%',
               subtitle: 'فوق التكلفة الصناعية',
               icon: Icons.trending_up_rounded,
-              color: const Color(0xFF7C3AED),
-              bgColor: const Color(0xFFEDE9FE),
+              color: AppTheme.primaryLight,
+              bgColor: AppTheme.successSurface,
               onTap: () => _tabController.animateTo(3),
               isCompact: isMobile,
             ),
@@ -393,8 +379,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               value: '${erp.settings.defaultPlatePrice.toStringAsFixed(0)} ${erp.settings.currency}',
               subtitle: 'زنك 50×35 | ضريبة: ${erp.settings.taxPct.toStringAsFixed(0)}%',
               icon: Icons.layers_rounded,
-              color: const Color(0xFFD97706),
-              bgColor: const Color(0xFFFEF3C7),
+              color: AppTheme.warning,
+              bgColor: AppTheme.warningSurface,
               onTap: () => _tabController.animateTo(3),
               isCompact: isMobile,
             ),
@@ -422,7 +408,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         child: Container(
           padding: EdgeInsets.all(isCompact ? 10 : 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -506,7 +492,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
   Widget _buildTabBar(ErpProvider erp) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -521,9 +507,9 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         controller: _tabController,
         isScrollable: true,
         tabAlignment: TabAlignment.start,
-        labelColor: AppTheme.primaryGreen,
+        labelColor: AppTheme.primaryLight,
         unselectedLabelColor: AppTheme.textMuted,
-        indicatorColor: AppTheme.primaryGreen,
+        indicatorColor: AppTheme.primaryLight,
         indicatorWeight: 3,
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         tabs: [
@@ -534,7 +520,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               children: [
                 const Text('أسعار الورق والخامات'),
                 const SizedBox(width: 8),
-                _buildTabBadge('${erp.papers.length}', AppTheme.primaryGreen),
+                _buildTabBadge('${erp.papers.length}', AppTheme.primaryLight),
               ],
             ),
           ),
@@ -545,7 +531,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               children: [
                 const Text('الماكينات والسرعات'),
                 const SizedBox(width: 8),
-                _buildTabBadge('${erp.machines.length}', const Color(0xFF0284C7)),
+                _buildTabBadge('${erp.machines.length}', AppTheme.info),
               ],
             ),
           ),
@@ -556,7 +542,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               children: [
                 const Text('التشطيبات والتجليد'),
                 const SizedBox(width: 8),
-                _buildTabBadge('${erp.finishings.length}', const Color(0xFF7C3AED)),
+                _buildTabBadge('${erp.finishings.length}', AppTheme.primaryLight),
               ],
             ),
           ),
@@ -609,7 +595,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -640,7 +626,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                     )
                   : null,
               filled: true,
-              fillColor: const Color(0xFFF8FAFC),
+              fillColor: AppTheme.surfaceSecondary,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -676,7 +662,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primaryGreen : const Color(0xFFF8FAFC),
+                          color: isSelected ? AppTheme.primaryGreen : AppTheme.surfaceSecondary,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected ? AppTheme.primaryGreen : AppTheme.borderColor,
@@ -698,8 +684,8 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.25)
-                                    : Colors.black.withValues(alpha: 0.05),
+                                    ? AppTheme.primaryLight.withValues(alpha: 0.18)
+                                    : AppTheme.surfaceSecondary,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -721,7 +707,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.surfaceSecondary),
           const SizedBox(height: 14),
 
           // محتوى الأصناف المتجاوب
@@ -764,7 +750,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.borderColor),
           ),
@@ -778,12 +764,12 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                        color: AppTheme.primaryLight.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         p.category,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryGreen),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryLight),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -792,13 +778,13 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
+                      color: AppTheme.successSurface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                      border: Border.all(color: AppTheme.borderColor),
                     ),
                     child: Text(
                       '${p.sheetPrice.toStringAsFixed(1)} ${erp.settings.currency} / فرخ',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF047857)),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.success),
                     ),
                   ),
                 ],
@@ -838,7 +824,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
                   onPressed: () => _editPaperPriceDialog(p, erp),
-                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppTheme.primaryGreen),
+                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppTheme.primaryLight),
                   label: const Text('تعديل السعر والمقاس', style: TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppTheme.borderColor),
@@ -858,7 +844,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
         columnSpacing: 24,
         columns: const [
           DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -875,10 +861,10 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                    color: AppTheme.primaryLight.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(paper.category, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+                  child: Text(paper.category, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight)),
                 ),
               ),
               DataCell(Text('${paper.paperType} (${paper.gsm} جم)', style: const TextStyle(fontWeight: FontWeight.w600))),
@@ -887,12 +873,12 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               DataCell(
                 Text(
                   '${paper.sheetPrice.toStringAsFixed(1)} ${erp.settings.currency}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.success),
                 ),
               ),
               DataCell(
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppTheme.primaryGreen),
+                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppTheme.primaryLight),
                   label: const Text('تعديل', style: TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppTheme.borderColor),
@@ -988,7 +974,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
   Widget _buildMachinesRatesTab(ErpProvider erp) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -1005,7 +991,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         children: [
           Row(
             children: const [
-              Icon(Icons.precision_manufacturing_rounded, size: 20, color: AppTheme.primaryGreen),
+              Icon(Icons.precision_manufacturing_rounded, size: 20, color: AppTheme.primaryLight),
               SizedBox(width: 8),
               Text(
                 'ماكينات الطباعة ومعدلات التشغيل',
@@ -1019,7 +1005,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
             style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.surfaceSecondary),
           const SizedBox(height: 14),
 
           ListView.separated(
@@ -1034,7 +1020,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                 decoration: BoxDecoration(
                   border: Border.all(color: AppTheme.borderColor),
                   borderRadius: BorderRadius.circular(12),
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -1045,10 +1031,10 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                              color: AppTheme.primaryLight.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.precision_manufacturing, color: AppTheme.primaryGreen, size: 28),
+                            child: const Icon(Icons.precision_manufacturing, color: AppTheme.primaryLight, size: 28),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -1097,17 +1083,17 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                                      color: AppTheme.primaryLight.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.precision_manufacturing, color: AppTheme.primaryGreen, size: 20),
+                                    child: const Icon(Icons.precision_manufacturing, color: AppTheme.primaryLight, size: 20),
                                   ),
                                   const SizedBox(width: 10),
                                   Text(machine.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                 ],
                               ),
                               OutlinedButton.icon(
-                                icon: const Icon(Icons.edit, size: 14, color: AppTheme.primaryGreen),
+                                icon: const Icon(Icons.edit, size: 14, color: AppTheme.primaryLight),
                                 label: const Text('تعديل', style: TextStyle(fontSize: 12)),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: AppTheme.borderColor),
@@ -1144,14 +1130,14 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         border: Border.all(color: AppTheme.borderColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppTheme.primaryGreen),
+          Icon(icon, size: 16, color: AppTheme.primaryLight),
           const SizedBox(width: 6),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1240,7 +1226,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
   Widget _buildFinishingsTab(ErpProvider erp) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -1257,7 +1243,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         children: [
           Row(
             children: const [
-              Icon(Icons.content_cut_rounded, size: 20, color: AppTheme.primaryGreen),
+              Icon(Icons.content_cut_rounded, size: 20, color: AppTheme.primaryLight),
               SizedBox(width: 8),
               Text(
                 'خدمات التشطيب والتجليد وسعر كل خدمة',
@@ -1271,7 +1257,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
             style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.surfaceSecondary),
           const SizedBox(height: 14),
 
           LayoutBuilder(
@@ -1287,7 +1273,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: AppTheme.surfaceSecondary,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppTheme.borderColor),
                       ),
@@ -1303,10 +1289,10 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    color: AppTheme.info.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: Text('الوحدة: ${f.unit}', style: const TextStyle(color: Colors.blue, fontSize: 11)),
+                                  child: Text('الوحدة: ${f.unit}', style: const TextStyle(color: AppTheme.info, fontSize: 11)),
                                 ),
                               ],
                             ),
@@ -1315,11 +1301,11 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                             children: [
                               Text(
                                 '${f.price.toStringAsFixed(1)} ${erp.settings.currency}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Color(0xFF047857)),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.success),
                               ),
                               const SizedBox(width: 8),
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.primaryGreen),
+                                icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.primaryLight),
                                 tooltip: 'تعديل السعر',
                                 onPressed: () => _editFinishingDialog(f, erp),
                               ),
@@ -1335,7 +1321,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                  headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                   columnSpacing: 28,
                   columns: const [
                     DataColumn(label: Text('الخدمة', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -1351,16 +1337,16 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
+                              color: AppTheme.info.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(f.unit, style: const TextStyle(color: Colors.blue, fontSize: 12)),
+                            child: Text(f.unit, style: const TextStyle(color: AppTheme.info, fontSize: 12)),
                           ),
                         ),
-                        DataCell(Text('${f.price.toStringAsFixed(1)} ${erp.settings.currency}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF047857)))),
+                        DataCell(Text('${f.price.toStringAsFixed(1)} ${erp.settings.currency}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.success))),
                         DataCell(
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryGreen),
+                            icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryLight),
                             tooltip: 'تعديل السعر',
                             onPressed: () => _editFinishingDialog(f, erp),
                           ),
@@ -1440,7 +1426,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
   Widget _buildConstantsTab(ErpProvider erp) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -1457,7 +1443,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
         children: [
           Row(
             children: const [
-              Icon(Icons.tune_rounded, size: 20, color: AppTheme.primaryGreen),
+              Icon(Icons.tune_rounded, size: 20, color: AppTheme.primaryLight),
               SizedBox(width: 8),
               Text(
                 'ثوابت التسعير والضرائب وهامش الربح',
@@ -1488,7 +1474,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                         helperText: 'سعر الزنك الأوفست 50×35 لكل لون/وجه',
                         prefixIcon: const Icon(Icons.layers_outlined),
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AppTheme.surfaceSecondary,
                       ),
                     ),
                   ),
@@ -1502,7 +1488,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                         helperText: 'النسبة المضافة فوق التكلفة الصناعية',
                         prefixIcon: Icon(Icons.trending_up),
                         filled: true,
-                        fillColor: Color(0xFFF8FAFC),
+                        fillColor: AppTheme.surfaceSecondary,
                       ),
                     ),
                   ),
@@ -1516,7 +1502,7 @@ class _PriceManagementViewState extends State<PriceManagementView> with SingleTi
                         helperText: '0 تعني بدون ضريبة، أو النسبة المقررة',
                         prefixIcon: Icon(Icons.receipt_long),
                         filled: true,
-                        fillColor: Color(0xFFF8FAFC),
+                        fillColor: AppTheme.surfaceSecondary,
                       ),
                     ),
                   ),

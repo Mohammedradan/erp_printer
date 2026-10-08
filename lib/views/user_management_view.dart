@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../models/app_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/erp_components.dart';
 
 /// شاشة إدارة المستخدمين والصلاحيات (للمدير العام فقط)
 class UserManagementView extends StatelessWidget {
@@ -13,55 +14,43 @@ class UserManagementView extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
+    final isNarrow = MediaQuery.sizeOf(context).width < 600;
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: AppTheme.scaffoldBg,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: const Text(
-            'إدارة المستخدمين والصلاحيات',
-            style: TextStyle(
-              color: AppTheme.darkSlate,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1, color: AppTheme.borderColor),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.person_add_rounded, size: 18),
-                label: const Text('إضافة موظف', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: EdgeInsets.all(isNarrow ? 12 : 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ErpPageHeader(
+              title: 'إدارة المستخدمين والصلاحيات',
+              subtitle: 'إدارة الحسابات والأدوار ورموز الدخول الخاصة بفريق المطبعة',
+              icon: Icons.manage_accounts_outlined,
+              actions: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                  label: const Text('إضافة مستخدم'),
+                  onPressed: () => _showAddUserDialog(context),
                 ),
-                onPressed: () => _showAddUserDialog(context),
-              ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: auth.users.isEmpty
+                  ? const ErpEmptyState(
+                      title: 'لا يوجد مستخدمون مسجلون',
+                      message: 'أضف حساباً للموظف الذي سيستخدم النظام.',
+                      icon: Icons.group_outlined,
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      itemCount: auth.users.length,
+                      separatorBuilder: (_, index) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _UserTile(user: auth.users[i]),
+                    ),
             ),
           ],
         ),
-        body: auth.users.isEmpty
-            ? const Center(
-                child: Text(
-                  'لا يوجد مستخدمون مسجلون',
-                  style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-                ),
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: auth.users.length,
-                separatorBuilder: (_, index) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _UserTile(user: auth.users[i]),
-              ),
       ),
     );
   }
@@ -89,11 +78,11 @@ class _UserTile extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: user.role == UserRole.admin
-              ? const Color(0xFF10B981).withValues(alpha: 0.4)
+              ? AppTheme.primaryLight.withValues(alpha: 0.4)
               : AppTheme.borderColor,
           width: user.role == UserRole.admin ? 1.5 : 1.0,
         ),
@@ -123,13 +112,13 @@ class _UserTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AppTheme.successSurface,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: const Text(
                   'أنت (الحالي)',
-                  style: TextStyle(color: Color(0xFF16A34A), fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppTheme.success, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -143,13 +132,13 @@ class _UserTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: user.role == UserRole.admin
-                      ? const Color(0xFFECFDF5)
-                      : const Color(0xFFF0F9FF),
+                      ? AppTheme.successSurface
+                      : AppTheme.infoSurface,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: user.role == UserRole.admin
-                        ? const Color(0xFFA7F3D0)
-                        : const Color(0xFFBAE6FD),
+                        ? AppTheme.borderColor
+                        : AppTheme.borderColor,
                   ),
                 ),
                 child: Row(
@@ -161,8 +150,8 @@ class _UserTile extends StatelessWidget {
                           : Icons.badge_outlined,
                       size: 13,
                       color: user.role == UserRole.admin
-                          ? const Color(0xFF059669)
-                          : const Color(0xFF0284C7),
+                          ? AppTheme.success
+                          : AppTheme.info,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -171,8 +160,8 @@ class _UserTile extends StatelessWidget {
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: user.role == UserRole.admin
-                            ? const Color(0xFF059669)
-                            : const Color(0xFF0284C7),
+                            ? AppTheme.success
+                            : AppTheme.info,
                       ),
                     ),
                   ],
@@ -189,7 +178,7 @@ class _UserTile extends StatelessWidget {
                 height: 7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: user.isActive ? const Color(0xFF10B981) : Colors.red,
+                  color: user.isActive ? AppTheme.primaryLight : AppTheme.danger,
                 ),
               ),
               const SizedBox(width: 4),
@@ -197,7 +186,7 @@ class _UserTile extends StatelessWidget {
                 user.isActive ? 'نشط' : 'معطل',
                 style: TextStyle(
                   fontSize: 11,
-                  color: user.isActive ? const Color(0xFF059669) : Colors.red,
+                  color: user.isActive ? AppTheme.success : AppTheme.danger,
                 ),
               ),
             ],
@@ -239,11 +228,11 @@ class _UserTile extends StatelessWidget {
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: isDestructive ? Colors.red : AppTheme.textDark),
+          Icon(icon, size: 18, color: isDestructive ? AppTheme.danger : AppTheme.textDark),
           const SizedBox(width: 10),
           Text(
             label,
-            style: TextStyle(color: isDestructive ? Colors.red : AppTheme.textDark, fontSize: 13),
+            style: TextStyle(color: isDestructive ? AppTheme.danger : AppTheme.textDark, fontSize: 13),
           ),
         ],
       ),
@@ -279,7 +268,7 @@ class _UserTile extends StatelessWidget {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: AppTheme.dangerButton,
       ),
     );
   }
@@ -297,7 +286,7 @@ class _UserTile extends StatelessWidget {
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(dialogCtx);
               final error = await auth.deleteUser(user.id);
@@ -307,7 +296,7 @@ class _UserTile extends StatelessWidget {
                   SnackBar(
                     content: Text(error),
                     behavior: SnackBarBehavior.floating,
-                    backgroundColor: Colors.red.shade700,
+                    backgroundColor: AppTheme.dangerButton,
                   ),
                 );
               }
@@ -415,7 +404,7 @@ class _AddUserDialogState extends State<_AddUserDialog> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                Text(_error!, style: const TextStyle(color: AppTheme.danger, fontSize: 12)),
               ],
             ],
           ),
@@ -447,7 +436,7 @@ class _AddUserDialogState extends State<_AddUserDialog> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppTheme.primaryGreen : const Color(0xFFF1F5F9),
+            color: selected ? AppTheme.primaryGreen : AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected ? AppTheme.primaryGreen : AppTheme.borderColor,
@@ -637,7 +626,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                   SnackBar(
                     content: Text(error),
                     behavior: SnackBarBehavior.floating,
-                    backgroundColor: Colors.red.shade700,
+                    backgroundColor: AppTheme.dangerButton,
                   ),
                 );
               }
@@ -662,7 +651,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppTheme.primaryGreen : const Color(0xFFF1F5F9),
+            color: selected ? AppTheme.primaryGreen : AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected ? AppTheme.primaryGreen : AppTheme.borderColor,
@@ -723,7 +712,7 @@ class _ChangePinDialogState extends State<_ChangePinDialog> {
             _pinField(_confirmCtrl, 'تأكيد رمز PIN'),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              Text(_error!, style: const TextStyle(color: AppTheme.danger, fontSize: 12)),
             ],
           ],
         ),

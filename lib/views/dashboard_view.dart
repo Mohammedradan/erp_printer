@@ -22,7 +22,7 @@ class DashboardView extends StatelessWidget {
     final erp = context.watch<ErpProvider>();
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
-    final companyName = erp.settings.companyName.isNotEmpty ? erp.settings.companyName : 'مطبعة الجودة الحديثة';
+    final companyName = erp.settings.companyName.isNotEmpty ? erp.settings.companyName : 'نظام إدارة المطبعة';
 
     // حسابات إحصائية إضافية
     final totalCollected = erp.payments.fold(0.0, (sum, p) => sum + p.amount);
@@ -130,23 +130,9 @@ class DashboardView extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF0A2E1C),
-            Color(0xFF114B31),
-            Color(0xFF1A5D3F),
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F5132).withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Stack(
         children: [
@@ -158,7 +144,7 @@ class DashboardView extends StatelessWidget {
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppTheme.primaryLight.withValues(alpha: 0.035),
               ),
             ),
           ),
@@ -177,11 +163,11 @@ class DashboardView extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: AppTheme.selectedSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                            border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.22)),
                           ),
-                          child: const Icon(Icons.print_rounded, color: Colors.white, size: 24),
+                          child: const Icon(Icons.print_rounded, color: AppTheme.primaryLight, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -191,7 +177,7 @@ class DashboardView extends StatelessWidget {
                               const Text(
                                 'لوحة المؤشرات التفاعلية',
                                 style: TextStyle(
-                                  color: Color(0xFFD1FAE5),
+                                  color: AppTheme.primaryLight,
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -201,7 +187,7 @@ class DashboardView extends StatelessWidget {
                               Text(
                                 '${_getGreeting()}، $userName',
                                 style: const TextStyle(
-                                  color: Color(0xFFA7F3D0),
+                                  color: AppTheme.textSecondary,
                                   fontSize: 12,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -224,14 +210,14 @@ class DashboardView extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.2),
+                              color: AppTheme.surfaceSecondary,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                              border: Border.all(color: AppTheme.borderColor),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.calendar_today_rounded, color: Color(0xFFD1FAE5), size: 14),
+                                const Icon(Icons.calendar_today_rounded, color: AppTheme.primaryLight, size: 14),
                                 const SizedBox(width: 6),
                                 Text(
                                   AppTheme.formatDate(DateTime.now()),
@@ -243,7 +229,7 @@ class DashboardView extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Divider(color: Colors.white12, height: 1),
+                    const Divider(color: AppTheme.borderColor, height: 1),
                     const SizedBox(height: 16),
 
                     Wrap(
@@ -259,21 +245,21 @@ class DashboardView extends StatelessWidget {
                             _buildHeroPill(
                               icon: Icons.precision_manufacturing_rounded,
                               label: '$inProgressOrders أوامر جارية',
-                              color: const Color(0xFFFDE68A),
-                              bgColor: Colors.black.withValues(alpha: 0.25),
+                              color: AppTheme.warning,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             _buildHeroPill(
                               icon: Icons.receipt_long_rounded,
                               label: '$approvedQuotes عروض معتمدة',
-                              color: const Color(0xFF86EFAC),
-                              bgColor: Colors.black.withValues(alpha: 0.25),
+                              color: AppTheme.success,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             if (lowStockCount > 0)
                               _buildHeroPill(
                                 icon: Icons.warning_amber_rounded,
                                 label: '$lowStockCount نواقص مخزون',
-                                color: const Color(0xFFFCA5A5),
-                                bgColor: Colors.red.withValues(alpha: 0.25),
+                                color: AppTheme.danger,
+                                bgColor: AppTheme.dangerSurface,
                               ),
                           ],
                         ),
@@ -286,7 +272,7 @@ class DashboardView extends StatelessWidget {
                               icon: const Icon(Icons.calculate_rounded, size: 16),
                               label: const Text('محرك التسعير الحي'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
+                                backgroundColor: AppTheme.primaryGreen,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -298,8 +284,8 @@ class DashboardView extends StatelessWidget {
                               icon: const Icon(Icons.add_rounded, size: 16),
                               label: const Text('عرض سعر جديد'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white38),
+                                foregroundColor: AppTheme.textPrimary,
+                                side: const BorderSide(color: AppTheme.borderColor),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
@@ -352,23 +338,19 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.red.shade50, Colors.orange.shade50],
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-        ),
+        color: AppTheme.dangerSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.red.shade100,
+              color: AppTheme.danger.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.error_outline_rounded, color: Colors.red.shade800, size: 20),
+            child: const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -377,13 +359,13 @@ class DashboardView extends StatelessWidget {
               children: [
                 Text(
                   'تنبيه نقص المخزون ($count أصناف وصلت حد الطلب)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red.shade900),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.danger),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'يرجى مراجعة أرصدة الورق والأحبار لإصدار أوامر التوريد.',
-                  style: TextStyle(fontSize: 11.5, color: Colors.red.shade800),
+                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textPrimary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -395,7 +377,7 @@ class DashboardView extends StatelessWidget {
             icon: const Icon(Icons.arrow_forward_rounded, size: 14),
             label: const Text('المخزون', style: TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: AppTheme.dangerButton,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               elevation: 0,
@@ -430,8 +412,8 @@ class DashboardView extends StatelessWidget {
               subtext: '${erp.approvedQuotationsCount} عروض معتمدة',
               badgeText: 'نشطة',
               icon: Icons.payments_rounded,
-              accentColor: const Color(0xFF0F5132),
-              gradientColors: const [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+              accentColor: AppTheme.primaryLight,
+              gradientColors: const [AppTheme.successSurface, AppTheme.successSurface],
               onTap: () => onNavigate(2),
               isCompact: isMobile,
             ),
@@ -442,8 +424,8 @@ class DashboardView extends StatelessWidget {
                 subtext: 'بعد خصم الخامات',
                 badgeText: '${erp.overallMarginPct.toStringAsFixed(1)}%',
                 icon: Icons.trending_up_rounded,
-                accentColor: const Color(0xFF059669),
-                gradientColors: const [Color(0xFFECFDF5), Color(0xFFD1FAE5)],
+                accentColor: AppTheme.success,
+                gradientColors: const [AppTheme.successSurface, AppTheme.successSurface],
                 onTap: () => onNavigate(9),
                 isCompact: isMobile,
               ),
@@ -452,23 +434,23 @@ class DashboardView extends StatelessWidget {
                 title: 'قيمة المخزون الإجمالي',
                 value: AppTheme.formatCurrency(erp.totalInventoryValue, erp.settings.currency),
                 subtext: isMobile
-                    ? 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)}'
-                    : 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue)} | أحبار: ${AppTheme.formatCurrency(erp.totalInkInventoryValue)}',
+                    ? 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency)}'
+                    : 'ورق: ${AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency)} | أحبار: ${AppTheme.formatCurrency(erp.totalInkInventoryValue, erp.settings.currency)}',
                 badgeText: '${erp.papers.length + erp.inks.length} صنف',
                 icon: Icons.inventory_2_rounded,
-                accentColor: const Color(0xFF0284C7),
-                gradientColors: const [Color(0xFFF0F9FF), Color(0xFFE0F2FE)],
+                accentColor: AppTheme.info,
+                gradientColors: const [AppTheme.infoSurface, AppTheme.infoSurface],
                 onTap: () => onNavigate(4),
                 isCompact: isMobile,
               ),
             _buildModernStatCard(
               title: 'ذمم العملاء المستحقة',
               value: AppTheme.formatCurrency(erp.totalReceivables, erp.settings.currency),
-              subtext: 'تحصيل ${AppTheme.formatCurrency(totalCollected)}',
+              subtext: 'تحصيل ${AppTheme.formatCurrency(totalCollected, erp.settings.currency)}',
               badgeText: '${collectionPct.toStringAsFixed(0)}%',
               icon: Icons.account_balance_wallet_rounded,
-              accentColor: const Color(0xFFD97706),
-              gradientColors: const [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+              accentColor: AppTheme.warning,
+              gradientColors: const [AppTheme.warningSurface, AppTheme.warningSurface],
               onTap: () => onNavigate(6),
               isCompact: isMobile,
             ),
@@ -495,7 +477,7 @@ class DashboardView extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(isCompact ? 10 : 15),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppTheme.borderColor),
           boxShadow: [
@@ -516,7 +498,7 @@ class DashboardView extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(isCompact ? 6 : 8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradientColors),
+                    color: gradientColors.first,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: accentColor.withValues(alpha: 0.15)),
                   ),
@@ -591,7 +573,7 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -601,20 +583,20 @@ class DashboardView extends StatelessWidget {
 
           final stagesRow = Row(
             children: [
-              _buildPulseStep('مسودة', draftCount, Colors.blueGrey, Icons.edit_note_rounded),
+              _buildPulseStep('مسودة', draftCount, AppTheme.textSecondary, Icons.edit_note_rounded),
               _buildPulseDivider(),
-              _buildPulseStep('معتمد', approvedCount, const Color(0xFF0284C7), Icons.check_circle_outline_rounded),
+              _buildPulseStep('معتمد', approvedCount, AppTheme.info, Icons.check_circle_outline_rounded),
               _buildPulseDivider(),
-              _buildPulseStep('قيد الإنتاج', inProgressCount, const Color(0xFFD97706), Icons.engineering_rounded, isHighlight: true),
+              _buildPulseStep('قيد الإنتاج', inProgressCount, AppTheme.warning, Icons.engineering_rounded, isHighlight: true),
               _buildPulseDivider(),
-              _buildPulseStep('مكتمل', completedCount, const Color(0xFF15803D), Icons.verified_rounded),
+              _buildPulseStep('مكتمل', completedCount, AppTheme.success, Icons.verified_rounded),
             ],
           );
 
           final machinesPill = Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppTheme.surfaceSecondary,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.borderColor),
             ),
@@ -624,7 +606,7 @@ class DashboardView extends StatelessWidget {
                 Icon(
                   Icons.precision_manufacturing_rounded,
                   size: 16,
-                  color: activeMachines > 0 ? AppTheme.primaryGreen : AppTheme.textMuted,
+                  color: activeMachines > 0 ? AppTheme.primaryLight : AppTheme.textMuted,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -632,7 +614,7 @@ class DashboardView extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: activeMachines > 0 ? AppTheme.primaryGreen : AppTheme.darkSlate,
+                    color: activeMachines > 0 ? AppTheme.primaryLight : AppTheme.darkSlate,
                   ),
                 ),
               ],
@@ -716,7 +698,7 @@ class DashboardView extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -734,10 +716,10 @@ class DashboardView extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.assignment_rounded, color: AppTheme.primaryGreen, size: 18),
+                        child: const Icon(Icons.assignment_rounded, color: AppTheme.primaryLight, size: 18),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
@@ -754,7 +736,7 @@ class DashboardView extends StatelessWidget {
                   onPressed: () => onNavigate(3),
                   icon: const Icon(Icons.arrow_forward_rounded, size: 14),
                   label: const Text('عرض الكل', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.primaryGreen),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.primaryLight),
                 ),
               ],
             ),
@@ -766,7 +748,7 @@ class DashboardView extends StatelessWidget {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.assignment_turned_in_outlined, size: 40, color: Colors.black26),
+                    Icon(Icons.assignment_turned_in_outlined, size: 40, color: AppTheme.textMuted),
                     SizedBox(height: 10),
                     Text('لا توجد أوامر إنتاج مسجلة حالياً', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
                   ],
@@ -803,7 +785,7 @@ class DashboardView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
@@ -840,14 +822,14 @@ class DashboardView extends StatelessWidget {
                     Icon(
                       order.areAllMaterialsIssued ? Icons.check_circle_rounded : Icons.pending_outlined,
                       size: 12,
-                      color: order.areAllMaterialsIssued ? Colors.green : Colors.orange.shade800,
+                      color: order.areAllMaterialsIssued ? AppTheme.success : AppTheme.warning,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       order.areAllMaterialsIssued ? 'المواد مصروفة' : 'بانتظار الصرف',
                       style: TextStyle(
                         fontSize: 10.5,
-                        color: order.areAllMaterialsIssued ? Colors.green.shade800 : Colors.orange.shade800,
+                        color: order.areAllMaterialsIssued ? AppTheme.success : AppTheme.warning,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -867,7 +849,7 @@ class DashboardView extends StatelessWidget {
   Widget _buildQuickActionsCard({required bool isAdmin}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -881,10 +863,10 @@ class DashboardView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                    color: AppTheme.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.flash_on_rounded, color: Color(0xFF0284C7), size: 18),
+                  child: const Icon(Icons.flash_on_rounded, color: AppTheme.info, size: 18),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
@@ -907,38 +889,38 @@ class DashboardView extends StatelessWidget {
                 _buildActionButton(
                   icon: Icons.calculate_outlined,
                   title: 'تسعير سريع',
-                  color: const Color(0xFF0F5132),
+                  color: AppTheme.primaryLight,
                   onTap: () => onNavigate(1),
                 ),
                 _buildActionButton(
                   icon: Icons.post_add_rounded,
                   title: 'عرض سعر',
-                  color: const Color(0xFFD97706),
+                  color: AppTheme.warning,
                   onTap: () => onNavigate(2),
                 ),
                 _buildActionButton(
                   icon: Icons.inventory_2_outlined,
                   title: 'حركات الورق',
-                  color: const Color(0xFF0284C7),
+                  color: AppTheme.info,
                   onTap: () => onNavigate(4),
                 ),
                 _buildActionButton(
                   icon: Icons.format_color_fill_rounded,
                   title: 'مخزون الحبر',
-                  color: const Color(0xFF7C3AED),
+                  color: AppTheme.primaryLight,
                   onTap: () => onNavigate(5),
                 ),
                 _buildActionButton(
                   icon: Icons.payments_outlined,
                   title: 'سند قبض',
-                  color: const Color(0xFF059669),
+                  color: AppTheme.success,
                   onTap: () => onNavigate(7),
                 ),
                 if (isAdmin)
                   _buildActionButton(
                     icon: Icons.insights_rounded,
                     title: 'تقارير الأرباح',
-                    color: const Color(0xFFDC2626),
+                    color: AppTheme.info,
                     onTap: () => onNavigate(9),
                   ),
               ],
@@ -992,7 +974,7 @@ class DashboardView extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -1078,8 +1060,8 @@ class DashboardView extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              AppTheme.formatCurrency(q.quoteAmount),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppTheme.primaryGreen),
+                              AppTheme.formatCurrency(q.quoteAmount, erp.settings.currency),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppTheme.primaryLight),
                             ),
                             const SizedBox(height: 2),
                             AppTheme.statusBadge(q.status),

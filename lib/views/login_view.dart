@@ -81,7 +81,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
               Expanded(child: Text(result.errorMessage ?? 'رمز PIN غير صحيح')),
             ],
           ),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: AppTheme.dangerButton,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -102,7 +102,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F172A), // خلفية داكنة راقية Slate
+        backgroundColor: AppTheme.scaffoldBg,
         body: SafeArea(
           child: _selectedUser == null
               ? _UserSelectionScreen(
@@ -145,7 +145,7 @@ class _UserSelectionScreen extends StatelessWidget {
     final erp = context.watch<ErpProvider>();
     final companyName = erp.settings.companyName.isNotEmpty
         ? erp.settings.companyName
-        : 'مطبعة التميز الحديثة';
+        : 'نظام إدارة المطبعة';
 
     return Center(
       child: SingleChildScrollView(
@@ -161,20 +161,9 @@ class _UserSelectionScreen extends StatelessWidget {
                 width: 82,
                 height: 82,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF0F5132), Color(0xFF198754)],
-                  ),
+                  color: AppTheme.primaryGreen,
                   borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0F5132).withValues(alpha: 0.45),
-                      blurRadius: 22,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1.5),
+                  border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.28), width: 1.2),
                 ),
                 child: const Icon(Icons.print_rounded, color: Colors.white, size: 44),
               ),
@@ -197,7 +186,7 @@ class _UserSelectionScreen extends StatelessWidget {
                     width: 7,
                     height: 7,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF10B981),
+                      color: AppTheme.primaryLight,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -205,7 +194,7 @@ class _UserSelectionScreen extends StatelessWidget {
                   Text(
                     'نظام ERP وإدارة العمليات المطبعية',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: AppTheme.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -225,7 +214,7 @@ class _UserSelectionScreen extends StatelessWidget {
                       child: Text(
                         'اختر حسابك لتسجيل الدخول:',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.75),
+                          color: AppTheme.textSecondary,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                         ),
@@ -246,19 +235,19 @@ class _UserSelectionScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF10B981)),
+                    const Icon(Icons.shield_outlined, size: 14, color: AppTheme.primaryLight),
                     const SizedBox(width: 6),
                     Text(
-                      'بيانات مشفرة محلياً • وضع عدم الاتصال (Offline)',
+                      'بيانات محلية • دخول محمي برمز PIN',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: AppTheme.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -286,12 +275,12 @@ class _SingleUserCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B), // Dark Slate Card
+        color: AppTheme.cardBg, // Dark Slate Card
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: user.role == UserRole.admin
-              ? const Color(0xFF10B981).withValues(alpha: 0.35)
-              : Colors.white.withValues(alpha: 0.1),
+              ? AppTheme.primaryLight.withValues(alpha: 0.35)
+              : AppTheme.borderColor,
           width: 1.5,
         ),
         boxShadow: [
@@ -319,19 +308,19 @@ class _SingleUserCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F5132).withValues(alpha: 0.25),
+              color: AppTheme.selectedSurface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+              border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF34D399)),
+                const Icon(Icons.verified_user_rounded, size: 14, color: AppTheme.primaryLight),
                 const SizedBox(width: 5),
                 Text(
                   user.role == UserRole.admin ? 'مدير النظام • صلاحيات كاملة' : user.role.label,
                   style: const TextStyle(
-                    color: Color(0xFF34D399),
+                    color: AppTheme.primaryLight,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -351,7 +340,7 @@ class _SingleUserCard extends StatelessWidget {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryLight,
+                backgroundColor: AppTheme.primaryGreen,
                 foregroundColor: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -383,12 +372,12 @@ class _UserCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: user.role == UserRole.admin
-                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.08),
+                  ? AppTheme.primaryLight.withValues(alpha: 0.3)
+                  : AppTheme.borderColor,
             ),
           ),
           child: Row(
@@ -411,7 +400,7 @@ class _UserCard extends StatelessWidget {
                     Text(
                       user.role == UserRole.admin ? 'مدير النظام' : 'موظف النظام',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: AppTheme.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -421,7 +410,7 @@ class _UserCard extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 15,
-                color: Colors.white.withValues(alpha: 0.35),
+                color: AppTheme.textSecondary,
               ),
             ],
           ),
@@ -472,7 +461,7 @@ class _PinScreen extends StatelessWidget {
                   icon: const Icon(Icons.arrow_forward_ios, size: 14),
                   label: const Text('تغيير الحساب'),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.7),
+                    foregroundColor: AppTheme.primaryLight,
                   ),
                 ),
               ),
@@ -493,14 +482,14 @@ class _PinScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Text(
                   user.role == UserRole.admin ? 'مدير النظام • صلاحيات كاملة' : user.role.label,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.75),
+                    color: AppTheme.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -510,7 +499,7 @@ class _PinScreen extends StatelessWidget {
               Text(
                 'أدخل رمز المرور السري (PIN)',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.75),
+                  color: AppTheme.textSecondary,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -542,24 +531,11 @@ class _PinScreen extends StatelessWidget {
                       height: filled ? 16 : 14,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: filled
-                            ? const Color(0xFF10B981)
-                            : Colors.white.withValues(alpha: 0.08),
+                        color: filled ? AppTheme.primaryLight : AppTheme.surfaceSecondary,
                         border: Border.all(
-                          color: filled
-                              ? const Color(0xFF34D399)
-                              : Colors.white.withValues(alpha: 0.35),
+                          color: filled ? AppTheme.primaryLight : AppTheme.borderColor,
                           width: 1.8,
                         ),
-                        boxShadow: filled
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.65),
-                                  blurRadius: 10,
-                                  spreadRadius: 1.5,
-                                ),
-                              ]
-                            : null,
                       ),
                     );
                   }),
@@ -681,18 +657,15 @@ class _PinButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(38),
-        splashColor: const Color(0xFF10B981).withValues(alpha: 0.25),
-        highlightColor: Colors.white.withValues(alpha: 0.15),
+        splashColor: AppTheme.primaryLight.withValues(alpha: 0.18),
+        highlightColor: AppTheme.primaryLight.withValues(alpha: 0.08),
         child: Container(
           width: 74,
           height: 74,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.07), // زجاج نصف شفاف راقٍ
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15),
-              width: 1.2,
-            ),
+            color: AppTheme.surfaceSecondary,
+            border: Border.all(color: AppTheme.borderColor, width: 1.2),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -710,7 +683,7 @@ class _PinButton extends StatelessWidget {
                 Text(
                   subText,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45),
+                    color: AppTheme.textSecondary,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.5,
@@ -757,37 +730,21 @@ class _PinActionButton extends StatelessWidget {
           height: 74,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: isConfirm && isActive
-                ? const LinearGradient(
-                    colors: [Color(0xFF0F5132), Color(0xFF10B981)],
-                  )
-                : null,
-            color: isConfirm
-                ? null
-                : (isActive ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
+            color: isConfirm && isActive
+                ? AppTheme.primaryGreen
+                : (isActive ? AppTheme.surfaceSecondary : Colors.transparent),
             border: Border.all(
               color: isConfirm && isActive
-                  ? const Color(0xFF34D399)
-                  : (isActive ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
+                  ? AppTheme.primaryLight
+                  : (isActive ? AppTheme.borderColor : Colors.transparent),
               width: 1.2,
             ),
-            boxShadow: isConfirm && isActive
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.5),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
           ),
           child: Center(
             child: Icon(
               icon,
               size: isConfirm ? 28 : 23,
-              color: isActive
-                  ? (isConfirm ? Colors.white : Colors.white.withValues(alpha: 0.85))
-                  : Colors.white.withValues(alpha: 0.2),
+              color: isActive ? AppTheme.textPrimary : AppTheme.textMuted,
             ),
           ),
         ),
@@ -868,7 +825,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppTheme.scaffoldBg,
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -883,17 +840,9 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0F5132), Color(0xFF198754)],
-                        ),
+                        color: AppTheme.primaryGreen,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0F5132).withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                        border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.28)),
                       ),
                       child: const Icon(Icons.print_rounded, color: Colors.white, size: 38),
                     ),
@@ -912,7 +861,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                     Text(
                       'مرحباً بك! إعداد حساب المسؤول الرئيسي (Admin)',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
+                        color: AppTheme.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -922,10 +871,10 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                     Container(
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: AppTheme.cardBg,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                        boxShadow: [
+                  border: Border.all(color: AppTheme.borderColor),
+                  boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 20,
@@ -951,7 +900,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                                 Text(
                                   'اختر النمط اللوني لحسابك:',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7),
+                                    color: AppTheme.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -996,7 +945,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Divider(color: Colors.white10),
+                          const Divider(color: AppTheme.borderColor),
                           const SizedBox(height: 16),
 
                           // الحقول
@@ -1030,18 +979,18 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.15),
+                                color: AppTheme.danger.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+                                  const Icon(Icons.error_outline, color: AppTheme.danger, size: 18),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _error!,
-                                      style: const TextStyle(color: Colors.redAccent, fontSize: 12.5),
+                                      style: const TextStyle(color: AppTheme.danger, fontSize: 12.5),
                                     ),
                                   ),
                                 ],
@@ -1070,7 +1019,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
                                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryLight,
+                                backgroundColor: AppTheme.primaryGreen,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -1097,7 +1046,7 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: AppTheme.textPrimary,
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
         ),
@@ -1120,32 +1069,32 @@ class _FirstSetupScreenState extends State<_FirstSetupScreen> {
       decoration: InputDecoration(
         counterText: '',
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 20),
+        hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        prefixIcon: Icon(icon, color: AppTheme.textSecondary, size: 20),
         suffixIcon: isPin
             ? IconButton(
                 icon: Icon(
                   _obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppTheme.textSecondary,
                   size: 20,
                 ),
                 onPressed: () => setState(() => _obscurePin = !_obscurePin),
               )
             : null,
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
+        fillColor: AppTheme.surfaceSecondary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          borderSide: const BorderSide(color: AppTheme.borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          borderSide: const BorderSide(color: AppTheme.borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+          borderSide: const BorderSide(color: AppTheme.primaryLight, width: 1.5),
         ),
       ),
     );

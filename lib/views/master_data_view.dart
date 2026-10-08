@@ -54,7 +54,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               // 2. شريط التبويبات المتجاوب الفاخر
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.borderColor),
                   boxShadow: [
@@ -69,9 +69,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                   controller: _tabController,
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
-                  labelColor: AppTheme.primaryGreen,
+                  labelColor: AppTheme.primaryLight,
                   unselectedLabelColor: AppTheme.textMuted,
-                  indicatorColor: AppTheme.primaryGreen,
+                  indicatorColor: AppTheme.primaryLight,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
@@ -86,12 +86,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                              color: AppTheme.primaryLight.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${erp.machines.length}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryLight),
                             ),
                           ),
                         ],
@@ -107,12 +107,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                              color: AppTheme.info.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${erp.products.length}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.info),
                             ),
                           ),
                         ],
@@ -128,12 +128,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                              color: AppTheme.warning.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${erp.finishings.length}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.warning),
                             ),
                           ),
                         ],
@@ -163,23 +163,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF064E3B), // Dark emerald
-            Color(0xFF047857), // Emerald
-            Color(0xFF0F766E), // Teal accent
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF064E3B).withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Stack(
         children: [
@@ -191,7 +177,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
+                color: AppTheme.primaryLight.withValues(alpha: 0.035),
               ),
             ),
           ),
@@ -206,11 +192,11 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     Container(
                       padding: EdgeInsets.all(isMobile ? 8 : 10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: AppTheme.selectedSurface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
-                      child: Icon(Icons.settings_suggest_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                      child: Icon(Icons.settings_suggest_rounded, color: AppTheme.primaryLight, size: isMobile ? 22 : 26),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -220,13 +206,13 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: AppTheme.selectedSurface,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
                               'المعايير المرجعية والتشغيلية • ERP المطبعة',
                               style: TextStyle(
-                                color: Color(0xFFD1FAE5),
+                                color: AppTheme.primaryLight,
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -246,7 +232,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                             'معايير الطاقة الإنتاجية، الهالك، وأسعار الخدمات وتكلفة الساعة',
                             style: TextStyle(
                               fontSize: isMobile ? 11 : 12.5,
-                              color: Colors.white.withValues(alpha: 0.85),
+                              color: AppTheme.textSecondary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -290,14 +276,14 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: AppTheme.surfaceSecondary,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFFD1FAE5)),
+          Icon(icon, size: 14, color: AppTheme.primaryLight),
           const SizedBox(width: 6),
           Text(
             label,
@@ -333,7 +319,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+            headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
             columns: const [
               DataColumn(label: Text('اسم الماكينة', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -348,12 +334,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 DataCell(Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                 DataCell(Text(m.kind)),
                 DataCell(Text('${m.wastePct}%')),
-                DataCell(Text(AppTheme.formatCurrency(m.hourlyCost))),
+                DataCell(Text(AppTheme.formatCurrency(m.hourlyCost, context.read<ErpProvider>().settings.currency))),
                 DataCell(Text('${m.speedPerHour}')),
                 DataCell(AppTheme.statusBadge(m.status)),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.info),
                     onPressed: () => _showEditMachineDialog(m),
                   ),
                 ),
@@ -369,9 +355,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -390,10 +376,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                    color: AppTheme.primaryLight.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF0F766E), size: 21),
+                  child: const Icon(Icons.precision_manufacturing_rounded, color: AppTheme.primaryLight, size: 21),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -408,7 +394,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: AppTheme.surfaceSecondary),
             const SizedBox(height: 12),
 
             // شبكة كبسولات مواصفات الماكينة التنفيذية
@@ -419,9 +405,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.category_outlined,
                     label: 'نوع الماكينة',
                     value: m.kind,
-                    bgColor: const Color(0xFFF8FAFC),
+                    bgColor: AppTheme.surfaceSecondary,
                     textColor: AppTheme.darkSlate,
-                    iconColor: const Color(0xFF64748B),
+                    iconColor: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -430,9 +416,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.warning_amber_rounded,
                     label: 'نسبة الهالك',
                     value: '%${m.wastePct}',
-                    bgColor: const Color(0xFFFFFBEB),
-                    textColor: const Color(0xFFB45309),
-                    iconColor: const Color(0xFFF59E0B),
+                    bgColor: AppTheme.warningSurface,
+                    textColor: AppTheme.warning,
+                    iconColor: AppTheme.accentGold,
                   ),
                 ),
               ],
@@ -444,10 +430,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                   child: _buildSpecPill(
                     icon: Icons.monetization_on_outlined,
                     label: 'تكلفة الساعة',
-                    value: AppTheme.formatCurrency(m.hourlyCost),
-                    bgColor: const Color(0xFFECFDF5),
-                    textColor: const Color(0xFF047857),
-                    iconColor: const Color(0xFF10B981),
+                    value: AppTheme.formatCurrency(m.hourlyCost, context.read<ErpProvider>().settings.currency),
+                    bgColor: AppTheme.successSurface,
+                    textColor: AppTheme.success,
+                    iconColor: AppTheme.primaryLight,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -456,9 +442,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.speed_rounded,
                     label: 'السرعة الإنتاجية',
                     value: '${m.speedPerHour} فرخ/س',
-                    bgColor: const Color(0xFFECFEFF),
-                    textColor: const Color(0xFF0E7490),
-                    iconColor: const Color(0xFF06B6D4),
+                    bgColor: AppTheme.infoSurface,
+                    textColor: AppTheme.info,
+                    iconColor: AppTheme.info,
                   ),
                 ),
               ],
@@ -471,10 +457,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
                 label: const Text('تعديل معايير الماكينة'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF0FDF4),
-                  foregroundColor: AppTheme.primaryGreen,
+                  backgroundColor: AppTheme.successSurface,
+                  foregroundColor: AppTheme.primaryLight,
                   elevation: 0,
-                  side: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+                  side: BorderSide(color: AppTheme.primaryLight.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -508,7 +494,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+            headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
             columns: const [
               DataColumn(label: Text('اسم المنتج', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('الفئة', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -528,7 +514,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 DataCell(Text('${p.defaultPaperCategory} ${p.defaultPaperType}')),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.info),
                     onPressed: () => _showEditProductDialog(p),
                   ),
                 ),
@@ -544,9 +530,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -565,10 +551,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                    color: AppTheme.info.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 21),
+                  child: const Icon(Icons.auto_stories_rounded, color: AppTheme.info, size: 21),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -582,19 +568,19 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: AppTheme.infoSurface,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: Text(
                     p.category,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.info),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: AppTheme.surfaceSecondary),
             const SizedBox(height: 12),
 
             Row(
@@ -604,9 +590,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.layers_outlined,
                     label: 'صفحات الفرخ (50x35)',
                     value: '${p.pagesPerSheet} صفحة',
-                    bgColor: const Color(0xFFEFF6FF),
-                    textColor: const Color(0xFF1D4ED8),
-                    iconColor: const Color(0xFF3B82F6),
+                    bgColor: AppTheme.infoSurface,
+                    textColor: AppTheme.info,
+                    iconColor: AppTheme.info,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -615,9 +601,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.menu_book_outlined,
                     label: 'نوع التجليد',
                     value: p.binding.isEmpty ? 'بدون تجليد' : p.binding,
-                    bgColor: const Color(0xFFF8FAFC),
+                    bgColor: AppTheme.surfaceSecondary,
                     textColor: AppTheme.darkSlate,
-                    iconColor: const Color(0xFF64748B),
+                    iconColor: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -630,9 +616,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.precision_manufacturing_outlined,
                     label: 'الماكينة الافتراضية',
                     value: p.defaultMachine,
-                    bgColor: const Color(0xFFF0FDFA),
-                    textColor: const Color(0xFF0F766E),
-                    iconColor: const Color(0xFF14B8A6),
+                    bgColor: AppTheme.selectedSurface,
+                    textColor: AppTheme.primaryLight,
+                    iconColor: AppTheme.primaryLight,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -641,9 +627,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: Icons.description_outlined,
                     label: 'الخامة الافتراضية',
                     value: '${p.defaultPaperCategory} ${p.defaultPaperType}',
-                    bgColor: const Color(0xFFFAF5FF),
-                    textColor: const Color(0xFF7E22CE),
-                    iconColor: const Color(0xFFA855F7),
+                    bgColor: AppTheme.surfaceSecondary,
+                    textColor: AppTheme.primaryLight,
+                    iconColor: AppTheme.primaryLight,
                   ),
                 ),
               ],
@@ -656,10 +642,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
                 label: const Text('تعديل قالب المنتج'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF0F9FF),
-                  foregroundColor: const Color(0xFF0284C7),
+                  backgroundColor: AppTheme.infoSurface,
+                  foregroundColor: AppTheme.info,
                   elevation: 0,
-                  side: BorderSide(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+                  side: BorderSide(color: AppTheme.info.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -693,7 +679,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+            headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
             columns: const [
               DataColumn(label: Text('الخدمة (التشطيب)', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('السعر المحدد', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -703,11 +689,11 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
             rows: erp.finishings.map((f) {
               return DataRow(cells: [
                 DataCell(Text(f.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataCell(Text(AppTheme.formatCurrency(f.price))),
+                DataCell(Text(AppTheme.formatCurrency(f.price, context.read<ErpProvider>().settings.currency))),
                 DataCell(Text(f.unit)),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.info),
                     onPressed: () => _showEditFinishingDialog(f),
                   ),
                 ),
@@ -723,9 +709,9 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -741,10 +727,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                color: AppTheme.warning.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 22),
+              child: const Icon(Icons.content_cut_rounded, color: AppTheme.warning, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -764,12 +750,12 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       'وحدة الاحتساب: ${f.unit}',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -782,16 +768,16 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
+                    color: AppTheme.successSurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: Text(
-                    AppTheme.formatCurrency(f.price),
+                    AppTheme.formatCurrency(f.price, context.read<ErpProvider>().settings.currency),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF047857),
+                      color: AppTheme.success,
                     ),
                   ),
                 ),
@@ -803,7 +789,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                     icon: const Icon(Icons.edit_rounded, size: 15),
                     label: const Text('تعديل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0284C7),
+                      foregroundColor: AppTheme.info,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       visualDensity: VisualDensity.compact,
                     ),
@@ -887,10 +873,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                  color: AppTheme.primaryLight.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryGreen, size: 22),
+                child: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryLight, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -989,10 +975,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                color: AppTheme.info.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF0284C7), size: 22),
+              child: const Icon(Icons.auto_stories_rounded, color: AppTheme.info, size: 22),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1040,7 +1026,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0284C7),
+              backgroundColor: AppTheme.info,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -1066,10 +1052,10 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD97706).withValues(alpha: 0.1),
+                  color: AppTheme.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.content_cut_rounded, color: Color(0xFFD97706), size: 22),
+                child: const Icon(Icons.content_cut_rounded, color: AppTheme.warning, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1123,7 +1109,7 @@ class _MasterDataViewState extends State<MasterDataView> with SingleTickerProvid
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD97706),
+                backgroundColor: AppTheme.warning,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
