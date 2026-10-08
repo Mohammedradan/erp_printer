@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../theme/app_theme.dart';
+import '../services/pdf_export_service.dart';
+import '../widgets/erp_components.dart';
 
 class CustomersView extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -70,73 +72,28 @@ class _CustomersViewState extends State<CustomersView> {
         : 100.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 12 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // شريط العنوان وأزرار الإجراءات الرئيسية
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 12,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 10,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.people_alt, color: AppTheme.primaryGreen, size: 22),
-                      ),
-                      const Text(
-                        'دليل العملاء وحسابات الذمم',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'بيانات العملاء، الحسابات الجارية، متابعة الذمم المدينة، وسندات القبض الفورية',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                  ),
-                ],
+          ErpPageHeader(
+            title: 'العملاء وحسابات الذمم',
+            subtitle: 'ملفات العملاء، الأرصدة المستحقة، الحركات المالية وسندات القبض',
+            icon: Icons.people_alt_outlined,
+            actions: [
+              OutlinedButton.icon(
+                onPressed: () => _showQuickPaymentSelector(erp),
+                icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                label: const Text('سند قبض سريع'),
               ),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _showQuickPaymentSelector(erp),
-                    icon: const Icon(Icons.receipt_long, size: 18),
-                    label: const Text('تسجيل سند قبض سريع'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accentGold,
-                      side: const BorderSide(color: AppTheme.accentGold),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddCustomerDialog(),
-                    icon: const Icon(Icons.person_add_rounded, size: 18),
-                    label: const Text('إضافة عميل جديد'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryGreen,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    ),
-                  ),
-                ],
+              ElevatedButton.icon(
+                onPressed: _showAddCustomerDialog,
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                label: const Text('إضافة عميل'),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // كروت إجمالية للعملاء والذمم (متجاوبة تماماً بنظام 2x2 على الجوال)
           LayoutBuilder(
@@ -180,7 +137,7 @@ class _CustomersViewState extends State<CustomersView> {
                     AppTheme.formatCurrency(totalPaid, erp.settings.currency),
                     'سندات قبض مسجلة',
                     Icons.payments_rounded,
-                    const Color(0xFF0284C7),
+                    AppTheme.info,
                     isCompact: isMobile,
                   ),
                   _buildSummaryCard(
@@ -188,7 +145,7 @@ class _CustomersViewState extends State<CustomersView> {
                     '${collectionPct.clamp(0, 100).toStringAsFixed(1)}%',
                     'من إجمالي المستحقات',
                     Icons.pie_chart_rounded,
-                    const Color(0xFF16A34A),
+                    AppTheme.success,
                     isPercentage: true,
                     pctValue: (collectionPct / 100).clamp(0.0, 1.0),
                     isCompact: isMobile,
@@ -211,7 +168,7 @@ class _CustomersViewState extends State<CustomersView> {
                       final sortDropdown = Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: AppTheme.surfaceSecondary,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
@@ -298,19 +255,19 @@ class _CustomersViewState extends State<CustomersView> {
                         'debt',
                         'عليهم ذمم مستحقة ($debtorsCount)',
                         Icons.warning_amber_rounded,
-                        activeColor: Colors.red.shade700,
+                        activeColor: AppTheme.dangerButton,
                       ),
                       _buildFilterChip(
                         'settled',
                         'خالص ومسدد (${erp.customers.where((c) => c.currentBalance == 0).length})',
                         Icons.check_circle_outline,
-                        activeColor: Colors.green.shade700,
+                        activeColor: AppTheme.success,
                       ),
                       _buildFilterChip(
                         'credit',
                         'أرصدة دائنة (${erp.customers.where((c) => c.currentBalance < 0).length})',
                         Icons.arrow_circle_down_outlined,
-                        activeColor: Colors.blue.shade700,
+                        activeColor: AppTheme.info,
                       ),
                     ],
                   ),
@@ -343,7 +300,7 @@ class _CustomersViewState extends State<CustomersView> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: filtered.fold(0.0, (s, c) => s + c.currentBalance) > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                            color: filtered.fold(0.0, (s, c) => s + c.currentBalance) > 0 ? AppTheme.dangerButton : AppTheme.success,
                           ),
                         ),
                     ],
@@ -371,7 +328,7 @@ class _CustomersViewState extends State<CustomersView> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                         horizontalMargin: 16,
                         columnSpacing: 20,
                         columns: const [
@@ -396,14 +353,14 @@ class _CustomersViewState extends State<CustomersView> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                                    color: AppTheme.primaryLight.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     c.code,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryGreen,
+                                      color: AppTheme.primaryLight,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -447,12 +404,12 @@ class _CustomersViewState extends State<CustomersView> {
                                 ),
                               ),
                               DataCell(Text(c.address ?? '—', style: TextStyle(color: AppTheme.textMuted))),
-                              DataCell(Text(AppTheme.formatCurrency(c.openingBalance))),
-                              DataCell(Text(AppTheme.formatCurrency(c.totalSales))),
+                              DataCell(Text(AppTheme.formatCurrency(c.openingBalance, context.read<ErpProvider>().settings.currency))),
+                              DataCell(Text(AppTheme.formatCurrency(c.totalSales, context.read<ErpProvider>().settings.currency))),
                               DataCell(
                                 Text(
-                                  AppTheme.formatCurrency(c.paid),
-                                  style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w600),
+                                  AppTheme.formatCurrency(c.paid, context.read<ErpProvider>().settings.currency),
+                                  style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.w600),
                                 ),
                               ),
                               DataCell(
@@ -460,23 +417,23 @@ class _CustomersViewState extends State<CustomersView> {
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: c.currentBalance > 0
-                                        ? Colors.red.shade50
-                                        : (c.currentBalance < 0 ? Colors.blue.shade50 : Colors.green.shade50),
+                                        ? AppTheme.dangerSurface
+                                        : (c.currentBalance < 0 ? AppTheme.infoSurface : AppTheme.successSurface),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
                                       color: c.currentBalance > 0
-                                          ? Colors.red.shade200
-                                          : (c.currentBalance < 0 ? Colors.blue.shade200 : Colors.green.shade200),
+                                          ? AppTheme.danger.withValues(alpha: 0.36)
+                                          : (c.currentBalance < 0 ? AppTheme.info.withValues(alpha: 0.36) : AppTheme.success.withValues(alpha: 0.36)),
                                     ),
                                   ),
                                   child: Text(
-                                    AppTheme.formatCurrency(c.currentBalance),
+                                    AppTheme.formatCurrency(c.currentBalance, context.read<ErpProvider>().settings.currency),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                       color: c.currentBalance > 0
-                                          ? Colors.red.shade700
-                                          : (c.currentBalance < 0 ? Colors.blue.shade700 : Colors.green.shade700),
+                                          ? AppTheme.dangerButton
+                                          : (c.currentBalance < 0 ? AppTheme.info : AppTheme.success),
                                     ),
                                   ),
                                 ),
@@ -497,9 +454,9 @@ class _CustomersViewState extends State<CustomersView> {
                                         borderRadius: BorderRadius.circular(4),
                                         child: LinearProgressIndicator(
                                           value: custPct,
-                                          backgroundColor: Colors.grey.shade200,
+                                          backgroundColor: AppTheme.surfaceSecondary,
                                           valueColor: AlwaysStoppedAnimation<Color>(
-                                            custPct >= 1.0 ? Colors.green : (custPct >= 0.5 ? Colors.amber : Colors.red),
+                                            custPct >= 1.0 ? AppTheme.success : (custPct >= 0.5 ? AppTheme.warning : AppTheme.danger),
                                           ),
                                           minHeight: 5,
                                         ),
@@ -524,7 +481,7 @@ class _CustomersViewState extends State<CustomersView> {
                                     ),
                                     const SizedBox(width: 4),
                                     IconButton(
-                                      icon: const Icon(Icons.history_edu, size: 18, color: Color(0xFF0284C7)),
+                                      icon: const Icon(Icons.history_edu, size: 18, color: AppTheme.info),
                                       tooltip: 'كشف حساب تفصيلي للعميل',
                                       onPressed: () => _showStatementDialog(c),
                                     ),
@@ -534,7 +491,7 @@ class _CustomersViewState extends State<CustomersView> {
                                       onPressed: () => _showEditCustomerDialog(c),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                      icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.danger),
                                       tooltip: 'حذف العميل',
                                       onPressed: () => _confirmDeleteCustomer(c),
                                     ),
@@ -570,11 +527,11 @@ class _CustomersViewState extends State<CustomersView> {
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: hasDebt
-                  ? Colors.red.withValues(alpha: 0.25)
+                  ? AppTheme.danger.withValues(alpha: 0.25)
                   : AppTheme.borderColor,
             ),
             boxShadow: [
@@ -596,14 +553,14 @@ class _CustomersViewState extends State<CustomersView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      color: AppTheme.primaryLight.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       c.code,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
+                        color: AppTheme.primaryLight,
                         fontSize: 12,
                       ),
                     ),
@@ -613,27 +570,27 @@ class _CustomersViewState extends State<CustomersView> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: hasDebt
-                            ? Colors.red.shade50
-                            : (isCredit ? Colors.blue.shade50 : Colors.green.shade50),
+                            ? AppTheme.dangerSurface
+                            : (isCredit ? AppTheme.infoSurface : AppTheme.successSurface),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                           color: hasDebt
-                              ? Colors.red.shade200
-                              : (isCredit ? Colors.blue.shade200 : Colors.green.shade200),
+                              ? AppTheme.danger.withValues(alpha: 0.36)
+                              : (isCredit ? AppTheme.info.withValues(alpha: 0.36) : AppTheme.success.withValues(alpha: 0.36)),
                         ),
                       ),
                       child: Text(
                         hasDebt
-                            ? 'مستحق: ${AppTheme.formatCurrency(c.currentBalance)}'
+                            ? 'مستحق: ${AppTheme.formatCurrency(c.currentBalance, context.read<ErpProvider>().settings.currency)}'
                             : (isCredit
-                                ? 'دائن: ${AppTheme.formatCurrency(c.currentBalance.abs())}'
+                                ? 'دائن: ${AppTheme.formatCurrency(c.currentBalance.abs(), context.read<ErpProvider>().settings.currency)}'
                                 : 'خالص'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 11,
                           color: hasDebt
-                              ? Colors.red.shade700
-                              : (isCredit ? Colors.blue.shade700 : Colors.green.shade700),
+                              ? AppTheme.dangerButton
+                              : (isCredit ? AppTheme.info : AppTheme.success),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -683,14 +640,14 @@ class _CustomersViewState extends State<CustomersView> {
                 ),
               ],
               const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: AppTheme.surfaceSecondary),
               const SizedBox(height: 10),
 
               // صندوق المبالغ المالية ونسبة السداد
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -698,12 +655,12 @@ class _CustomersViewState extends State<CustomersView> {
                   children: [
                     Row(
                       children: [
-                        _buildMobileMetricCol('المبيعات', AppTheme.formatCurrency(c.totalSales), AppTheme.darkSlate),
-                        _buildMobileMetricCol('المسدد', AppTheme.formatCurrency(c.paid), const Color(0xFF16A34A), isBold: true),
+                        _buildMobileMetricCol('المبيعات', AppTheme.formatCurrency(c.totalSales, context.read<ErpProvider>().settings.currency), AppTheme.darkSlate),
+                        _buildMobileMetricCol('المسدد', AppTheme.formatCurrency(c.paid, context.read<ErpProvider>().settings.currency), AppTheme.success, isBold: true),
                         _buildMobileMetricCol(
                           'المتبقي',
-                          AppTheme.formatCurrency(c.currentBalance),
-                          hasDebt ? Colors.red.shade700 : Colors.green.shade700,
+                          AppTheme.formatCurrency(c.currentBalance, context.read<ErpProvider>().settings.currency),
+                          hasDebt ? AppTheme.dangerButton : AppTheme.success,
                           isBold: true,
                         ),
                       ],
@@ -721,9 +678,9 @@ class _CustomersViewState extends State<CustomersView> {
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: custPct,
-                              backgroundColor: Colors.grey.shade200,
+                              backgroundColor: AppTheme.surfaceSecondary,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                custPct >= 1.0 ? Colors.green : (custPct >= 0.5 ? Colors.amber : Colors.red),
+                                custPct >= 1.0 ? AppTheme.success : (custPct >= 0.5 ? AppTheme.warning : AppTheme.danger),
                               ),
                               minHeight: 6,
                             ),
@@ -755,7 +712,7 @@ class _CustomersViewState extends State<CustomersView> {
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _showStatementDialog(c),
-                    icon: const Icon(Icons.history_edu, size: 14, color: Color(0xFF0284C7)),
+                    icon: const Icon(Icons.history_edu, size: 14, color: AppTheme.info),
                     label: const Text('كشف حساب', style: TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -774,7 +731,7 @@ class _CustomersViewState extends State<CustomersView> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.danger),
                     tooltip: 'حذف العميل',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _confirmDeleteCustomer(c),
@@ -829,7 +786,7 @@ class _CustomersViewState extends State<CustomersView> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 10 : 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -896,7 +853,7 @@ class _CustomersViewState extends State<CustomersView> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: pctValue,
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: AppTheme.surfaceSecondary,
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                       minHeight: 4,
                     ),
@@ -965,7 +922,7 @@ class _CustomersViewState extends State<CustomersView> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: ConstrainedBox(
@@ -985,10 +942,10 @@ class _CustomersViewState extends State<CustomersView> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.12),
+                            color: AppTheme.primaryLight.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.person_add_rounded, color: AppTheme.primaryGreen, size: 24),
+                          child: const Icon(Icons.person_add_rounded, color: AppTheme.primaryLight, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1125,7 +1082,7 @@ class _CustomersViewState extends State<CustomersView> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: ConstrainedBox(
@@ -1145,10 +1102,10 @@ class _CustomersViewState extends State<CustomersView> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.12),
+                            color: AppTheme.primaryLight.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryGreen, size: 24),
+                          child: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryLight, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1282,7 +1239,7 @@ class _CustomersViewState extends State<CustomersView> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: ConstrainedBox(
@@ -1298,10 +1255,10 @@ class _CustomersViewState extends State<CustomersView> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.12),
+                        color: AppTheme.danger.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 24),
+                      child: const Icon(Icons.delete_outline_rounded, color: AppTheme.danger, size: 24),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -1353,7 +1310,7 @@ class _CustomersViewState extends State<CustomersView> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(result.message),
-                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                               ),
                             );
                           }
@@ -1361,7 +1318,7 @@ class _CustomersViewState extends State<CustomersView> {
                         icon: const Icon(Icons.delete_forever_rounded, size: 18),
                         label: const Text('حذف نهائي'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700,
+                          backgroundColor: AppTheme.dangerButton,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1405,7 +1362,7 @@ class _CustomersViewState extends State<CustomersView> {
                   items: erp.customers.map((c) {
                     return DropdownMenuItem<Customer>(
                       value: c,
-                      child: Text('${c.name} (${c.code}) - المستحق: ${AppTheme.formatCurrency(c.currentBalance)}', overflow: TextOverflow.ellipsis),
+                      child: Text('${c.name} (${c.code}) - المستحق: ${AppTheme.formatCurrency(c.currentBalance, context.read<ErpProvider>().settings.currency)}', overflow: TextOverflow.ellipsis),
                     );
                   }).toList(),
                   onChanged: (c) {
@@ -1462,9 +1419,9 @@ class _CustomersViewState extends State<CustomersView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: customer.currentBalance > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                    color: customer.currentBalance > 0 ? AppTheme.dangerSurface : AppTheme.successSurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: customer.currentBalance > 0 ? Colors.red.shade200 : Colors.green.shade200),
+                    border: Border.all(color: customer.currentBalance > 0 ? AppTheme.danger.withValues(alpha: 0.36) : AppTheme.success.withValues(alpha: 0.36)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1475,7 +1432,7 @@ class _CustomersViewState extends State<CustomersView> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: customer.currentBalance > 0 ? Colors.red.shade800 : Colors.green.shade800,
+                          color: customer.currentBalance > 0 ? AppTheme.danger : AppTheme.success,
                         ),
                       ),
                     ],
@@ -1549,7 +1506,7 @@ class _CustomersViewState extends State<CustomersView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(result.message),
-                      backgroundColor: result.isSuccess ? Colors.green.shade800 : Colors.red.shade700,
+                      backgroundColor: result.isSuccess ? AppTheme.success : AppTheme.dangerButton,
                     ),
                   );
                 }
@@ -1560,6 +1517,43 @@ class _CustomersViewState extends State<CustomersView> {
         ),
       ),
     );
+  }
+
+  Future<void> _printCustomerStatement(
+    Customer customer,
+    ErpProvider erp,
+    List<StatementRow> statementRows,
+  ) async {
+    try {
+      await PdfExportService.printOrPreviewCustomerStatement(
+        context,
+        settings: erp.settings,
+        customerName: customer.name,
+        customerCode: customer.code,
+        phone: customer.phone,
+        address: customer.address,
+        currentBalance: customer.currentBalance,
+        rows: statementRows
+            .map((row) => CustomerStatementPdfRow(
+                  date: row.date,
+                  type: row.type,
+                  number: row.number,
+                  description: row.description,
+                  debit: row.debit,
+                  credit: row.credit,
+                  runningBalance: row.runningBalance,
+                ))
+            .toList(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تعذرت معاينة كشف الحساب: $error'),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+    }
   }
 
   void _showStatementDialog(Customer customer) {
@@ -1609,7 +1603,7 @@ class _CustomersViewState extends State<CustomersView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.history_edu, color: Color(0xFF0284C7), size: 22),
+                const Icon(Icons.history_edu, color: AppTheme.info, size: 22),
                 const SizedBox(width: 8),
                 Text('كشف حساب ذمة: ${customer.name} (${customer.code})'),
               ],
@@ -1617,11 +1611,7 @@ class _CustomersViewState extends State<CustomersView> {
             IconButton(
               icon: const Icon(Icons.print_outlined),
               tooltip: 'طباعة كشف الحساب',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('جاري إرسال كشف الحساب للطابعة...')),
-                );
-              },
+              onPressed: () => _printCustomerStatement(customer, erp, statementRows),
             ),
           ],
         ),
@@ -1635,7 +1625,7 @@ class _CustomersViewState extends State<CustomersView> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
@@ -1655,23 +1645,23 @@ class _CustomersViewState extends State<CustomersView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: customer.currentBalance > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                          color: customer.currentBalance > 0 ? AppTheme.dangerSurface : AppTheme.successSurface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: customer.currentBalance > 0 ? Colors.red.shade200 : Colors.green.shade200),
+                          border: Border.all(color: customer.currentBalance > 0 ? AppTheme.danger.withValues(alpha: 0.36) : AppTheme.success.withValues(alpha: 0.36)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               customer.currentBalance > 0 ? 'الرصيد المستحق (مدين):' : 'الرصيد النهائي (خالص):',
-                              style: TextStyle(fontSize: 11, color: customer.currentBalance > 0 ? Colors.red.shade700 : Colors.green.shade700),
+                              style: TextStyle(fontSize: 11, color: customer.currentBalance > 0 ? AppTheme.dangerButton : AppTheme.success),
                             ),
                             Text(
                               AppTheme.formatCurrency(customer.currentBalance, erp.settings.currency),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: customer.currentBalance > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                color: customer.currentBalance > 0 ? AppTheme.dangerButton : AppTheme.success,
                               ),
                             ),
                           ],
@@ -1704,13 +1694,13 @@ class _CustomersViewState extends State<CustomersView> {
                     },
                     children: [
                       TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF1F5F9)),
+                        decoration: const BoxDecoration(color: AppTheme.surfaceSecondary),
                         children: const [
                           Padding(padding: EdgeInsets.all(8), child: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                           Padding(padding: EdgeInsets.all(8), child: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                           Padding(padding: EdgeInsets.all(8), child: Text('البيان / الوصف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          Padding(padding: EdgeInsets.all(8), child: Text('مدين (+)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blue))),
-                          Padding(padding: EdgeInsets.all(8), child: Text('دائن (-)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green))),
+                          Padding(padding: EdgeInsets.all(8), child: Text('مدين (+)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.info))),
+                          Padding(padding: EdgeInsets.all(8), child: Text('دائن (-)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.success))),
                           Padding(padding: EdgeInsets.all(8), child: Text('الرصيد التراكمي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         ],
                       ),
@@ -1726,25 +1716,25 @@ class _CustomersViewState extends State<CustomersView> {
                             Padding(
                               padding: const EdgeInsets.all(8),
                               child: Text(
-                                r.debit > 0 ? AppTheme.formatCurrency(r.debit) : '—',
+                                r.debit > 0 ? AppTheme.formatCurrency(r.debit, context.read<ErpProvider>().settings.currency) : '—',
                                 style: TextStyle(fontSize: 11, fontWeight: r.debit > 0 ? FontWeight.bold : FontWeight.normal),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.all(8),
                               child: Text(
-                                r.credit > 0 ? AppTheme.formatCurrency(r.credit) : '—',
-                                style: TextStyle(fontSize: 11, fontWeight: r.credit > 0 ? FontWeight.bold : FontWeight.normal, color: Colors.green.shade800),
+                                r.credit > 0 ? AppTheme.formatCurrency(r.credit, context.read<ErpProvider>().settings.currency) : '—',
+                                style: TextStyle(fontSize: 11, fontWeight: r.credit > 0 ? FontWeight.bold : FontWeight.normal, color: AppTheme.success),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.all(8),
                               child: Text(
-                                AppTheme.formatCurrency(r.runningBalance),
+                                AppTheme.formatCurrency(r.runningBalance, context.read<ErpProvider>().settings.currency),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: r.runningBalance > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                  color: r.runningBalance > 0 ? AppTheme.dangerButton : AppTheme.success,
                                 ),
                               ),
                             ),
@@ -1753,27 +1743,27 @@ class _CustomersViewState extends State<CustomersView> {
                       }),
                       // سطر الإجماليات
                       TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                        decoration: const BoxDecoration(color: AppTheme.surfaceSecondary),
                         children: [
                           const Padding(padding: EdgeInsets.all(8), child: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                           const Padding(padding: EdgeInsets.all(8), child: Text('—')),
                           const Padding(padding: EdgeInsets.all(8), child: Text('صافي المطابقات')),
                           Padding(
                             padding: const EdgeInsets.all(8),
-                            child: Text(AppTheme.formatCurrency(totalDebit), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.blue)),
+                            child: Text(AppTheme.formatCurrency(totalDebit, context.read<ErpProvider>().settings.currency), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.info)),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(8),
-                            child: Text(AppTheme.formatCurrency(totalCredit), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green.shade800)),
+                            child: Text(AppTheme.formatCurrency(totalCredit, context.read<ErpProvider>().settings.currency), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.success)),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(8),
                             child: Text(
-                              AppTheme.formatCurrency(customer.currentBalance),
+                              AppTheme.formatCurrency(customer.currentBalance, context.read<ErpProvider>().settings.currency),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
-                                color: customer.currentBalance > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                color: customer.currentBalance > 0 ? AppTheme.dangerButton : AppTheme.success,
                               ),
                             ),
                           ),

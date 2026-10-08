@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../theme/app_theme.dart';
+import '../services/pdf_export_service.dart';
+import '../widgets/erp_components.dart';
 
 class PaymentsView extends StatefulWidget {
   const PaymentsView({super.key});
@@ -34,113 +36,61 @@ class _PaymentsViewState extends State<PaymentsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // شريط العنوان
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'سجل المدفوعات وسندات القبض',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'سندات القبض والتحصيلات وتحديث حسابات الذمم تلقائياً',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                  ),
-                ],
-              ),
+          ErpPageHeader(
+            title: 'المدفوعات وسندات القبض',
+            subtitle: 'سجل التحصيلات وربطها بحسابات العملاء مع إمكانية طباعة السند',
+            icon: Icons.receipt_long_outlined,
+            actions: [
               ElevatedButton.icon(
-                onPressed: () => _showAddPaymentDialog(),
-                icon: const Icon(Icons.receipt_long, size: 18),
+                onPressed: _showAddPaymentDialog,
+                icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('سند قبض جديد'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
-          // كروت الإحصائيات العلوية
-          Row(
-            children: [
-              Expanded(
-                child: Card(
-                  color: const Color(0xFFF8FAFC),
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 12 : 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(isMobile ? 8 : 12),
-                          decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Icon(Icons.payments, color: Colors.green, size: isMobile ? 22 : 28),
-                        ),
-                        SizedBox(width: isMobile ? 10 : 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('إجمالي التحصيلات', style: TextStyle(fontSize: isMobile ? 11 : 12, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 2),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  AppTheme.formatCurrency(totalPaid, erp.settings.currency),
-                                  style: TextStyle(fontSize: isMobile ? 17 : 22, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+          // مؤشرات التحصيل والسندات المسجلة
+          if (isMobile) ...[
+            ErpMetricCard(
+              label: 'إجمالي التحصيلات',
+              value: AppTheme.formatCurrency(totalPaid, erp.settings.currency),
+              helper: '${erp.payments.length} سند مسجل',
+              icon: Icons.payments_outlined,
+              accent: AppTheme.success,
+            ),
+            const SizedBox(height: 10),
+            ErpMetricCard(
+              label: 'عدد السندات',
+              value: '${erp.payments.length}',
+              helper: 'سند قبض',
+              icon: Icons.receipt_long_outlined,
+              accent: AppTheme.info,
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: ErpMetricCard(
+                    label: 'إجمالي التحصيلات',
+                    value: AppTheme.formatCurrency(totalPaid, erp.settings.currency),
+                    helper: '${erp.payments.length} سند مسجل',
+                    icon: Icons.payments_outlined,
+                    accent: AppTheme.success,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Card(
-                  color: const Color(0xFFF8FAFC),
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 12 : 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(isMobile ? 8 : 12),
-                          decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Icon(Icons.receipt_long_rounded, color: Colors.blue, size: isMobile ? 22 : 28),
-                        ),
-                        SizedBox(width: isMobile ? 10 : 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('عدد السندات', style: TextStyle(fontSize: isMobile ? 11 : 12, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 2),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  '${erp.payments.length} سند',
-                                  style: TextStyle(fontSize: isMobile ? 17 : 22, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ErpMetricCard(
+                    label: 'عدد السندات',
+                    value: '${erp.payments.length}',
+                    helper: 'سند قبض',
+                    icon: Icons.receipt_long_outlined,
+                    accent: AppTheme.info,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 16),
 
           // شريط البحث
@@ -167,17 +117,20 @@ class _PaymentsViewState extends State<PaymentsView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (filtered.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: Text('لا توجد سندات قبض مسجلة')),
+                    ErpEmptyState(
+                      title: erp.payments.isEmpty ? 'لا توجد سندات قبض بعد' : 'لا توجد نتائج مطابقة',
+                      message: erp.payments.isEmpty
+                          ? 'ستظهر هنا التحصيلات التي يتم تسجيلها من شاشة سند القبض.'
+                          : 'جرّب تعديل كلمات البحث للعثور على السند المطلوب.',
+                      icon: Icons.receipt_long_outlined,
                     )
-                  else if (MediaQuery.of(context).size.width < 750)
+                  else if (MediaQuery.sizeOf(context).width < 1100)
                     _buildMobilePaymentCards(filtered, erp)
                   else
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                         columns: const [
                           DataColumn(label: Text('رقم السند', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -190,26 +143,22 @@ class _PaymentsViewState extends State<PaymentsView> {
                         ],
                         rows: filtered.map((p) {
                           return DataRow(cells: [
-                            DataCell(Text(p.number, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen))),
+                            DataCell(Text(p.number, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight))),
                             DataCell(Text(AppTheme.formatDate(p.date))),
                             DataCell(Text(p.customerName, style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(AppTheme.formatCurrency(p.amount), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                            DataCell(Text(AppTheme.formatCurrency(p.amount, erp.settings.currency), style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold))),
                             DataCell(Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(4)),
-                              child: Text(p.paymentMethod, style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+                              decoration: BoxDecoration(color: AppTheme.infoSurface, borderRadius: BorderRadius.circular(4)),
+                              child: Text(p.paymentMethod, style: const TextStyle(color: AppTheme.info, fontSize: 12, fontWeight: FontWeight.bold)),
                             )),
                             DataCell(Text(p.reference ?? '—')),
                             DataCell(Text(p.notes ?? '—')),
                             DataCell(
                               IconButton(
-                                icon: const Icon(Icons.print_outlined, size: 18, color: Colors.blueGrey),
+                                icon: const Icon(Icons.print_outlined, size: 18, color: AppTheme.textSecondary),
                                 tooltip: 'طباعة سند القبض',
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('طباعة سند القبض ${p.number}')),
-                                  );
-                                },
+                                onPressed: () => _printReceipt(p, erp),
                               ),
                             ),
                           ]);
@@ -235,7 +184,7 @@ class _PaymentsViewState extends State<PaymentsView> {
         final p = filtered[index];
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -259,10 +208,10 @@ class _PaymentsViewState extends State<PaymentsView> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(Icons.receipt_long_rounded, size: 16, color: AppTheme.primaryGreen),
+                        child: const Icon(Icons.receipt_long_rounded, size: 16, color: AppTheme.primaryLight),
                       ),
                       const SizedBox(width: 8),
                       Column(
@@ -270,7 +219,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                         children: [
                           Text(
                             p.number,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryGreen),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryLight),
                           ),
                           Text(
                             AppTheme.formatDate(p.date),
@@ -283,19 +232,19 @@ class _PaymentsViewState extends State<PaymentsView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                      color: AppTheme.infoSurface,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                      border: Border.all(color: AppTheme.borderColor),
                     ),
                     child: Text(
                       p.paymentMethod,
-                      style: const TextStyle(color: Color(0xFF1D4ED8), fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppTheme.info, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: AppTheme.surfaceSecondary),
               const SizedBox(height: 10),
 
               // العميل والمبلغ
@@ -325,7 +274,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                       const SizedBox(height: 2),
                       Text(
                         AppTheme.formatCurrency(p.amount, erp.settings.currency),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF16A34A)),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.success),
                       ),
                     ],
                   ),
@@ -338,7 +287,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -364,11 +313,7 @@ class _PaymentsViewState extends State<PaymentsView> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('طباعة سند القبض ${p.number}')),
-                    );
-                  },
+                  onPressed: () => _printReceipt(p, erp),
                   icon: const Icon(Icons.print_outlined, size: 14, color: AppTheme.darkSlate),
                   label: const Text('طباعة السند', style: TextStyle(fontSize: 12, color: AppTheme.darkSlate)),
                   style: OutlinedButton.styleFrom(
@@ -385,6 +330,24 @@ class _PaymentsViewState extends State<PaymentsView> {
     );
   }
 
+  Future<void> _printReceipt(PaymentRecord payment, ErpProvider erp) async {
+    try {
+      await PdfExportService.printOrPreviewPaymentReceipt(
+        context,
+        payment: payment,
+        settings: erp.settings,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تعذرت معاينة سند القبض: $error'),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+    }
+  }
+
   void _showAddPaymentDialog() {
     final erp = context.read<ErpProvider>();
     Customer? selectedCustomer = erp.customers.isNotEmpty ? erp.customers.first : null;
@@ -397,7 +360,7 @@ class _PaymentsViewState extends State<PaymentsView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: ConstrainedBox(
@@ -415,10 +378,10 @@ class _PaymentsViewState extends State<PaymentsView> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.12),
+                            color: AppTheme.primaryLight.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.receipt_long_rounded, color: AppTheme.primaryGreen, size: 24),
+                          child: const Icon(Icons.receipt_long_rounded, color: AppTheme.primaryLight, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -456,7 +419,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                       ),
                       items: erp.customers.map((c) => DropdownMenuItem(
                         value: c,
-                        child: Text('${c.name} (الذمة: ${AppTheme.formatCurrency(c.currentBalance)})', overflow: TextOverflow.ellipsis),
+                        child: Text('${c.name} (الذمة: ${AppTheme.formatCurrency(c.currentBalance, erp.settings.currency)})', overflow: TextOverflow.ellipsis),
                       )).toList(),
                       onChanged: (c) => setDialogState(() => selectedCustomer = c),
                     ),
@@ -543,7 +506,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(result.message),
-                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                   ),
                                 );
                               }

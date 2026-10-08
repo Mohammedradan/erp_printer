@@ -8,6 +8,7 @@ import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../services/backup_codec.dart';
 import '../theme/app_theme.dart';
+import '../widgets/erp_components.dart';
 
 class SettingsView extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -128,90 +129,28 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  // --- شريط العنوان الرئيسي ---
+  // --- عنوان موحد لإعدادات النظام ---
   Widget _buildHeader(ErpProvider erp) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 600;
-
-        final titleSection = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.settings_suggest_rounded, color: AppTheme.primaryGreen, size: 24),
-                ),
-                const SizedBox(width: 10),
-                const Flexible(
-                  child: Text(
-                    'إعدادات النظام والمنشأة',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'تخصيص ثوابت التسعير، بيانات الفواتير، العملات، وإدارة النسخ الاحتياطي',
-              style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
-            ),
-          ],
-        );
-
-        final actionButtons = Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _confirmResetData(erp),
-              icon: const Icon(Icons.restart_alt_rounded, color: Colors.red, size: 18),
-              label: const Text('استعادة الافتراضيات', style: TextStyle(color: Colors.red, fontSize: 13)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.red.shade300),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () => _saveSettings(erp),
-              icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-              label: const Text('حفظ الإعدادات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryGreen,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                elevation: 2,
-              ),
-            ),
-          ],
-        );
-
-        if (isCompact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              titleSection,
-              const SizedBox(height: 12),
-              actionButtons,
-            ],
-          );
-        }
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: titleSection),
-            actionButtons,
-          ],
-        );
-      },
+    return ErpPageHeader(
+      title: 'إعدادات النظام والمنشأة',
+      subtitle: 'ثوابت التسعير وبيانات المنشأة والعملة والنسخ الاحتياطي',
+      icon: Icons.settings_suggest_outlined,
+      actions: [
+        OutlinedButton.icon(
+          onPressed: () => _confirmResetData(erp),
+          icon: const Icon(Icons.restart_alt_rounded, size: 18),
+          label: const Text('استعادة الافتراضيات'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.danger,
+            side: const BorderSide(color: AppTheme.danger),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => _saveSettings(erp),
+          icon: const Icon(Icons.save_outlined, size: 18),
+          label: const Text('حفظ الإعدادات'),
+        ),
+      ],
     );
   }
 
@@ -220,23 +159,9 @@ class _SettingsViewState extends State<SettingsView> {
     final currency = erp.settings.currency;
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            const Color(0xFF1E293B),
-            const Color(0xFF0F172A),
-            AppTheme.primaryGreen.withValues(alpha: 0.85),
-          ],
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -247,10 +172,11 @@ class _SettingsViewState extends State<SettingsView> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: AppTheme.selectedSurface,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
-                child: const Icon(Icons.price_change_rounded, color: Colors.amberAccent, size: 26),
+                child: const Icon(Icons.price_change_rounded, color: AppTheme.primaryLight, size: 26),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -268,7 +194,7 @@ class _SettingsViewState extends State<SettingsView> {
                     SizedBox(height: 3),
                     Text(
                       'تعديل فوري لأسعار الورق والمخزون، ماكينات الطباعة، خامات التشطيب، والزنكات بمزامنة حية',
-                      style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1)),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -290,7 +216,7 @@ class _SettingsViewState extends State<SettingsView> {
                     width: width,
                     child: _buildPriceActionTile(
                       icon: Icons.layers_rounded,
-                      iconColor: Colors.amberAccent,
+                      iconColor: AppTheme.primaryLight,
                       title: 'أسعار ومقاسات الورق',
                       subtitle: '${erp.papers.length} صنف مسجل • تعديل أسعار الرزم والأفرخ ومقاسات المخزون',
                       primaryBtnLabel: 'تعديل أسعار الورق',
@@ -305,7 +231,7 @@ class _SettingsViewState extends State<SettingsView> {
                     width: width,
                     child: _buildPriceActionTile(
                       icon: Icons.precision_manufacturing_rounded,
-                      iconColor: Colors.cyanAccent,
+                      iconColor: AppTheme.primaryLight,
                       title: 'تكاليف وماكينات الطباعة',
                       subtitle: '${erp.machines.length} ماكينة • تعديل سعر ساعة التشغيل والتجهيز وسرعة السحب',
                       primaryBtnLabel: 'تعديل أسعار الماكينات',
@@ -320,7 +246,7 @@ class _SettingsViewState extends State<SettingsView> {
                     width: width,
                     child: _buildPriceActionTile(
                       icon: Icons.auto_fix_high_rounded,
-                      iconColor: Colors.pinkAccent,
+                      iconColor: AppTheme.primaryLight,
                       title: 'خامات وخدمات التشطيب',
                       subtitle: '${erp.finishings.length} خدمة • سلوفان لامع/مط، غراء، سلك، تكسير وبصمة',
                       primaryBtnLabel: 'تعديل أسعار التشطيب',
@@ -333,7 +259,7 @@ class _SettingsViewState extends State<SettingsView> {
                     width: width,
                     child: _buildPriceActionTile(
                       icon: Icons.tune_rounded,
-                      iconColor: Colors.lightGreenAccent,
+                      iconColor: AppTheme.primaryLight,
                       title: 'الزنكات وهوامش الأرباح',
                       subtitle: 'سعر الزنك (${erp.settings.defaultPlatePrice.toInt()} $currency) • الربح (${erp.settings.defaultProfitMarginPct.toInt()}%) • الضريبة (${erp.settings.taxPct.toInt()}%)',
                       primaryBtnLabel: 'تعديل الثوابت والزنكات',
@@ -351,14 +277,14 @@ class _SettingsViewState extends State<SettingsView> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: AppTheme.selectedSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                border: Border.all(color: AppTheme.borderColor),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.dashboard_customize_rounded, color: Colors.white, size: 18),
+                  Icon(Icons.dashboard_customize_rounded, color: AppTheme.primaryLight, size: 18),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -369,7 +295,7 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ),
                   SizedBox(width: 6),
-                  Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+                  Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textMuted, size: 14),
                 ],
               ),
             ),
@@ -392,9 +318,9 @@ class _SettingsViewState extends State<SettingsView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: AppTheme.surfaceSecondary,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,7 +341,7 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11.5),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -440,8 +366,8 @@ class _SettingsViewState extends State<SettingsView> {
                 OutlinedButton(
                   onPressed: onSecondaryPressed,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: const BorderSide(color: Colors.white24),
+                    foregroundColor: AppTheme.textPrimary,
+                    side: const BorderSide(color: AppTheme.borderColor),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     minimumSize: const Size(0, 32),
                     textStyle: const TextStyle(fontSize: 11.5),
@@ -461,7 +387,7 @@ class _SettingsViewState extends State<SettingsView> {
       title: 'بيانات وهوية المطبعة (للفواتير وعروض الأسعار)',
       subtitle: 'تظهر هذه البيانات في ترويسة وتذييل عروض الأسعار والتقارير المطبوعة بصيغة PDF',
       icon: Icons.storefront_rounded,
-      iconColor: AppTheme.primaryGreen,
+      iconColor: AppTheme.primaryLight,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 600;
@@ -556,7 +482,7 @@ class _SettingsViewState extends State<SettingsView> {
       title: 'الثوابت الهندسية والتشغيلية',
       subtitle: 'القيم الافتراضية المستخدمة في محرك التسعير الآلي لحساب الملازم والألواح وساعات التشغيل',
       icon: Icons.engineering_rounded,
-      iconColor: const Color(0xFF0284C7),
+      iconColor: AppTheme.info,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -788,7 +714,7 @@ class _SettingsViewState extends State<SettingsView> {
       title: 'النسخ الاحتياطي على Google Drive',
       subtitle: 'تصدير نسخة كاملة محميّة بكلمة مرور (PBKDF2 + تشفير تدفقي + HMAC) أو استيراد نسخة سابقة',
       icon: Icons.cloud_done_rounded,
-      iconColor: const Color(0xFF1A73E8),
+      iconColor: AppTheme.info,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -796,20 +722,18 @@ class _SettingsViewState extends State<SettingsView> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A73E8), Color(0xFF0F5BB5)],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
+              color: AppTheme.infoSurface,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.borderColor),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: const Icon(Icons.drive_folder_upload_rounded, color: Colors.white, size: 26),
                 ),
@@ -827,7 +751,7 @@ class _SettingsViewState extends State<SettingsView> {
                         _lastBackupTime != null
                             ? 'آخر نسخة: ${_formatDateTime(_lastBackupTime!)}'
                             : 'لم يتم عمل نسخة احتياطية بعد',
-                        style: const TextStyle(color: Color(0xFFD2E3FC), fontSize: 12),
+                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -835,8 +759,9 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: Text(
                     '${erp.customers.length + erp.quotations.length + erp.papers.length} سجل',
@@ -852,18 +777,18 @@ class _SettingsViewState extends State<SettingsView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F9FF),
+              color: AppTheme.infoSurface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFBAE6FD)),
+              border: Border.all(color: AppTheme.borderColor),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 20),
+                Icon(Icons.info_outline_rounded, color: AppTheme.info, size: 20),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'سيُصدَّر ملف erp_backup.json وتُفتح نافذة المشاركة → اختر Google Drive لرفعه مباشرةً.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF0C4A6E)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textPrimary),
                   ),
                 ),
               ],
@@ -889,8 +814,8 @@ class _SettingsViewState extends State<SettingsView> {
                           : const Icon(Icons.drive_folder_upload_rounded, size: 18),
                       label: Text(_isBackingUp ? 'جارٍ التصدير...' : 'رفع نسخة على Drive'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A73E8),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppTheme.info,
+                        foregroundColor: AppTheme.scaffoldBg,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -909,8 +834,8 @@ class _SettingsViewState extends State<SettingsView> {
                           : const Icon(Icons.upload_file_rounded, size: 18),
                       label: Text(_isRestoring ? 'جارٍ الاستيراد...' : 'استعادة من ملف'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1A73E8),
-                        side: const BorderSide(color: Color(0xFF1A73E8)),
+                        foregroundColor: AppTheme.info,
+                        side: const BorderSide(color: AppTheme.info),
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -940,21 +865,21 @@ class _SettingsViewState extends State<SettingsView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: AppTheme.warningSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.orange.shade200),
+                border: Border.all(color: AppTheme.warning.withValues(alpha: 0.36)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.science_rounded, color: Colors.orange.shade800, size: 18),
+                      Icon(Icons.science_rounded, color: AppTheme.warning, size: 18),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'هذه القاعدة مزروعة ببيانات تجريبية (عملاء وعروض وأوامر إنتاج ومدفوعات وهمية)',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.warning),
                         ),
                       ),
                     ],
@@ -965,8 +890,8 @@ class _SettingsViewState extends State<SettingsView> {
                     icon: const Icon(Icons.cleaning_services_rounded, size: 16),
                     label: const Text('تحويلها إلى تثبيت فعلي ببيانات نظيفة'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange.shade900,
-                      side: BorderSide(color: Colors.orange.shade300),
+                      foregroundColor: AppTheme.warning,
+                      side: BorderSide(color: AppTheme.warning),
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -1002,7 +927,7 @@ class _SettingsViewState extends State<SettingsView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.cleaning_services_rounded, color: Colors.orange),
+            Icon(Icons.cleaning_services_rounded, color: AppTheme.warning),
             SizedBox(width: 8),
             Expanded(child: Text('تحويل إلى تثبيت فعلي')),
           ],
@@ -1016,7 +941,7 @@ class _SettingsViewState extends State<SettingsView> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
             onPressed: () async {
               await erp.recordAudit(
                 action: 'demo_records_cleared',
@@ -1044,7 +969,7 @@ class _SettingsViewState extends State<SettingsView> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Row(
           children: [
-            Icon(Icons.history_toggle_off_rounded, color: Color(0xFF1A73E8)),
+            Icon(Icons.history_toggle_off_rounded, color: AppTheme.info),
             SizedBox(width: 8),
             Text('سجل التدقيق'),
           ],
@@ -1063,8 +988,8 @@ class _SettingsViewState extends State<SettingsView> {
                   itemBuilder: (_, i) {
                     final e = entries[i];
                     final color = switch (e.severity) {
-                      AuditSeverity.critical => Colors.red,
-                      AuditSeverity.warning => Colors.orange.shade800,
+                      AuditSeverity.critical => AppTheme.danger,
+                      AuditSeverity.warning => AppTheme.warning,
                       AuditSeverity.info => AppTheme.textMuted,
                     };
                     return Column(
@@ -1075,7 +1000,7 @@ class _SettingsViewState extends State<SettingsView> {
                             Icon(
                               e.success ? Icons.check_circle_outline : Icons.block,
                               size: 15,
-                              color: e.success ? AppTheme.primaryGreen : Colors.red,
+                              color: e.success ? AppTheme.success : AppTheme.danger,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -1090,7 +1015,7 @@ class _SettingsViewState extends State<SettingsView> {
                             ),
                             Text(
                               _formatDateTime(e.timestamp),
-                              style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+                              style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
                             ),
                           ],
                         ),
@@ -1098,7 +1023,7 @@ class _SettingsViewState extends State<SettingsView> {
                         Text(
                           '${e.actorName} (${e.actorRole})'
                           '${e.targetId != null ? ' • ${e.targetId}' : ''}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                         ),
                         if (e.details.isNotEmpty)
                           Padding(
@@ -1128,14 +1053,14 @@ class _SettingsViewState extends State<SettingsView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AppTheme.surfaceSecondary,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+              border: Border.all(color: AppTheme.borderColor, width: 0.8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.code_rounded, size: 14, color: AppTheme.primaryGreen),
+                const Icon(Icons.code_rounded, size: 14, color: AppTheme.primaryLight),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -1143,13 +1068,13 @@ class _SettingsViewState extends State<SettingsView> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF475569),
+                      color: AppTheme.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.copy_rounded, size: 12, color: Color(0xFF94A3B8)),
+                const Icon(Icons.copy_rounded, size: 12, color: AppTheme.textSecondary),
               ],
             ),
           ),
@@ -1223,7 +1148,7 @@ class _SettingsViewState extends State<SettingsView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AppTheme.surfaceSecondary,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppTheme.borderColor),
             ),
@@ -1249,7 +1174,7 @@ class _SettingsViewState extends State<SettingsView> {
               Text('تم نسخ رقم المطور ($developerName - $developerPhone) إلى الحافظة بنجاح'),
             ],
           ),
-          backgroundColor: Color(0xFF0F172A),
+          backgroundColor: AppTheme.sidebarBg,
           duration: Duration(seconds: 3),
         ),
       );
@@ -1312,7 +1237,7 @@ class _SettingsViewState extends State<SettingsView> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              const Icon(Icons.lock_outline_rounded, color: Color(0xFF1A73E8)),
+              const Icon(Icons.lock_outline_rounded, color: AppTheme.info),
               const SizedBox(width: 10),
               Expanded(child: Text(title)),
             ],
@@ -1347,13 +1272,13 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 10),
                 Text(
                   errorText,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                  style: const TextStyle(color: AppTheme.danger, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 10),
               const Text(
                 'اترك الحقلين فارغين لإنشاء نسخة غير مشفّرة (غير مستحسن).',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -1420,7 +1345,7 @@ class _SettingsViewState extends State<SettingsView> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
               children: [
-                Icon(Icons.lock_outline_rounded, color: Color(0xFF1A73E8)),
+                Icon(Icons.lock_outline_rounded, color: AppTheme.info),
                 SizedBox(width: 10),
                 Text('النسخة مشفّرة'),
               ],
@@ -1448,7 +1373,7 @@ class _SettingsViewState extends State<SettingsView> {
                   const SizedBox(height: 10),
                   Text(
                     errorText,
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                    style: const TextStyle(color: AppTheme.danger, fontSize: 12),
                   ),
                 ],
               ],
@@ -1516,7 +1441,7 @@ class _SettingsViewState extends State<SettingsView> {
                 Expanded(child: Text('تم تصدير الملف بنجاح! اختر Google Drive من نافذة المشاركة')),
               ],
             ),
-            backgroundColor: const Color(0xFF1A73E8),
+            backgroundColor: AppTheme.info,
             duration: const Duration(seconds: 4),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             behavior: SnackBarBehavior.floating,
@@ -1528,7 +1453,7 @@ class _SettingsViewState extends State<SettingsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('حدث خطأ أثناء تصدير النسخة الاحتياطية: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.danger,
           ),
         );
       }
@@ -1556,7 +1481,7 @@ class _SettingsViewState extends State<SettingsView> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Row(
           children: [
-            Icon(Icons.upload_file_rounded, color: Color(0xFF1A73E8), size: 26),
+            Icon(Icons.upload_file_rounded, color: AppTheme.info, size: 26),
             SizedBox(width: 10),
             Text('استعادة من نسخة احتياطية', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -1570,18 +1495,18 @@ class _SettingsViewState extends State<SettingsView> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: AppTheme.warningSurface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
+                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.36)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                    Icon(Icons.warning_amber_rounded, color: AppTheme.warning, size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'سيتم استبدال كافة البيانات الحالية بالبيانات المستوردة.',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.orange),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.warning),
                       ),
                     ),
                   ],
@@ -1618,7 +1543,7 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8),
+              backgroundColor: AppTheme.info,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -1678,7 +1603,7 @@ class _SettingsViewState extends State<SettingsView> {
               content: Text(
                 'فشل الاستيراد: ${importResult.errorMessage ?? 'سبب غير محدد'}',
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.danger,
             ),
           );
         }
@@ -1686,7 +1611,7 @@ class _SettingsViewState extends State<SettingsView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: AppTheme.danger),
         );
       }
     } finally {
@@ -1708,7 +1633,7 @@ class _SettingsViewState extends State<SettingsView> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Row(
           children: [
-            Icon(Icons.copy_all_rounded, color: AppTheme.primaryGreen),
+            Icon(Icons.copy_all_rounded, color: AppTheme.primaryLight),
             SizedBox(width: 8),
             Text('نسخ JSON للحافظة'),
           ],
@@ -1759,7 +1684,7 @@ class _SettingsViewState extends State<SettingsView> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.danger),
             SizedBox(width: 8),
             Text('استعادة بيانات الإكسل الأصلية'),
           ],
@@ -1783,7 +1708,7 @@ class _SettingsViewState extends State<SettingsView> {
               child: const Text('استعادة نظيفة بدلاً منها'),
             ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             onPressed: () async {
               await erp.recordAudit(
                 action: clean ? 'data_reset_clean' : 'data_reset_demo',

@@ -99,23 +99,9 @@ class _QuotationsViewState extends State<QuotationsView> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF064E3B), // Dark emerald
-            Color(0xFF047857), // Medium emerald
-            Color(0xFF0F766E), // Teal accent
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F5132).withValues(alpha: 0.22),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Stack(
         children: [
@@ -127,7 +113,7 @@ class _QuotationsViewState extends State<QuotationsView> {
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppTheme.primaryLight.withValues(alpha: 0.035),
               ),
             ),
           ),
@@ -145,11 +131,11 @@ class _QuotationsViewState extends State<QuotationsView> {
                         Container(
                           padding: EdgeInsets.all(isMobile ? 10 : 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: AppTheme.selectedSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                            border: Border.all(color: AppTheme.borderColor),
                           ),
-                          child: Icon(Icons.request_quote_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                          child: Icon(Icons.request_quote_rounded, color: AppTheme.primaryLight, size: isMobile ? 22 : 26),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -159,13 +145,13 @@ class _QuotationsViewState extends State<QuotationsView> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.14),
+                                  color: AppTheme.surfaceSecondary,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
                                   'المبيعات والتسعير • ERP المطبعة',
                                   style: TextStyle(
-                                    color: Color(0xFFD1FAE5),
+                                    color: AppTheme.primaryLight,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -188,7 +174,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                                 Text(
                                   'إدارة ومتابعة عروض الأسعار، حساب الهوامش والربحية، وتحويل العروض المعتمدة لأوامر إنتاج فورية',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.85),
+                                    color: AppTheme.textSecondary,
                                     fontSize: 12.5,
                                   ),
                                   maxLines: 2,
@@ -201,7 +187,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Divider(color: Colors.white12, height: 1),
+                    const Divider(color: AppTheme.borderColor, height: 1),
                     const SizedBox(height: 10),
 
                     // إحصاءات فورية وزر محرك التسعير
@@ -218,21 +204,21 @@ class _QuotationsViewState extends State<QuotationsView> {
                             _buildHeroPill(
                               icon: Icons.receipt_long_rounded,
                               label: '${erp.quotations.length} عرض',
-                              color: const Color(0xFFD1FAE5),
-                              bgColor: Colors.black.withValues(alpha: 0.22),
+                              color: AppTheme.primaryLight,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             _buildHeroPill(
                               icon: Icons.verified_rounded,
                               label: '$approvedCount معتمد',
-                              color: const Color(0xFFBAE6FD),
-                              bgColor: Colors.black.withValues(alpha: 0.22),
+                              color: AppTheme.textSecondary,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             if (pendingCount > 0)
                               _buildHeroPill(
                                 icon: Icons.hourglass_top_rounded,
                                 label: '$pendingCount قيد المتابعة',
-                                color: const Color(0xFFFDE68A),
-                                bgColor: Colors.black.withValues(alpha: 0.24),
+                                color: AppTheme.warning,
+                                bgColor: AppTheme.surfaceSecondary,
                               ),
                           ],
                         ),
@@ -248,8 +234,8 @@ class _QuotationsViewState extends State<QuotationsView> {
                             style: TextStyle(fontSize: isMobile ? 12 : 13),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppTheme.primaryGreen,
+                            foregroundColor: AppTheme.textPrimary,
                             elevation: 0,
                             padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -329,8 +315,8 @@ class _QuotationsViewState extends State<QuotationsView> {
               value: AppTheme.formatCurrency(erp.totalApprovedSales, erp.settings.currency),
               subtitle: '${erp.approvedQuotationsCount} أمر معتمد',
               icon: Icons.verified_rounded,
-              color: AppTheme.primaryGreen,
-              bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
+              color: AppTheme.primaryLight,
+              bgColor: AppTheme.selectedSurface,
               onTap: () => setState(() => _filterStatus = 'معتمد'),
               isCompact: isMobile,
             ),
@@ -339,8 +325,8 @@ class _QuotationsViewState extends State<QuotationsView> {
               value: '${winRate.toStringAsFixed(1)}%',
               subtitle: '${erp.approvedQuotationsCount} من ${erp.quotations.length} عرض',
               icon: Icons.pie_chart_rounded,
-              color: const Color(0xFF0284C7),
-              bgColor: const Color(0xFFE0F2FE),
+              color: AppTheme.info,
+              bgColor: AppTheme.infoSurface,
               onTap: null,
               isCompact: isMobile,
             ),
@@ -350,8 +336,8 @@ class _QuotationsViewState extends State<QuotationsView> {
                 value: AppTheme.formatCurrency(approvedProfit, erp.settings.currency),
                 subtitle: 'العائد المتوقع للتسليم',
                 icon: Icons.trending_up_rounded,
-                color: const Color(0xFF7C3AED),
-                bgColor: const Color(0xFFEDE9FE),
+                color: AppTheme.primaryLight,
+                bgColor: AppTheme.successSurface,
                 onTap: null,
                 isCompact: isMobile,
               ),
@@ -360,19 +346,19 @@ class _QuotationsViewState extends State<QuotationsView> {
               value: '$pendingCount عرض',
               subtitle: pendingCount == 0 ? 'تم الرد على كافة العروض' : 'مسودة أو مرسلة للعميل',
               icon: Icons.hourglass_top_rounded,
-              color: pendingCount > 0 ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-              bgColor: pendingCount > 0 ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+              color: pendingCount > 0 ? AppTheme.warning : AppTheme.success,
+              bgColor: pendingCount > 0 ? AppTheme.warningSurface : AppTheme.successSurface,
               badge: pendingCount > 0 && !isMobile
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
+                        color: AppTheme.warningSurface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF59E0B)),
+                        border: Border.all(color: AppTheme.accentGold),
                       ),
                       child: const Text(
                         'متابعة مطلوبة',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.warning),
                       ),
                     )
                   : null,
@@ -404,7 +390,7 @@ class _QuotationsViewState extends State<QuotationsView> {
         child: Container(
           padding: EdgeInsets.all(isCompact ? 10 : 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -498,7 +484,7 @@ class _QuotationsViewState extends State<QuotationsView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -534,7 +520,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                               )
                             : null,
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AppTheme.surfaceSecondary,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -559,7 +545,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: AppTheme.surfaceSecondary,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: AppTheme.borderColor),
                             ),
@@ -605,7 +591,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                               )
                             : null,
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AppTheme.surfaceSecondary,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -624,7 +610,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
@@ -655,7 +641,7 @@ class _QuotationsViewState extends State<QuotationsView> {
             },
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.surfaceSecondary),
           const SizedBox(height: 10),
 
           // رقائق تصفية الحالات مع العدادات
@@ -694,7 +680,7 @@ class _QuotationsViewState extends State<QuotationsView> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryGreen : const Color(0xFFF8FAFC),
+            color: isSelected ? AppTheme.primaryGreen : AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected ? AppTheme.primaryGreen : AppTheme.borderColor,
@@ -722,8 +708,8 @@ class _QuotationsViewState extends State<QuotationsView> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.white.withValues(alpha: 0.25)
-                      : Colors.black.withValues(alpha: 0.05),
+                      ? AppTheme.primaryLight.withValues(alpha: 0.18)
+                      : AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -764,7 +750,7 @@ class _QuotationsViewState extends State<QuotationsView> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -774,7 +760,7 @@ class _QuotationsViewState extends State<QuotationsView> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AppTheme.surfaceSecondary,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.search_off_rounded, size: 40, color: AppTheme.textMuted),
@@ -829,7 +815,7 @@ class _QuotationsViewState extends State<QuotationsView> {
   Widget _buildDesktopQuotationTable(List<Quotation> filtered, ErpProvider erp, bool isAdmin) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -851,7 +837,7 @@ class _QuotationsViewState extends State<QuotationsView> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.table_rows_rounded, size: 18, color: AppTheme.primaryGreen),
+                    const Icon(Icons.table_rows_rounded, size: 18, color: AppTheme.primaryLight),
                     const SizedBox(width: 8),
                     const Text(
                       'سجل عروض الأسعار المسجلة',
@@ -861,12 +847,12 @@ class _QuotationsViewState extends State<QuotationsView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                        color: AppTheme.primaryLight.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${filtered.length} عرض',
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.primaryLight),
                       ),
                     ),
                   ],
@@ -890,7 +876,7 @@ class _QuotationsViewState extends State<QuotationsView> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-              headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+              headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
               columnSpacing: 20,
               dataRowMinHeight: 52,
               dataRowMaxHeight: 56,
@@ -914,7 +900,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                 return DataRow(cells: [
                   DataCell(Text(
                     q.number,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight),
                   )),
                   DataCell(Text(AppTheme.formatDate(q.date))),
                   DataCell(Text(q.customerName, style: const TextStyle(fontWeight: FontWeight.w600))),
@@ -931,19 +917,19 @@ class _QuotationsViewState extends State<QuotationsView> {
                   if (isAdmin)
                     DataCell(Text(
                       AppTheme.formatCurrency(q.profit, erp.settings.currency),
-                      style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold),
                     )),
                   DataCell(AppTheme.statusBadge(q.status)),
                   DataCell(Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.visibility_outlined, size: 18, color: Colors.blue),
+                        icon: const Icon(Icons.visibility_outlined, size: 18, color: AppTheme.info),
                         tooltip: 'عرض التفاصيل',
                         onPressed: () => _showQuoteDetails(q),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppTheme.primaryGreen),
+                        icon: const Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppTheme.primaryLight),
                         tooltip: 'معاينة وطباعة PDF',
                         onPressed: () => PdfExportService.printOrPreviewQuotation(
                           context,
@@ -953,7 +939,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                       ),
                       if (q.status == 'مسودة' || q.status == 'مرسل')
                         IconButton(
-                          icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
+                          icon: const Icon(Icons.check_circle_outline, size: 18, color: AppTheme.success),
                           tooltip: 'اعتماد العرض وتوليد أمر إنتاج',
                           onPressed: () => _handleStatusChange(q.id, 'معتمد', erp),
                         ),
@@ -984,7 +970,7 @@ class _QuotationsViewState extends State<QuotationsView> {
         final q = filtered[index];
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -1011,10 +997,10 @@ class _QuotationsViewState extends State<QuotationsView> {
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                            color: AppTheme.primaryLight.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(Icons.request_quote_rounded, size: 16, color: AppTheme.primaryGreen),
+                          child: const Icon(Icons.request_quote_rounded, size: 16, color: AppTheme.primaryLight),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1023,7 +1009,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                             children: [
                               Text(
                                 q.number,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.primaryGreen),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.primaryLight),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 1),
@@ -1042,7 +1028,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                 ],
               ),
               const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: AppTheme.surfaceSecondary),
               const SizedBox(height: 10),
 
               // اسم العميل والمنتج
@@ -1088,16 +1074,16 @@ class _QuotationsViewState extends State<QuotationsView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Row(
                   children: [
                     _buildMobileMetricCol('سعر الوحدة', AppTheme.formatCurrency(q.unitPrice, erp.settings.currency), AppTheme.darkSlate),
-                    _buildMobileMetricCol('قيمة العرض', AppTheme.formatCurrency(q.quoteAmount, erp.settings.currency), AppTheme.primaryGreen, isBold: true),
+                    _buildMobileMetricCol('قيمة العرض', AppTheme.formatCurrency(q.quoteAmount, erp.settings.currency), AppTheme.primaryLight, isBold: true),
                     if (isAdmin)
-                      _buildMobileMetricCol('الربح المتوقع', AppTheme.formatCurrency(q.profit, erp.settings.currency), const Color(0xFF059669), isBold: true),
+                      _buildMobileMetricCol('الربح المتوقع', AppTheme.formatCurrency(q.profit, erp.settings.currency), AppTheme.success, isBold: true),
                   ],
                 ),
               ),
@@ -1124,7 +1110,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                       quotation: q,
                       settings: erp.settings,
                     ),
-                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 14, color: AppTheme.primaryGreen),
+                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 14, color: AppTheme.primaryLight),
                     label: const Text('PDF', style: TextStyle(fontSize: 11.5)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1218,7 +1204,7 @@ class _QuotationsViewState extends State<QuotationsView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.message),
-          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
         ),
       );
     }
@@ -1231,7 +1217,7 @@ class _QuotationsViewState extends State<QuotationsView> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: ConstrainedBox(
@@ -1249,10 +1235,10 @@ class _QuotationsViewState extends State<QuotationsView> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.request_quote_rounded, color: AppTheme.primaryGreen, size: 24),
+                        child: const Icon(Icons.request_quote_rounded, color: AppTheme.primaryLight, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1294,13 +1280,13 @@ class _QuotationsViewState extends State<QuotationsView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_outline_rounded, color: AppTheme.primaryGreen, size: 20),
+                        const Icon(Icons.person_outline_rounded, color: AppTheme.primaryLight, size: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -1330,9 +1316,9 @@ class _QuotationsViewState extends State<QuotationsView> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
+                      color: AppTheme.successSurface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                      border: Border.all(color: AppTheme.borderColor),
                     ),
                     child: Column(
                       children: [
@@ -1374,14 +1360,14 @@ class _QuotationsViewState extends State<QuotationsView> {
                             children: [
                               Row(
                                 children: const [
-                                  Icon(Icons.trending_up_rounded, size: 18, color: Color(0xFF059669)),
+                                  Icon(Icons.trending_up_rounded, size: 18, color: AppTheme.success),
                                   SizedBox(width: 6),
-                                  Text('صافي الربح المتوقع:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                                  Text('صافي الربح المتوقع:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.success)),
                                 ],
                               ),
                               Text(
                                 AppTheme.formatCurrency(q.profit, erp.settings.currency),
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.success),
                               ),
                             ],
                           ),
@@ -1396,7 +1382,7 @@ class _QuotationsViewState extends State<QuotationsView> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: AppTheme.surfaceSecondary,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppTheme.borderColor),
                       ),

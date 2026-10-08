@@ -8,6 +8,7 @@ import 'package:erp_printer/providers/auth_provider.dart';
 import 'package:erp_printer/models/app_models.dart';
 import 'package:erp_printer/services/auth_service.dart';
 import 'package:erp_printer/services/storage_service.dart';
+import 'package:erp_printer/views/login_view.dart';
 import 'package:erp_printer/views/main_layout.dart';
 
 Future<void> _testAllTabs(WidgetTester tester, Size size) async {
@@ -27,20 +28,29 @@ Future<void> _testAllTabs(WidgetTester tester, Size size) async {
     role: UserRole.admin,
   );
   final user = storage.loadUsers().first;
-  await authService.login(user.id, '1234');
+  final authProvider = AuthProvider(authService, storage);
 
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: provider),
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(authService, storage),
-        ),
+        ChangeNotifierProvider<AuthProvider>(create: (_) => authProvider),
       ],
       child: const MatbaaErpApp(),
     ),
   );
   await tester.pumpAndSettle();
+  expect(find.byType(LoginView), findsOneWidget);
+  expect(tester.takeException(), isNull, reason: 'User-selection layout overflowed at $size');
+
+  await tester.tap(find.text('تسجيل الدخول بالـ PIN'));
+  await tester.pumpAndSettle();
+  expect(find.text('أدخل رمز المرور السري (PIN)'), findsOneWidget);
+  expect(tester.takeException(), isNull, reason: 'PIN-entry layout overflowed at $size');
+
+  await authProvider.login(user.id, '1234');
+  await tester.pumpAndSettle();
+  expect(find.byType(MainLayout), findsOneWidget);
 
   final views = [
     ('لوحة المؤشرات', 0),
@@ -55,6 +65,7 @@ Future<void> _testAllTabs(WidgetTester tester, Size size) async {
     ('تقارير الربحية والتحليل', 9),
     ('إعدادات النظام', 10),
     ('إدارة الأسعار والتكاليف', 11),
+    ('إدارة المستخدمين', 12),
   ];
 
   for (final (title, index) in views) {

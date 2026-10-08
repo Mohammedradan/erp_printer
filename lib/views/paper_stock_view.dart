@@ -58,7 +58,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
           // 3. شريط التبويبات المتجاوب
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.cardBg,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.borderColor),
               boxShadow: [
@@ -73,9 +73,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              labelColor: AppTheme.primaryGreen,
+              labelColor: AppTheme.primaryLight,
               unselectedLabelColor: AppTheme.textMuted,
-              indicatorColor: AppTheme.primaryGreen,
+              indicatorColor: AppTheme.primaryLight,
               indicatorWeight: 3,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
               tabs: [
@@ -89,13 +89,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           '${erp.papers.length}',
                           style: const TextStyle(
-                            color: AppTheme.primaryGreen,
+                            color: AppTheme.primaryLight,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -114,7 +114,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: AppTheme.surfaceSecondary,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -158,23 +158,9 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF064E3B), // Dark emerald
-            Color(0xFF047857), // Medium emerald
-            Color(0xFF0F766E), // Teal accent
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F5132).withValues(alpha: 0.22),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Stack(
         children: [
@@ -186,7 +172,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppTheme.primaryLight.withValues(alpha: 0.035),
               ),
             ),
           ),
@@ -204,11 +190,11 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         Container(
                           padding: EdgeInsets.all(isMobile ? 8 : 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: AppTheme.selectedSurface,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                            border: Border.all(color: AppTheme.borderColor),
                           ),
-                          child: Icon(Icons.inventory_2_rounded, color: Colors.white, size: isMobile ? 22 : 26),
+                          child: Icon(Icons.inventory_2_rounded, color: AppTheme.primaryLight, size: isMobile ? 22 : 26),
                         ),
                         SizedBox(width: isMobile ? 10 : 14),
                         Expanded(
@@ -218,13 +204,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.14),
+                                  color: AppTheme.surfaceSecondary,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
                                   'المستودع والخامات • ERP المطبعة',
                                   style: TextStyle(
-                                    color: Color(0xFFD1FAE5),
+                                    color: AppTheme.primaryLight,
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -249,7 +235,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                       ? 'متابعة الأرصدة وأسعار الأفرخ وحركات التوريد والصرف للإنتاج'
                                       : 'متابعة أرصدة الورق وحركات التوريد والصرف للإنتاج',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.85),
+                                    color: AppTheme.textSecondary,
                                     fontSize: 12.5,
                                   ),
                                   maxLines: 2,
@@ -262,7 +248,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       ],
                     ),
                     SizedBox(height: isMobile ? 10 : 16),
-                    const Divider(color: Colors.white12, height: 1),
+                    const Divider(color: AppTheme.borderColor, height: 1),
                     SizedBox(height: isMobile ? 10 : 14),
 
                     // إحصاءات فورية وأزرار الإجراءات
@@ -279,21 +265,21 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             _buildHeroPill(
                               icon: Icons.layers_rounded,
                               label: '$totalSheets فرخ بالمستودع',
-                              color: const Color(0xFFD1FAE5),
-                              bgColor: Colors.black.withValues(alpha: 0.22),
+                              color: AppTheme.primaryLight,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             _buildHeroPill(
                               icon: Icons.category_rounded,
                               label: '${erp.papers.length} أصناف ورق',
-                              color: const Color(0xFFBAE6FD),
-                              bgColor: Colors.black.withValues(alpha: 0.22),
+                              color: AppTheme.textSecondary,
+                              bgColor: AppTheme.surfaceSecondary,
                             ),
                             if (lowStockCount > 0)
                               _buildHeroPill(
                                 icon: Icons.warning_amber_rounded,
                                 label: '$lowStockCount إعادة طلب',
-                                color: const Color(0xFFFCA5A5),
-                                bgColor: Colors.red.withValues(alpha: 0.28),
+                                color: AppTheme.danger,
+                                bgColor: AppTheme.dangerSurface,
                               ),
                           ],
                         ),
@@ -309,8 +295,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 style: TextStyle(fontSize: isMobile ? 12 : 13),
                               ),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white38),
+                                foregroundColor: AppTheme.textPrimary,
+                                side: const BorderSide(color: AppTheme.borderColor),
                                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: isMobile ? 8 : 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
@@ -324,8 +310,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 style: TextStyle(fontSize: isMobile ? 12 : 13),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
-                                foregroundColor: Colors.white,
+                                backgroundColor: AppTheme.primaryGreen,
+                                foregroundColor: AppTheme.textPrimary,
                                 elevation: 0,
                                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 8 : 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -401,8 +387,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 value: AppTheme.formatCurrency(erp.totalPaperInventoryValue, erp.settings.currency),
                 subtitle: '$totalSheets فرخ 100x70',
                 icon: Icons.account_balance_wallet_rounded,
-                color: AppTheme.primaryGreen,
-                bgColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                color: AppTheme.primaryLight,
+                bgColor: AppTheme.selectedSurface,
                 onTap: null,
                 isCompact: isMobile,
               ),
@@ -411,19 +397,19 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               value: '$lowStockCount صنف',
               subtitle: lowStockCount == 0 ? 'المخزون بمستوى آمن' : 'اضغط لعرض وتصفية النواقص',
               icon: Icons.warning_amber_rounded,
-              color: lowStockCount == 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-              bgColor: lowStockCount == 0 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+              color: lowStockCount == 0 ? AppTheme.success : AppTheme.danger,
+              bgColor: lowStockCount == 0 ? AppTheme.successSurface : AppTheme.dangerSurface,
               badge: lowStockCount > 0 && !isMobile
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: AppTheme.dangerSurface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade200),
+                        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.36)),
                       ),
                       child: const Text(
                         'إجراء مطلوب',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.red),
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.danger),
                       ),
                     )
                   : null,
@@ -440,8 +426,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               value: '${erp.papers.length} خامة',
               subtitle: 'أوفست، كوشيه، بريستول...',
               icon: Icons.layers_rounded,
-              color: const Color(0xFF0284C7),
-              bgColor: const Color(0xFFE0F2FE),
+              color: AppTheme.info,
+              bgColor: AppTheme.infoSurface,
               onTap: null,
               isCompact: isMobile,
             ),
@@ -450,8 +436,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               value: '${erp.stockMoves.length} حركة',
               subtitle: 'وارد توريد / منصرف إنتاج',
               icon: Icons.history_edu_rounded,
-              color: const Color(0xFFD97706),
-              bgColor: const Color(0xFFFEF3C7),
+              color: AppTheme.warning,
+              bgColor: AppTheme.warningSurface,
               onTap: () => setState(() => _tabController.index = 1),
               isCompact: isMobile,
             ),
@@ -480,7 +466,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
         child: Container(
           padding: EdgeInsets.all(isCompact ? 10 : 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -592,7 +578,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -614,7 +600,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               final searchInput = TextField(
                 decoration: InputDecoration(
                   hintText: 'بحث باسم الخامة، الجرام، الفئة، أو المورد...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryGreen),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryLight),
                   suffixIcon: _paperSearchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -622,7 +608,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: AppTheme.surfaceSecondary,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -633,7 +619,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 1.5),
+                    borderSide: const BorderSide(color: AppTheme.primaryLight, width: 1.5),
                   ),
                   isDense: true,
                 ),
@@ -643,7 +629,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               final sortDropdown = Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -651,7 +637,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   child: DropdownButton<String>(
                     value: !isAdmin && _paperSortBy == 'price_desc' ? 'name' : _paperSortBy,
                     isExpanded: isCompact,
-                    icon: const Icon(Icons.sort_rounded, size: 18, color: AppTheme.primaryGreen),
+                    icon: const Icon(Icons.sort_rounded, size: 18, color: AppTheme.primaryLight),
                     items: [
                       const DropdownMenuItem(value: 'name', child: Text('الاسم أبجدياً')),
                       const DropdownMenuItem(value: 'balance_desc', child: Text('الأعلى رصيداً')),
@@ -706,14 +692,14 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 return ChoiceChip(
                   label: Text(c),
                   selected: isSelected,
-                  selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.15),
-                  backgroundColor: const Color(0xFFF8FAFC),
+                  selectedColor: AppTheme.selectedSurface,
+                  backgroundColor: AppTheme.surfaceSecondary,
                   side: BorderSide(
-                    color: isSelected ? AppTheme.primaryGreen : AppTheme.borderColor,
+                    color: isSelected ? AppTheme.primaryLight : AppTheme.borderColor,
                   ),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   labelStyle: TextStyle(
-                    color: isSelected ? AppTheme.primaryGreen : AppTheme.textDark,
+                    color: isSelected ? AppTheme.primaryLight : AppTheme.textDark,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 12,
                   ),
@@ -723,13 +709,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               FilterChip(
                 label: Text('تحت حد الطلب (${erp.lowStockPapers.length})'),
                 selected: _onlyLowStock,
-                selectedColor: const Color(0xFFFEE2E2),
-                backgroundColor: const Color(0xFFF8FAFC),
-                side: BorderSide(color: _onlyLowStock ? Colors.red : AppTheme.borderColor),
+                selectedColor: AppTheme.dangerSurface,
+                backgroundColor: AppTheme.surfaceSecondary,
+                side: BorderSide(color: _onlyLowStock ? AppTheme.danger : AppTheme.borderColor),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                checkmarkColor: Colors.red.shade900,
+                checkmarkColor: AppTheme.danger,
                 labelStyle: TextStyle(
-                  color: _onlyLowStock ? Colors.red.shade900 : Colors.black87,
+                  color: _onlyLowStock ? AppTheme.danger : AppTheme.textPrimary,
                   fontWeight: _onlyLowStock ? FontWeight.bold : FontWeight.normal,
                   fontSize: 12,
                 ),
@@ -764,7 +750,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                  headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                   headingRowHeight: 48,
                   dataRowMinHeight: 52,
                   dataRowMaxHeight: 58,
@@ -791,31 +777,31 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                            color: AppTheme.primaryLight.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             p.category,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen, fontSize: 12),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight, fontSize: 12),
                           ),
                         ),
                       ),
                       DataCell(Text('${p.paperType} (${p.gsm} جم)', style: const TextStyle(fontWeight: FontWeight.w600))),
                       DataCell(Text(p.sheetSize)),
                       DataCell(Text('${p.sheetsPerUnit}')),
-                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.sheetPrice))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.sheetPrice, context.read<ErpProvider>().settings.currency))),
                       DataCell(
                         Text(
                           '${p.balance.toInt()} فرخ',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: p.balance <= 0 ? Colors.red : (p.isUnderReorder ? Colors.amber.shade900 : Colors.black87),
+                            color: p.balance <= 0 ? AppTheme.danger : (p.isUnderReorder ? AppTheme.warning : AppTheme.textPrimary),
                           ),
                         ),
                       ),
                       DataCell(Text('${p.reorderLevel}')),
                       DataCell(AppTheme.statusBadge(status)),
-                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(p.totalValue, context.read<ErpProvider>().settings.currency), style: const TextStyle(fontWeight: FontWeight.bold))),
                       DataCell(Text(p.supplier ?? '—')),
                       DataCell(
                         Row(
@@ -823,13 +809,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                           children: [
                             // حركة سريعة
                             IconButton(
-                              icon: const Icon(Icons.add_shopping_cart, size: 18, color: AppTheme.primaryGreen),
+                              icon: const Icon(Icons.add_shopping_cart, size: 18, color: AppTheme.primaryLight),
                               tooltip: 'تسجيل حركة مخزون للصنف',
                               onPressed: () => _showNewMovementDialog(p),
                             ),
                             // كارت الصنف
                             IconButton(
-                              icon: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF0284C7)),
+                              icon: const Icon(Icons.receipt_long_outlined, size: 18, color: AppTheme.info),
                               tooltip: 'كارت الصنف وسجل الحركات',
                               onPressed: () => _showItemStockCardDialog(p, erp),
                             ),
@@ -842,7 +828,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             ),
                             // حذف
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.danger),
                               tooltip: 'حذف الصنف',
                               onPressed: () => _confirmDeletePaper(p, erp),
                             ),
@@ -884,7 +870,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -910,22 +896,22 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   title: 'إجمالي الوارد (توريد)',
                   value: '${totalIn.toInt()} فرخ',
                   icon: Icons.arrow_downward_rounded,
-                  color: const Color(0xFF15803D),
-                  bgColor: const Color(0xFFDCFCE7),
+                  color: AppTheme.success,
+                  bgColor: AppTheme.successSurface,
                 ),
                 _buildMovementSummaryCard(
                   title: 'إجمالي المنصرف (إنتاج)',
                   value: '${totalOut.toInt()} فرخ',
                   icon: Icons.arrow_upward_rounded,
-                  color: const Color(0xFFB91C1C),
-                  bgColor: const Color(0xFFFEE2E2),
+                  color: AppTheme.danger,
+                  bgColor: AppTheme.dangerSurface,
                 ),
                 _buildMovementSummaryCard(
                   title: 'صافي حركة المخزون',
                   value: '${net >= 0 ? '+' : ''}${net.toInt()} فرخ',
                   icon: Icons.swap_vert_rounded,
-                  color: net >= 0 ? AppTheme.primaryGreen : Colors.orange.shade800,
-                  bgColor: net >= 0 ? AppTheme.primaryGreen.withValues(alpha: 0.1) : Colors.orange.shade50,
+                  color: net >= 0 ? AppTheme.primaryLight : AppTheme.warning,
+                  bgColor: net >= 0 ? AppTheme.selectedSurface : AppTheme.warningSurface,
                 ),
               ];
 
@@ -957,7 +943,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               final searchInput = TextField(
                 decoration: InputDecoration(
                   hintText: 'بحث برقم الحركة، اسم الصنف، المرجع، المورد...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryGreen),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryLight),
                   suffixIcon: _moveSearchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -965,7 +951,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: AppTheme.surfaceSecondary,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppTheme.borderColor),
@@ -976,7 +962,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 1.5),
+                    borderSide: const BorderSide(color: AppTheme.primaryLight, width: 1.5),
                   ),
                   isDense: true,
                 ),
@@ -986,7 +972,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               final typeDropdown = Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -994,7 +980,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   child: DropdownButton<String>(
                     value: _moveTypeFilter,
                     isExpanded: isCompact,
-                    icon: const Icon(Icons.filter_list_rounded, size: 18, color: AppTheme.primaryGreen),
+                    icon: const Icon(Icons.filter_list_rounded, size: 18, color: AppTheme.primaryLight),
                     items: const [
                       DropdownMenuItem(value: 'الكل', child: Text('جميع الحركات')),
                       DropdownMenuItem(value: 'دخول', child: Text('دخول (توريد)')),
@@ -1053,7 +1039,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                  headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                   headingRowHeight: 48,
                   dataRowMinHeight: 52,
                   dataRowMaxHeight: 58,
@@ -1080,17 +1066,17 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         '${m.moveType == 'خروج' ? '-' : '+'}${m.qtySheets.toInt()} فرخ',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: m.moveType == 'خروج' ? Colors.red : Colors.green.shade800,
+                          color: m.moveType == 'خروج' ? AppTheme.danger : AppTheme.success,
                         ),
                       )),
-                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice, context.read<ErpProvider>().settings.currency))),
+                      if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue, context.read<ErpProvider>().settings.currency), style: const TextStyle(fontWeight: FontWeight.bold))),
                       DataCell(Text(m.reference ?? '—')),
                       DataCell(Text(m.supplier ?? '—')),
                       DataCell(Text(m.notes ?? '—')),
                       DataCell(
                         IconButton(
-                          icon: const Icon(Icons.undo_rounded, size: 18, color: Colors.orange),
+                          icon: const Icon(Icons.undo_rounded, size: 18, color: AppTheme.warning),
                           tooltip: 'إنشاء حركة عكسية',
                           onPressed: () => _confirmReverseStockMove(m, erp),
                         ),
@@ -1124,7 +1110,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: AppTheme.surfaceSecondary,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 18),
@@ -1167,7 +1153,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         clipBehavior: Clip.antiAlias,
         insetPadding: const EdgeInsets.all(16),
@@ -1191,10 +1177,10 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withOpacity(0.12),
+                          color: AppTheme.primaryLight.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.badge_outlined, color: AppTheme.primaryGreen, size: 22),
+                        child: const Icon(Icons.badge_outlined, color: AppTheme.primaryLight, size: 22),
                       ),
                       const SizedBox(width: 10),
                       Column(
@@ -1224,7 +1210,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -1233,10 +1219,10 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _buildLedgerMetric('الرصيد الحالي', '${paper.balance.toInt()} فرخ', paper.isUnderReorder ? Colors.red : AppTheme.primaryGreen),
-                    if (isAdmin) _buildLedgerMetric('سعر الفرخ', AppTheme.formatCurrency(paper.sheetPrice), AppTheme.darkSlate),
-                    if (isAdmin) _buildLedgerMetric('قيمة المخزون', AppTheme.formatCurrency(paper.totalValue), const Color(0xFF0284C7)),
-                    _buildLedgerMetric('حالة الصنف', paper.isUnderReorder ? 'إعادة طلب' : 'طبيعي', paper.isUnderReorder ? Colors.red : Colors.green),
+                    _buildLedgerMetric('الرصيد الحالي', '${paper.balance.toInt()} فرخ', paper.isUnderReorder ? AppTheme.danger : AppTheme.primaryLight),
+                    if (isAdmin) _buildLedgerMetric('سعر الفرخ', AppTheme.formatCurrency(paper.sheetPrice, context.read<ErpProvider>().settings.currency), AppTheme.darkSlate),
+                    if (isAdmin) _buildLedgerMetric('قيمة المخزون', AppTheme.formatCurrency(paper.totalValue, context.read<ErpProvider>().settings.currency), AppTheme.info),
+                    _buildLedgerMetric('حالة الصنف', paper.isUnderReorder ? 'إعادة طلب' : 'طبيعي', paper.isUnderReorder ? AppTheme.danger : AppTheme.success),
                   ],
                 ),
               ),
@@ -1257,7 +1243,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
-                            headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
+                            headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                             columns: [
                               const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
                               const DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -1277,11 +1263,11 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                   '${m.moveType == 'خروج' ? '-' : '+'}${m.qtySheets.toInt()}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: m.moveType == 'خروج' ? Colors.red : Colors.green.shade800,
+                                    color: m.moveType == 'خروج' ? AppTheme.danger : AppTheme.success,
                                   ),
                                 )),
-                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
+                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice, context.read<ErpProvider>().settings.currency))),
+                                if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue, context.read<ErpProvider>().settings.currency))),
                                 DataCell(Text(m.reference ?? '—')),
                                 DataCell(Text(m.supplier ?? '—')),
                               ]);
@@ -1350,7 +1336,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: ConstrainedBox(
@@ -1368,12 +1354,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.12),
+                            color: AppTheme.primaryLight.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             isEditing ? Icons.edit_note_rounded : Icons.post_add_rounded,
-                            color: AppTheme.primaryGreen,
+                            color: AppTheme.primaryLight,
                             size: 24,
                           ),
                         ),
@@ -1557,7 +1543,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: const Text('لا يمكن إدخال رصيد ورق سالب؛ استخدم تسوية موثقة عند الحاجة'),
-                                    backgroundColor: Colors.red.shade700,
+                                    backgroundColor: AppTheme.dangerButton,
                                   ),
                                 );
                                 return;
@@ -1602,7 +1588,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(result.message),
-                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                   ),
                                 );
                               }
@@ -1636,7 +1622,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: ConstrainedBox(
@@ -1652,10 +1638,10 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.12),
+                        color: AppTheme.danger.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 24),
+                      child: const Icon(Icons.delete_outline_rounded, color: AppTheme.danger, size: 24),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -1707,7 +1693,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(result.message),
-                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                               ),
                             );
                           }
@@ -1715,7 +1701,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         icon: const Icon(Icons.delete_forever_rounded, size: 18),
                         label: const Text('نعم، حذف الصنف'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700,
+                          backgroundColor: AppTheme.dangerButton,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1750,7 +1736,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: ConstrainedBox(
@@ -1768,10 +1754,10 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withOpacity(0.12),
+                            color: AppTheme.primaryLight.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.swap_horiz_rounded, color: AppTheme.primaryGreen, size: 24),
+                          child: const Icon(Icons.swap_horiz_rounded, color: AppTheme.primaryLight, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1930,7 +1916,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(result.message),
-                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                    backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                   ),
                                 );
                               }
@@ -1964,7 +1950,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: ConstrainedBox(
@@ -1980,10 +1966,10 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.12),
+                        color: AppTheme.danger.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.undo_rounded, color: Colors.orange, size: 24),
+                      child: const Icon(Icons.undo_rounded, color: AppTheme.warning, size: 24),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -2035,7 +2021,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(result.message),
-                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                               ),
                             );
                           }
@@ -2043,7 +2029,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         icon: const Icon(Icons.undo_rounded, size: 18),
                         label: const Text('نعم، إنشاء حركة عكسية'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade700,
+                          backgroundColor: AppTheme.warning,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -2077,12 +2063,12 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isDepleted
-                  ? Colors.red.shade300
-                  : (isUnder ? Colors.orange.shade300 : AppTheme.borderColor),
+                  ? AppTheme.danger
+                  : (isUnder ? AppTheme.warning : AppTheme.borderColor),
               width: (isDepleted || isUnder) ? 1.5 : 1.0,
             ),
             boxShadow: [
@@ -2104,14 +2090,14 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      color: AppTheme.primaryLight.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       p.category,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
+                        color: AppTheme.primaryLight,
                         fontSize: 11,
                       ),
                     ),
@@ -2140,11 +2126,11 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: p.reorderLevel > 0 ? (p.balance / (p.reorderLevel * 2)).clamp(0.05, 1.0) : 1.0,
-                  backgroundColor: const Color(0xFFE2E8F0),
+                  backgroundColor: AppTheme.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     isDepleted
-                        ? const Color(0xFFEF4444)
-                        : (isUnder ? const Color(0xFFF59E0B) : const Color(0xFF10B981)),
+                        ? AppTheme.danger
+                        : (isUnder ? AppTheme.accentGold : AppTheme.primaryLight),
                   ),
                   minHeight: 5,
                 ),
@@ -2155,7 +2141,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -2167,8 +2153,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                             'الرصيد الحالي:',
                             '${p.balance.toInt()} فرخ',
                             highlightColor: isDepleted
-                                ? Colors.red
-                                : (isUnder ? Colors.orange.shade900 : Colors.green.shade800),
+                                ? AppTheme.danger
+                                : (isUnder ? AppTheme.warning : AppTheme.success),
                             isBold: true,
                           ),
                         ),
@@ -2183,7 +2169,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       children: [
                         if (isAdmin) ...[
                           Expanded(
-                            child: _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice), isBold: true),
+                            child: _buildMobileField('سعر الفرخ:', AppTheme.formatCurrency(p.sheetPrice, context.read<ErpProvider>().settings.currency), isBold: true),
                           ),
                           const SizedBox(width: 8),
                         ],
@@ -2201,7 +2187,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                         if (isAdmin) ...[
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue)),
+                            child: _buildMobileField('قيمة المخزون:', AppTheme.formatCurrency(p.totalValue, context.read<ErpProvider>().settings.currency)),
                           ),
                         ],
                       ],
@@ -2237,8 +2223,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       icon: const Icon(Icons.swap_horiz_rounded, size: 16),
                       label: const Text('حركة مخزون', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryGreen,
-                        side: const BorderSide(color: AppTheme.primaryGreen),
+                        foregroundColor: AppTheme.primaryLight,
+                        side: const BorderSide(color: AppTheme.primaryLight),
                         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -2246,7 +2232,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.receipt_long_rounded, size: 19, color: Color(0xFF0284C7)),
+                    icon: const Icon(Icons.receipt_long_rounded, size: 19, color: AppTheme.info),
                     tooltip: 'كارت الصنف',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => _showItemStockCardDialog(p, erp),
@@ -2259,7 +2245,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       onPressed: () => _showPaperDialog(p),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Colors.red),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 19, color: AppTheme.danger),
                       tooltip: 'حذف',
                       visualDensity: VisualDensity.compact,
                       onPressed: () => _confirmDeletePaper(p, erp),
@@ -2307,7 +2293,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppTheme.borderColor),
             boxShadow: [
@@ -2344,7 +2330,7 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -2355,13 +2341,13 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: isOut ? Colors.red : Colors.green.shade800,
+                        color: isOut ? AppTheme.danger : AppTheme.success,
                       ),
                     ),
                     if (isAdmin) ...[
-                      Text('السعر: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                      Text('السعر: ${AppTheme.formatCurrency(m.unitPrice, context.read<ErpProvider>().settings.currency)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                       Text(
-                        'الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}',
+                        'الإجمالي: ${AppTheme.formatCurrency(m.totalValue, context.read<ErpProvider>().settings.currency)}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.darkSlate),
                       ),
                     ],
@@ -2384,8 +2370,8 @@ class _PaperStockViewState extends State<PaperStockView> with SingleTickerProvid
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: () => _confirmReverseStockMove(m, erp),
-                  icon: const Icon(Icons.undo_rounded, size: 14, color: Colors.orange),
-                  label: const Text('عكس الحركة', style: TextStyle(color: Colors.orange, fontSize: 11)),
+                  icon: const Icon(Icons.undo_rounded, size: 14, color: AppTheme.warning),
+                  label: const Text('عكس الحركة', style: TextStyle(color: AppTheme.warning, fontSize: 11)),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
                 ),
               ),

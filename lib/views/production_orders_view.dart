@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/erp_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/erp_components.dart';
 
 class ProductionOrdersView extends StatefulWidget {
   const ProductionOrdersView({super.key});
@@ -35,54 +36,19 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // شريط العنوان
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.precision_manufacturing_rounded, color: AppTheme.primaryGreen, size: 22),
-                      ),
-                      const Text(
-                        'أوامر الإنتاج ومتابعة التشغيل',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.darkSlate),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'متابعة مراحل التنفيذ، الماكينات، استهلاك الورق، ومواعيد التسليم',
-                    style: TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
-                  ),
-                ],
-              ),
+          ErpPageHeader(
+            title: 'أوامر الإنتاج',
+            subtitle: 'متابعة مراحل التنفيذ والماكينات واستهلاك الورق ومواعيد التسليم',
+            icon: Icons.precision_manufacturing_outlined,
+            actions: [
               ElevatedButton.icon(
-                onPressed: () => _showNewOrderDialog(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('أمر إنتاج يدوي جديد'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+                onPressed: _showNewOrderDialog,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('أمر إنتاج جديد'),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // كروت إحصائيات سريعة للأوامر
           LayoutBuilder(
@@ -98,10 +64,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                 physics: const NeverScrollableScrollPhysics(),
                 childAspectRatio: aspect,
                 children: [
-                  _buildMiniStatusCard('إجمالي الأوامر', '${erp.productionOrders.length}', const Color(0xFF0F766E), Icons.precision_manufacturing_rounded),
-                  _buildMiniStatusCard('معتمدة وجاهزة', '${erp.productionOrders.where((o) => o.status == 'معتمد').length}', const Color(0xFF0284C7), Icons.playlist_add_check_rounded),
-                  _buildMiniStatusCard('قيد التشغيل', '${erp.inProgressOrdersCount}', const Color(0xFFD97706), Icons.sync_rounded),
-                  _buildMiniStatusCard('مكتملة ومسلمة', '${erp.completedOrdersCount}', const Color(0xFF059669), Icons.verified_rounded),
+                  _buildMiniStatusCard('إجمالي الأوامر', '${erp.productionOrders.length}', AppTheme.primaryLight, Icons.precision_manufacturing_rounded),
+                  _buildMiniStatusCard('معتمدة وجاهزة', '${erp.productionOrders.where((o) => o.status == 'معتمد').length}', AppTheme.info, Icons.playlist_add_check_rounded),
+                  _buildMiniStatusCard('قيد التشغيل', '${erp.inProgressOrdersCount}', AppTheme.warning, Icons.sync_rounded),
+                  _buildMiniStatusCard('مكتملة ومسلمة', '${erp.completedOrdersCount}', AppTheme.success, Icons.verified_rounded),
                 ],
               );
             },
@@ -113,7 +79,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
+              side: BorderSide(color: AppTheme.surfaceSecondary),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -201,7 +167,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
+              side: BorderSide(color: AppTheme.surfaceSecondary),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -219,7 +185,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                         columns: const [
                           DataColumn(label: Text('رقم الأمر', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -237,9 +203,9 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         ],
                         rows: filtered.map((o) {
                           return DataRow(cells: [
-                            DataCell(Text(o.number, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen))),
+                            DataCell(Text(o.number, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryLight))),
                             DataCell(Text(AppTheme.formatDate(o.date))),
-                            DataCell(Text(o.quotationNumber ?? '—', style: const TextStyle(color: Colors.blueGrey))),
+                            DataCell(Text(o.quotationNumber ?? '—', style: const TextStyle(color: AppTheme.textSecondary))),
                             DataCell(Text(o.customerName, style: const TextStyle(fontWeight: FontWeight.bold))),
                             DataCell(Text('${o.product} (${o.qty} نسخة)')),
                             DataCell(Text(o.machine)),
@@ -250,9 +216,9 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                               o.areAllMaterialsIssued
                                   ? const Row(
                                       children: [
-                                        Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                        Icon(Icons.check_circle, color: AppTheme.success, size: 16),
                                         SizedBox(width: 4),
-                                        Text('تم الصرف', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        Text('تم الصرف', style: TextStyle(color: AppTheme.success, fontSize: 12, fontWeight: FontWeight.bold)),
                                       ],
                                     )
                                   : ElevatedButton.icon(
@@ -262,7 +228,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text(result.message),
-                                              backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                              backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                             ),
                                           );
                                         }
@@ -275,7 +241,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                         style: const TextStyle(fontSize: 11),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade700,
+                                        backgroundColor: AppTheme.info,
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       ),
                                     ),
@@ -287,7 +253,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.assignment_turned_in_outlined, size: 18, color: Colors.green),
+                                    icon: const Icon(Icons.assignment_turned_in_outlined, size: 18, color: AppTheme.success),
                                     tooltip: 'إتمام الأمر',
                                     onPressed: o.status != 'قيد الإنتاج'
                                         ? null
@@ -297,7 +263,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
                                                   content: Text(result.message),
-                                                  backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                                  backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                                 ),
                                               );
                                             }
@@ -331,7 +297,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.danger),
                                     tooltip: 'حذف',
                                     onPressed: () => _confirmDeleteOrder(o, erp),
                                   ),
@@ -354,10 +320,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
   Widget _buildMiniStatusCard(String title, String value, Color color, IconData icon) {
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: AppTheme.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppTheme.surfaceSecondary),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -411,10 +377,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
         final o = orders[index];
         return Card(
           elevation: 0,
-          color: Colors.white,
+          color: AppTheme.cardBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200),
+            side: BorderSide(color: AppTheme.surfaceSecondary),
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -432,14 +398,14 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                            color: AppTheme.primaryLight.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             o.number,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryGreen,
+                              color: AppTheme.primaryLight,
                               fontSize: 13,
                             ),
                           ),
@@ -461,7 +427,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                 // العميل والمنتج
                 Row(
                   children: [
-                    const Icon(Icons.person_outline_rounded, size: 16, color: Colors.blueGrey),
+                    const Icon(Icons.person_outline_rounded, size: 16, color: AppTheme.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -475,7 +441,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.shopping_bag_outlined, size: 16, color: Colors.blueGrey),
+                    const Icon(Icons.shopping_bag_outlined, size: 16, color: AppTheme.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -490,7 +456,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
@@ -502,7 +468,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.print_outlined, size: 15, color: Color(0xFF0284C7)),
+                                const Icon(Icons.print_outlined, size: 15, color: AppTheme.info),
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
@@ -518,7 +484,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFFD97706)),
+                              const Icon(Icons.access_time_rounded, size: 15, color: AppTheme.warning),
                               const SizedBox(width: 5),
                               Text('${o.runHours.toStringAsFixed(1)} س تشغيل', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                             ],
@@ -532,7 +498,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.layers_outlined, size: 15, color: AppTheme.primaryGreen),
+                                const Icon(Icons.layers_outlined, size: 15, color: AppTheme.primaryLight),
                                 const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
@@ -546,7 +512,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           ),
                           Text(
                             '${o.sheetsWithWaste.toInt()} فرخ',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryLight),
                           ),
                         ],
                       ),
@@ -554,12 +520,12 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.event_available_outlined, size: 15, color: Colors.blueGrey),
+                            const Icon(Icons.event_available_outlined, size: 15, color: AppTheme.textSecondary),
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
                                 'موعد التسليم: ${AppTheme.formatDate(o.dueDate!)}',
-                                style: const TextStyle(fontSize: 11.5, color: Colors.blueGrey),
+                                style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -579,12 +545,12 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                       child: o.areAllMaterialsIssued
                           ? const Row(
                               children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
+                                Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 16),
                                 SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     'تم صرف المواد',
-                                    style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: AppTheme.success, fontSize: 12, fontWeight: FontWeight.bold),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -597,7 +563,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(result.message),
-                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                     ),
                                   );
                                 }
@@ -611,8 +577,8 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.blue.shade700,
-                                side: BorderSide(color: Colors.blue.shade300),
+                                foregroundColor: AppTheme.info,
+                                side: BorderSide(color: AppTheme.info.withValues(alpha: 0.45)),
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -625,7 +591,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.assignment_turned_in_outlined, size: 20, color: Colors.green),
+                          icon: const Icon(Icons.assignment_turned_in_outlined, size: 20, color: AppTheme.success),
                           tooltip: 'إتمام الأمر',
                           onPressed: o.status != 'قيد الإنتاج'
                               ? null
@@ -635,14 +601,14 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(result.message),
-                                        backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                        backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                       ),
                                     );
                                   }
                                 },
                         ),
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.blueGrey),
+                          icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppTheme.textSecondary),
                           onSelected: (val) => _handleOrderMenuSelection(o, val, erp),
                           itemBuilder: (ctx) {
                             switch (o.status) {
@@ -669,7 +635,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                          icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.danger),
                           tooltip: 'حذف',
                           onPressed: () => _confirmDeleteOrder(o, erp),
                         ),
@@ -699,7 +665,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.message),
-          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+          backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
         ),
       );
     }
@@ -726,12 +692,12 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.cardBg,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
-              Icon(Icons.assignment_return_rounded, color: Colors.orange),
+              Icon(Icons.assignment_return_rounded, color: AppTheme.warning),
               SizedBox(width: 8),
               Expanded(child: Text('إرجاع مواد إلى المخزون', style: TextStyle(fontSize: 17))),
             ],
@@ -815,7 +781,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(result.message),
-                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                     ),
                   );
                 }
@@ -823,7 +789,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
               icon: const Icon(Icons.assignment_return_rounded),
               label: const Text('تسجيل الإرجاع'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
+                backgroundColor: AppTheme.warning,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -837,7 +803,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('تأكيد الحذف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -845,11 +811,11 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء', style: TextStyle(color: Colors.blueGrey)),
+            child: const Text('إلغاء', style: TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.danger,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -866,7 +832,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.message),
-            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+            backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
           ),
         );
       }
@@ -891,7 +857,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
 
         return StatefulBuilder(
           builder: (ctx, setDialogState) => Dialog(
-            backgroundColor: Colors.white,
+            backgroundColor: AppTheme.cardBg,
             surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -910,10 +876,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                              color: AppTheme.primaryLight.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.precision_manufacturing_rounded, color: AppTheme.primaryGreen, size: 24),
+                            child: const Icon(Icons.precision_manufacturing_rounded, color: AppTheme.primaryLight, size: 24),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -934,10 +900,10 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(ctx),
-                            icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                            icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
                             tooltip: 'إغلاق',
                             style: IconButton.styleFrom(
-                              backgroundColor: const Color(0xFFF1F5F9),
+                              backgroundColor: AppTheme.surfaceSecondary,
                               padding: const EdgeInsets.all(6),
                             ),
                           ),
@@ -953,7 +919,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         initialValue: selectedCustomer,
                         decoration: const InputDecoration(
                           labelText: 'العميل',
-                          prefixIcon: Icon(Icons.person_outline_rounded, color: AppTheme.primaryGreen, size: 20),
+                          prefixIcon: Icon(Icons.person_outline_rounded, color: AppTheme.primaryLight, size: 20),
                         ),
                         items: erp.customers
                             .map((c) => DropdownMenuItem(
@@ -975,7 +941,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                               initialValue: selectedProduct,
                               decoration: const InputDecoration(
                                 labelText: 'المنتج',
-                                prefixIcon: Icon(Icons.menu_book_rounded, color: AppTheme.primaryGreen, size: 20),
+                                prefixIcon: Icon(Icons.menu_book_rounded, color: AppTheme.primaryLight, size: 20),
                               ),
                               items: erp.products
                                   .map((p) => DropdownMenuItem(
@@ -1009,7 +975,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           initialValue: selectedMachine,
                           decoration: const InputDecoration(
                             labelText: 'ماكينة الطباعة',
-                            prefixIcon: Icon(Icons.precision_manufacturing_outlined, color: AppTheme.primaryGreen, size: 20),
+                            prefixIcon: Icon(Icons.precision_manufacturing_outlined, color: AppTheme.primaryLight, size: 20),
                           ),
                           items: erp.machines
                               .map((m) => DropdownMenuItem(
@@ -1025,7 +991,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                           initialValue: selectedPaper,
                           decoration: const InputDecoration(
                             labelText: 'الخامة / نوع الورق',
-                            prefixIcon: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryGreen, size: 20),
+                            prefixIcon: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryLight, size: 20),
                           ),
                           items: erp.papers
                               .map((p) => DropdownMenuItem(
@@ -1044,7 +1010,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                 initialValue: selectedMachine,
                                 decoration: const InputDecoration(
                                   labelText: 'ماكينة الطباعة',
-                                  prefixIcon: Icon(Icons.precision_manufacturing_outlined, color: AppTheme.primaryGreen, size: 20),
+                                  prefixIcon: Icon(Icons.precision_manufacturing_outlined, color: AppTheme.primaryLight, size: 20),
                                 ),
                                 items: erp.machines
                                     .map((m) => DropdownMenuItem(
@@ -1062,7 +1028,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                 initialValue: selectedPaper,
                                 decoration: const InputDecoration(
                                   labelText: 'الخامة / نوع الورق',
-                                  prefixIcon: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryGreen, size: 20),
+                                  prefixIcon: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryLight, size: 20),
                                 ),
                                 items: erp.papers
                                     .map((p) => DropdownMenuItem(
@@ -1088,7 +1054,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                               decoration: const InputDecoration(
                                 labelText: 'الأفراخ المطلوبة',
                                 suffixText: 'فرخ',
-                                prefixIcon: Icon(Icons.layers_outlined, color: AppTheme.primaryGreen, size: 20),
+                                prefixIcon: Icon(Icons.layers_outlined, color: AppTheme.primaryLight, size: 20),
                               ),
                             ),
                           ),
@@ -1100,7 +1066,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                               decoration: const InputDecoration(
                                 labelText: 'ساعات التشغيل',
                                 suffixText: 'ساعة',
-                                prefixIcon: Icon(Icons.timer_outlined, color: AppTheme.primaryGreen, size: 20),
+                                prefixIcon: Icon(Icons.timer_outlined, color: AppTheme.primaryLight, size: 20),
                               ),
                             ),
                           ),
@@ -1113,7 +1079,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                         controller: notesCtrl,
                         decoration: const InputDecoration(
                           labelText: 'ملاحظات وتوجيهات التشغيل',
-                          prefixIcon: Icon(Icons.note_alt_outlined, color: AppTheme.primaryGreen, size: 20),
+                          prefixIcon: Icon(Icons.note_alt_outlined, color: AppTheme.primaryLight, size: 20),
                         ),
                         maxLines: 2,
                       ),
@@ -1179,7 +1145,7 @@ class _ProductionOrdersViewState extends State<ProductionOrdersView> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(result.message),
-                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                                     ),
                                   );
                                 }

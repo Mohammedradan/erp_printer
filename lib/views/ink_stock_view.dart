@@ -32,24 +32,10 @@ class _InkStockViewState extends State<InkStockView> {
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF0F172A), // Dark slate
-                  Color(0xFF1E293B),
-                  Color(0xFF0F766E), // Teal/Emerald accent
-                ],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderColor),
+        ),
             child: Stack(
               children: [
                 Positioned(
@@ -60,7 +46,7 @@ class _InkStockViewState extends State<InkStockView> {
                     height: 140,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.04),
+                      color: AppTheme.primaryLight.withValues(alpha: 0.035),
                     ),
                   ),
                 ),
@@ -75,10 +61,11 @@ class _InkStockViewState extends State<InkStockView> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.12),
+                              color: AppTheme.selectedSurface,
                               borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderColor),
                             ),
-                            child: const Icon(Icons.colorize_rounded, color: Colors.cyanAccent, size: 22),
+                            child: const Icon(Icons.colorize_rounded, color: AppTheme.primaryLight, size: 22),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -98,7 +85,7 @@ class _InkStockViewState extends State<InkStockView> {
                                   'أرصدة أحبار الطباعة (CMYK)، حركات التوريد والاستهلاك',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.white.withValues(alpha: 0.75),
+                                    color: AppTheme.textSecondary,
                                   ),
                                 ),
                               ],
@@ -115,8 +102,9 @@ class _InkStockViewState extends State<InkStockView> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.12),
+                              color: AppTheme.surfaceSecondary,
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppTheme.borderColor),
                             ),
                             child: Text(
                               '${totalInkWeight.toStringAsFixed(1)} كجم رصيد كلي',
@@ -127,8 +115,9 @@ class _InkStockViewState extends State<InkStockView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(20),
+                              color: AppTheme.surfaceSecondary,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppTheme.borderColor),
                               ),
                               child: Text(
                                 'القيمة: ${AppTheme.formatCurrency(totalInkValue, erp.settings.currency)}',
@@ -139,14 +128,14 @@ class _InkStockViewState extends State<InkStockView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.25),
+                                color: AppTheme.dangerSurface,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                                border: Border.all(color: AppTheme.danger.withValues(alpha: 0.36)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.warning_amber_rounded, size: 13, color: Colors.white),
+                                  const Icon(Icons.warning_amber_rounded, size: 13, color: AppTheme.danger),
                                   const SizedBox(width: 4),
                                   Text(
                                     '$underReorderCount بحاجة لطلب',
@@ -237,7 +226,7 @@ class _InkStockViewState extends State<InkStockView> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.colorize, color: AppTheme.primaryGreen),
+                      Icon(Icons.colorize, color: AppTheme.primaryLight),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text('جدول تفاصيل مخزون الأحبار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -251,7 +240,7 @@ class _InkStockViewState extends State<InkStockView> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                         columns: [
                           const DataColumn(label: Text('الحبر واللون', style: TextStyle(fontWeight: FontWeight.bold))),
                           const DataColumn(label: Text('الرمز', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -268,11 +257,11 @@ class _InkStockViewState extends State<InkStockView> {
                             DataCell(Text(i.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                             DataCell(Text(i.colorCode)),
                             DataCell(Text(i.kind)),
-                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.unitPrice))),
-                            DataCell(Text('${i.balance} كجم', style: TextStyle(fontWeight: FontWeight.bold, color: i.isUnderReorder ? Colors.red : Colors.black87))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.unitPrice, context.read<ErpProvider>().settings.currency))),
+                            DataCell(Text('${i.balance} كجم', style: TextStyle(fontWeight: FontWeight.bold, color: i.isUnderReorder ? AppTheme.danger : AppTheme.textPrimary))),
                             DataCell(Text('${i.reorderLevel}')),
                             DataCell(AppTheme.statusBadge(i.isUnderReorder ? 'إعادة طلب' : 'طبيعي')),
-                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.totalValue), style: const TextStyle(fontWeight: FontWeight.bold))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(i.totalValue, context.read<ErpProvider>().settings.currency), style: const TextStyle(fontWeight: FontWeight.bold))),
                             DataCell(Text(i.supplier ?? '—')),
                           ]);
                         }).toList(),
@@ -312,7 +301,7 @@ class _InkStockViewState extends State<InkStockView> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(AppTheme.surfaceSecondary),
                         columns: [
                           const DataColumn(label: Text('رقم الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
                           const DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -331,8 +320,8 @@ class _InkStockViewState extends State<InkStockView> {
                             DataCell(AppTheme.statusBadge(m.moveType)),
                             DataCell(Text(m.inkName)),
                             DataCell(Text('${m.qty}')),
-                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice))),
-                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.unitPrice, context.read<ErpProvider>().settings.currency))),
+                            if (isAdmin) DataCell(Text(AppTheme.formatCurrency(m.totalValue, context.read<ErpProvider>().settings.currency))),
                             DataCell(Text(m.reference ?? '—')),
                             DataCell(Text(m.notes ?? '—')),
                           ]);
@@ -378,7 +367,7 @@ class _InkStockViewState extends State<InkStockView> {
                   const SizedBox(height: 2),
                   if (isAdmin)
                     Text(
-                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
+                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue, context.read<ErpProvider>().settings.currency)}',
                       style: const TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -397,7 +386,7 @@ class _InkStockViewState extends State<InkStockView> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: ink.isUnderReorder ? Colors.red : AppTheme.darkSlate,
+                    color: ink.isUnderReorder ? AppTheme.danger : AppTheme.darkSlate,
                   ),
                 ),
               ],
@@ -452,14 +441,14 @@ class _InkStockViewState extends State<InkStockView> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: ink.isUnderReorder ? Colors.red : AppTheme.darkSlate,
+                        color: ink.isUnderReorder ? AppTheme.danger : AppTheme.darkSlate,
                       ),
                     ),
                   ),
                   const SizedBox(height: 2),
                   if (isAdmin)
                     Text(
-                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue)}',
+                      'القيمة: ${AppTheme.formatCurrency(ink.totalValue, context.read<ErpProvider>().settings.currency)}',
                       style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -490,7 +479,7 @@ class _InkStockViewState extends State<InkStockView> {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppTheme.borderColor),
           ),
@@ -512,10 +501,10 @@ class _InkStockViewState extends State<InkStockView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text('${i.balance} كجم',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: i.isUnderReorder ? Colors.red : AppTheme.darkSlate)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: i.isUnderReorder ? AppTheme.danger : AppTheme.darkSlate)),
                   if (isAdmin)
-                    Text(AppTheme.formatCurrency(i.totalValue),
-                        style: const TextStyle(fontSize: 11, color: AppTheme.primaryGreen, fontWeight: FontWeight.w600)),
+                    Text(AppTheme.formatCurrency(i.totalValue, context.read<ErpProvider>().settings.currency),
+                        style: const TextStyle(fontSize: 11, color: AppTheme.primaryLight, fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -537,7 +526,7 @@ class _InkStockViewState extends State<InkStockView> {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppTheme.borderColor),
           ),
@@ -567,7 +556,7 @@ class _InkStockViewState extends State<InkStockView> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: isSupply ? Colors.green.shade700 : Colors.orange.shade800,
+                      color: isSupply ? AppTheme.success : AppTheme.warning,
                     ),
                   ),
                 ],
@@ -577,8 +566,8 @@ class _InkStockViewState extends State<InkStockView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('سعر الوحدة: ${AppTheme.formatCurrency(m.unitPrice)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                    Text('الإجمالي: ${AppTheme.formatCurrency(m.totalValue)}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate)),
+                    Text('سعر الوحدة: ${AppTheme.formatCurrency(m.unitPrice, context.read<ErpProvider>().settings.currency)}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    Text('الإجمالي: ${AppTheme.formatCurrency(m.totalValue, context.read<ErpProvider>().settings.currency)}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.darkSlate)),
                   ],
                 ),
               if (m.reference != null && m.reference!.isNotEmpty) ...[
@@ -697,7 +686,7 @@ class _InkStockViewState extends State<InkStockView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(result.message),
-                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : Colors.red.shade700,
+                      backgroundColor: result.isSuccess ? AppTheme.primaryGreen : AppTheme.dangerButton,
                     ),
                   );
                 }

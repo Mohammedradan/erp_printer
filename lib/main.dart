@@ -36,7 +36,9 @@ class MatbaaErpApp extends StatelessWidget {
     return MaterialApp(
       title: 'نظام مطبعة ERP المتكامل',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       // إذا كان المستخدم مسجّل دخول، ابدأ بالتطبيق مباشرة
       home: auth.isLoggedIn ? const MainLayout() : const LoginView(),
     );
